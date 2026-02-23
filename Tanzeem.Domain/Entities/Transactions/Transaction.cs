@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 
 namespace Tanzeem.Domain.Entities.Transactions {
@@ -19,13 +20,13 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         #region Relationships
         #endregion
-        public int CompanyId { get; set; }
-        public required Company Company { get; set; }
+        public int BranchId { get; set; }
 
 
+        #region Navigation
+        #endregion
+        public required Branch Branch { get; set; }
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
-
-
 
     }
 }

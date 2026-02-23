@@ -1,4 +1,7 @@
 
+using Microsoft.EntityFrameworkCore;
+using Tanzeem.Persistence.Data.DbContexts;
+
 namespace Tanzeem.Web
 {
     public class Program
@@ -13,6 +16,12 @@ namespace Tanzeem.Web
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+
+            builder.Services.AddDbContext<TanzeemDbContext>(options => {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
+
 
             var app = builder.Build();
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Transactions {
@@ -12,7 +13,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         public int Quantity { get; set; }
 
-        public decimal UnitPrice { get; set; }
+        public decimal UnitCost { get; set; }
 
 
         #region Relationships
@@ -22,10 +23,11 @@ namespace Tanzeem.Domain.Entities.Transactions {
         public int ProductId { get; set; }
 
 
-        public Transaction Transaction { get; set; } = default!;
-        public Product Product { get; set; } = default!;
+        #region Navigation
 
-
+        #endregion
+        public required Transaction Transaction { get; set; } = default!;
+        public required Product Product { get; set; } = default!;
 
     }
 }

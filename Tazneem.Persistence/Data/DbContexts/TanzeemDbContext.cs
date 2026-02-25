@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 
@@ -22,6 +23,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<Product> Products { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
+        public DbSet<Inventory> Inventories { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Transactions;
 
 namespace Tanzeem.Domain.Entities.Branches {
@@ -21,12 +22,12 @@ namespace Tanzeem.Domain.Entities.Branches {
         #endregion
         public required Company Company { get; set; }
         public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
-        
+        public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+
     }
 }
 
 
 #region Later
-//public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 //public ICollection<User> Users { get; set; } = new List<User>();
 #endregion

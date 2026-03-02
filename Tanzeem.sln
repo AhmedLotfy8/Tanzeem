@@ -11,15 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastru
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Domain", "Tanzeem.Domain\Tanzeem.Domain.csproj", "{5159AB31-C65C-4154-81C9-6DDD86BA1608}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Services", "Tazneem.Services\Tanzeem.Services.csproj", "{79C9C3C0-407C-42ED-B98D-0CC8E4D8E254}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Services", "Tanzeem.Services\Tanzeem.Services.csproj", "{79C9C3C0-407C-42ED-B98D-0CC8E4D8E254}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Services.Abstractions", "Tazneem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj", "{A6015E64-0F9E-4BCE-A6AE-F3E344A6476D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Services.Abstractions", "Tanzeem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj", "{A6015E64-0F9E-4BCE-A6AE-F3E344A6476D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Persistence", "Tazneem.Persistence\Tanzeem.Persistence.csproj", "{DB0B5695-7DC3-4600-A3A5-FD97C4131E10}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Persistence", "Tanzeem.Persistence\Tanzeem.Persistence.csproj", "{DB0B5695-7DC3-4600-A3A5-FD97C4131E10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Presentation", "Tazneem.Presentation\Tanzeem.Presentation.csproj", "{3A33A127-D93F-4763-B1C9-8FDAA0A8AE82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Presentation", "Tanzeem.Presentation\Tanzeem.Presentation.csproj", "{3A33A127-D93F-4763-B1C9-8FDAA0A8AE82}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Shared", "Tazneem.Shared\Tanzeem.Shared.csproj", "{2707333D-45E1-4851-A828-5E8CF4ACD618}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Shared", "Tanzeem.Shared\Tanzeem.Shared.csproj", "{2707333D-45E1-4851-A828-5E8CF4ACD618}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

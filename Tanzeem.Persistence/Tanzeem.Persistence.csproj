@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tazneem.Services\Tanzeem.Services.csproj" />
+    <ProjectReference Include="..\Tanzeem.Services\Tanzeem.Services.csproj" />
   </ItemGroup>
 
 </Project>

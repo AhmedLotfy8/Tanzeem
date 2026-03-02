@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tazneem.Shared\Tanzeem.Shared.csproj" />
+    <ProjectReference Include="..\Tanzeem.Domain\Tanzeem.Domain.csproj" />
+    <ProjectReference Include="..\Tanzeem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

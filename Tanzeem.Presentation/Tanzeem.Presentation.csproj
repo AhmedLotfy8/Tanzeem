@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tazneem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj" />
+    <ProjectReference Include="..\Tanzeem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

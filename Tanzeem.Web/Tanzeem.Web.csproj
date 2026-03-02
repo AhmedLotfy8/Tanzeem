@@ -22,8 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Tazneem.Persistence\Tanzeem.Persistence.csproj" />
-    <ProjectReference Include="..\Tazneem.Presentation\Tanzeem.Presentation.csproj" />
+    <ProjectReference Include="..\Tanzeem.Persistence\Tanzeem.Persistence.csproj" />
+    <ProjectReference Include="..\Tanzeem.Presentation\Tanzeem.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

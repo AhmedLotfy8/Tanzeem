@@ -18,5 +18,6 @@ namespace Tanzeem.Domain.Contracts {
         void DeleteAsync(Entity entity);
 
 
+
     }
 }

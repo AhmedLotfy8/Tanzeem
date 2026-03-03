@@ -23,17 +23,14 @@ namespace Tanzeem.Persistence.Repositories {
 
         public async Task AddAsync(Entity entity) {
             await _context.AddAsync(entity);
-            _context.SaveChanges();
         }
 
         public void UpdateAsync(Entity entity) {
             _context.Update(entity);
-            _context.SaveChanges();
         }
 
         public void DeleteAsync(Entity entity) {
             _context.Remove(entity);
-            _context.SaveChanges();
         }
 
 

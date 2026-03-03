@@ -18,21 +18,22 @@ namespace Tanzeem.Persistence.Repositories {
 
         public async Task<IEnumerable<Entity>> GetAllAsync() {
 
-            var entities = _context.Set<Entity>().ToListAsync();
-            return await entities ?? throw new Exception("Entities are null");
-
+            return await _context.Set<Entity>().ToListAsync()
         }
 
         public async Task AddAsync(Entity entity) {
             await _context.AddAsync(entity);
+            _context.SaveChanges();
         }
 
         public void UpdateAsync(Entity entity) {
             _context.Update(entity);
+            _context.SaveChanges();
         }
 
         public void DeleteAsync(Entity entity) {
             _context.Remove(entity);
+            _context.SaveChanges();
         }
 
 

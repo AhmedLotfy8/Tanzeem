@@ -40,7 +40,7 @@ namespace Tanzeem.Domain.Entities.Products {
 
         #region Navigation
         #endregion
-        public required Company Company { get; set; }
+        public Company Company { get; set; } = default!;
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
         public Category Category { get; set; }

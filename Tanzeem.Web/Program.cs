@@ -1,6 +1,10 @@
 
 using Microsoft.EntityFrameworkCore;
+using Tanzeem.Domain.Contracts;
+using Tanzeem.Persistence;
 using Tanzeem.Persistence.Data.DbContexts;
+using Tanzeem.Services.Abstractions.Products;
+using Tanzeem.Services.Products;
 
 namespace Tanzeem.Web
 {
@@ -11,6 +15,12 @@ namespace Tanzeem.Web
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+
+
+
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

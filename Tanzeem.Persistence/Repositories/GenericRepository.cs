@@ -18,7 +18,7 @@ namespace Tanzeem.Persistence.Repositories {
 
         public async Task<IEnumerable<Entity>> GetAllAsync() {
 
-            return await _context.Set<Entity>().ToListAsync()
+            return await _context.Set<Entity>().ToListAsync();
         }
 
         public async Task AddAsync(Entity entity) {

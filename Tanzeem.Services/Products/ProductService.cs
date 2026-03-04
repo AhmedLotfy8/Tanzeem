@@ -18,9 +18,14 @@ namespace Tanzeem.Services.Products {
             var product = _unitOfWork.GetRepository<Product>()
                 .GetByIdAsync(id).Result;
 
+
+            if (product is null) {
+                throw new Exception("Product not found");
+            }
+
+
             #region Mapping
             var result = new ProductDto {
-                Id = product.Id,
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category.Name,
@@ -45,7 +50,6 @@ namespace Tanzeem.Services.Products {
             #region Mapping
             var result = _unitOfWork.GetRepository<Product>()
                 .GetAllAsync().Result.Select(product => new ProductDto {
-                    Id = product.Id,
                     Name = product.Name,
                     SKU = product.SKU,
                     Category = product.Category.Name,
@@ -64,7 +68,7 @@ namespace Tanzeem.Services.Products {
             return Task.FromResult(result);
         }
 
-        public async Task CreateProductAsync(ProductDto productDto) {
+        public async Task<int> CreateProductAsync(ProductDto productDto) {
 
             #region Category Retrieval and Assigning
             var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
@@ -100,13 +104,14 @@ namespace Tanzeem.Services.Products {
             #endregion
 
             var count = await _unitOfWork.SaveChangesAsync();
+            return product.Id;
         }
 
-        public Task CsvUploadAsync(string filePath) {
+        public Task<int> CsvUploadAsync(string filePath) {
             throw new NotImplementedException();
         }
 
-        public async Task UpdateProductAsync(int id, ProductDto productDto) {
+        public async Task<int> UpdateProductAsync(int id, ProductDto productDto) {
 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
 
@@ -140,13 +145,15 @@ namespace Tanzeem.Services.Products {
             #endregion
 
             var count = await _unitOfWork.SaveChangesAsync();
+            return product.Id;
         }
 
-        public async Task DeletedProductAsync(int id) {
+        public async Task<bool> DeletedProductAsync(int id) {
 
             var result = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);    
             _unitOfWork.GetRepository<Product>().DeleteAsync(result);
             var count = await _unitOfWork.SaveChangesAsync();
+            return count > 0;
         }
 
     }

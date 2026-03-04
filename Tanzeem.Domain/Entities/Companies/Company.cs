@@ -11,7 +11,16 @@ namespace Tanzeem.Domain.Entities.Companies {
     
         public int Id { get; set; }
 
-        public string Field { get; set; }         // Agriculture, Manufacturing, Pharmaceutical, etc.
+        public string Name { get; set; }       
+
+        public string Field { get; set; }         
+
+        public string Email { get; set; }
+
+        public string Phone { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
 
 
 

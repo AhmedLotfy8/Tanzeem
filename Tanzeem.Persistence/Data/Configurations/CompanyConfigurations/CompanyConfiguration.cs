@@ -15,6 +15,14 @@ namespace Tanzeem.Persistence.Data.Configurations.CompanyConfigurations {
             builder.Property(x => x.Field)
                 .HasMaxLength(256);
 
+            builder.Property(x => x.Name)
+                .HasMaxLength(256);
+
+            builder.Property(x => x.Email)
+                .HasMaxLength(256);
+
+            builder.Property(x => x.Phone)
+                .HasMaxLength(20);
 
 
             builder.HasMany(c => c.Branches)

@@ -22,8 +22,8 @@ namespace Tanzeem.Domain.Entities.Inventories {
 
         #region Navigation
         #endregion
-        public Product Product { get; set; }
-        public Branch Branch { get; set; }
+        public Product Product { get; set; } = default!;
+        public Branch Branch { get; set; } = default!;
 
 
     }

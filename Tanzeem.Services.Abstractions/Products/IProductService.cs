@@ -13,14 +13,14 @@ namespace Tanzeem.Services.Abstractions.Products {
         Task<IEnumerable<ProductDto>> GetAllProductsAsync();
 
         // Post
-        void CreateProductAsync(ProductDto productDto);
-        void CsvUploadAsync(string filePath);
+        Task CreateProductAsync(ProductDto productDto);
+        Task CsvUploadAsync(string filePath);
 
         // Put
-        void UpdateProductAsync(int id, ProductDto productDto);
+        Task UpdateProductAsync(int id, ProductDto productDto);
 
         // Delete
-        void DeletedProductAsync(int id);
+        Task DeletedProductAsync(int id);
 
     }
 }

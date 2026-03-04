@@ -17,10 +17,17 @@ namespace Tanzeem.Shared.Dtos.Products {
 
         public int Stock { get; set; }
 
-        public decimal Price { get; set; }
+        public decimal CostPrice { get; set; }
+
+        public decimal SellingPrice { get; set; }
 
         public DateTime ExpiryDate { get; set; }
 
+        public string Barcode { get; set; }
+
+        public string Description { get; set; }
+        public int ReorderLevel { get; set; }
+        public string Status { get; set; }
 
     }
 }

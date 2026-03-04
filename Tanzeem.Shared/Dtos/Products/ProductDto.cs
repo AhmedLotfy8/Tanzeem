@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 namespace Tanzeem.Shared.Dtos.Products {
     public class ProductDto {
 
-        public int Id { get; set; }
-
         public string Name { get; set; }
 
         public string SKU { get; set; }

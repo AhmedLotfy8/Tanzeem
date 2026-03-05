@@ -24,6 +24,9 @@ namespace Tanzeem.Persistence.Data.Configurations.CompanyConfigurations {
             builder.Property(x => x.Phone)
                 .HasMaxLength(20);
 
+            builder.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
 
             builder.HasMany(c => c.Branches)
                 .WithOne(b => b.Company)

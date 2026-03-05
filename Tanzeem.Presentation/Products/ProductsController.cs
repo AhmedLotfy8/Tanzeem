@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿    using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,7 +42,7 @@ namespace Tanzeem.Presentation.Products {
         }
 
         [HttpDelete]
-        [Route("Products/{id}")]
+        [Route("Products/{id}")]    
         public async Task<IActionResult> DeleteProduct(int id) {
             var result = await productService.DeletedProductAsync(id);
             return Ok(result);

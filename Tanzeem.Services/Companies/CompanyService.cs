@@ -13,9 +13,12 @@ namespace Tanzeem.Services.Companies {
     public class CompanyService(IUnitOfWork _unitOfWork)
     : ICompanyService {
 
-        public async Task<CompanyDto> GetCurrentCompanyAsync() {
+        public async Task<CompanyDto> GetCurrentCompanyAsync(int companyId) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
 
-            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(1); // Assuming there's only one company for simplicity
+            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
+
+            if (company is null)
+                throw new Exception("company not found Exception");
 
             #region Mapping
             var result = new CompanyDto {

@@ -8,8 +8,8 @@ using Tanzeem.Shared.Dtos.Companies;
 namespace Tanzeem.Services.Abstractions.Companies {
     public interface ICompanyService {
     
-        Task<CompanyDto> GetCurrentCompanyAsync();
-        
+        Task<CompanyDto> GetCurrentCompanyAsync(int companyId); // Assuming you want to get a company by its ID
+
         Task<int> UpdateCompanyAsync(int companyId, CompanyDto companyDto);
 
         Task<bool> DeleteCompanyAsync(int companyId);

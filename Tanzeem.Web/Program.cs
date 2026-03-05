@@ -1,4 +1,5 @@
 
+
 using Microsoft.EntityFrameworkCore;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Persistence;
@@ -21,11 +22,11 @@ namespace Tanzeem.Web
             // Add services to the container.
 
             #region Added Services
-            #endregion
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
             builder.Services.AddScoped<IRegisterationService, RegisterationService>();
+            #endregion
 
 
 

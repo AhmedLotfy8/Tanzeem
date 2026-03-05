@@ -21,7 +21,7 @@ namespace Tanzeem.Domain.Entities.Companies {
 
         public DateTime CreatedAt { get; set; }
 
-
+        public bool IsActive { get; set; }
 
 
         #region Navigation

@@ -12,7 +12,7 @@ using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork) : IProductService {
-
+        
         public Task<ProductDto> GetProductByIdAsync(int id) {
 
             var product = _unitOfWork.GetRepository<Product>()

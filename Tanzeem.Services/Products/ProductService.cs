@@ -28,7 +28,7 @@ namespace Tanzeem.Services.Products {
             var result = new ProductDto {
                 Name = product.Name,
                 SKU = product.SKU,
-                Category = product.Category.Name,
+                Category = "TempCat",
                 Stock = _unitOfWork.GetRepository<Inventory>()
                     .GetAllAsync().Result.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
                 CostPrice = product.CostPrice,
@@ -37,7 +37,8 @@ namespace Tanzeem.Services.Products {
                 Barcode = product.Barcode,
                 Description = product.Description,
                 ReorderLevel = product.ReorderLevel,
-                Status = product.Status
+                Status = product.Status,
+                
             };
             #endregion
 
@@ -52,7 +53,7 @@ namespace Tanzeem.Services.Products {
                 .GetAllAsync().Result.Select(product => new ProductDto {
                     Name = product.Name,
                     SKU = product.SKU,
-                    Category = product.Category.Name,
+                    Category = "TempCat",
                     Stock = _unitOfWork.GetRepository<Inventory>()
                         .GetAllAsync().Result.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
                     CostPrice = product.CostPrice,
@@ -93,12 +94,15 @@ namespace Tanzeem.Services.Products {
                 ReorderLevel = productDto.ReorderLevel,
                 Status = productDto.Status,
                 Category = category,
+                CompanyId = 3,
+                
             };
             await _unitOfWork.GetRepository<Product>().AddAsync(product);
 
             await _unitOfWork.GetRepository<Inventory>().AddAsync(new Inventory {
                 Product = product,
                 Quantity = productDto.Stock,
+                BranchId = 1
 
             });
             #endregion
@@ -150,6 +154,10 @@ namespace Tanzeem.Services.Products {
 
         public async Task<bool> DeletedProductAsync(int id) {
 
+            var test = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
+            var test2 = test.FirstOrDefault(i => i.ProductId == id);
+
+            _unitOfWork.GetRepository<Inventory>().DeleteAsync(test2);
             var result = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);    
             _unitOfWork.GetRepository<Product>().DeleteAsync(result);
             var count = await _unitOfWork.SaveChangesAsync();

@@ -11,7 +11,23 @@ namespace Tanzeem.Persistence.Data.Configurations.BranchConfigurations {
     public class BranchConfiguration : IEntityTypeConfiguration<Branch> {
         public void Configure(EntityTypeBuilder<Branch> builder) {
             
+            
+            builder.Property(b => b.Name)
+                .HasMaxLength(256);
 
+            builder.Property(b => b.Location)
+                .HasMaxLength(256);
+
+            builder.Property(b => b.PhoneNumber)
+                .HasMaxLength(20);
+
+            builder.Property(b => b.Email)
+                .HasMaxLength(256);
+
+            builder.Property(b => b.CreatedAt);
+
+            builder.Property(b => b.Status)
+                .HasMaxLength(30);
 
 
 

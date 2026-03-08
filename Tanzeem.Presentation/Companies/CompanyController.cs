@@ -16,23 +16,23 @@ namespace Tanzeem.Presentation.Companies {
 
         [HttpGet]
         [Route("Companies/{id}")]
-        public async Task<IActionResult> GetCurrentCompany(int companyId) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
-            var result = await companyService.GetCurrentCompanyAsync(companyId);
+        public async Task<IActionResult> GetCurrentCompany(int id) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
+            var result = await companyService.GetCurrentCompanyAsync(id);
             return Ok(result);
         }
 
         [HttpPut]
         [Route("Companies/{id}")]
-        public async Task<IActionResult> UpdateCompany(int companyId, CompanyDto companyDto) {
+        public async Task<IActionResult> UpdateCompany(int id, CompanyDto companyDto) {
 
-            var result = await companyService.UpdateCompanyAsync(companyId, companyDto);
+            var result = await companyService.UpdateCompanyAsync(id, companyDto);
             return Ok(result);
         }
 
         [HttpDelete]
         [Route("Companies/{id}")]
-        public async Task<IActionResult> DeleteCompany(int companyId) {
-            var result = await companyService.DeleteCompanyAsync(companyId);
+        public async Task<IActionResult> DeleteCompany(int id) {
+            var result = await companyService.DeleteCompanyAsync(id);
             return Ok(result);
         }
 

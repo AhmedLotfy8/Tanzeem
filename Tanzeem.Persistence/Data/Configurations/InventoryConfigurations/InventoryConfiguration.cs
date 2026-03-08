@@ -18,12 +18,12 @@ namespace Tanzeem.Persistence.Data.Configurations.InventoryConfigurations {
             builder.HasOne(i => i.Product)
                 .WithMany(p => p.Inventories)
                 .HasForeignKey(i => i.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(i => i.Branch)
                 .WithMany(b => b.Inventories)
                 .HasForeignKey(i => i.BranchId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
         }
 

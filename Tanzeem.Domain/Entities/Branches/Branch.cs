@@ -20,7 +20,7 @@ namespace Tanzeem.Domain.Entities.Branches {
 
         #region Navigation
         #endregion
-        public required Company Company { get; set; }
+        public Company Company { get; set; } = default!;
         public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 

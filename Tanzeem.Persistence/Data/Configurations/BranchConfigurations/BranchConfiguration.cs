@@ -13,7 +13,7 @@ namespace Tanzeem.Persistence.Data.Configurations.BranchConfigurations {
             
             
             builder.Property(b => b.Name)
-                .HasMaxLength(256);
+                .IsRequired().HasMaxLength(256);
 
             builder.Property(b => b.Location)
                 .HasMaxLength(256);
@@ -25,9 +25,6 @@ namespace Tanzeem.Persistence.Data.Configurations.BranchConfigurations {
                 .HasMaxLength(256);
 
             builder.Property(b => b.CreatedAt);
-
-            builder.Property(b => b.Status)
-                .HasMaxLength(30);
 
 
 

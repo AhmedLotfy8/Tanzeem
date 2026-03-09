@@ -8,6 +8,13 @@ using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Transactions;
 
 namespace Tanzeem.Domain.Entities.Branches {
+    
+    public enum BranchStatus {
+        Active = 1,
+        Inactive = 2,
+        Closed = 3
+    }
+
     public class Branch {
     
         public int Id { get; set; }
@@ -22,7 +29,7 @@ namespace Tanzeem.Domain.Entities.Branches {
 
         public DateTime CreatedAt { get; set; }
 
-        public string Status { get; set; }
+        public BranchStatus Status { get; set; } = BranchStatus.Active;
 
 
         #region Relationships

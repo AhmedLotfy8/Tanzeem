@@ -4,16 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Services.Abstractions.BusinessCore;
+using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Companies;
 
 namespace Tanzeem.Services.BusinessCore {
     public class RegisterationService(IUnitOfWork _unitOfWork)
         : IRegisterationService {
-        
 
-        public async Task<int> CreateNewCompany(CompanyDto companyDto) {
+        public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
 
             #region Mapping
             var company = new Company {
@@ -26,25 +27,41 @@ namespace Tanzeem.Services.BusinessCore {
             };
             #endregion
 
-            var result = _unitOfWork.GetRepository<Company>().AddAsync(company);
+            await _unitOfWork.GetRepository<Company>().AddAsync(company);
             var count = await _unitOfWork.SaveChangesAsync();
 
             return company.Id;
         }
 
-        #region To Be Implemented 
-        //public Task<int> AssignCompanyToUser(int companyId, int userId) {
-        //    throw new NotImplementedException();
-        //}
+        public async Task<int> CreateDefaultBranchAsync(BranchDto branchDto) {
 
-        //public Task<int> CreateDefaultBranch() {
-        //    throw new NotImplementedException();
-        //}
+            #region Mapping
+            var branch = new Branch {
+                Name = branchDto.Name,
+                Location = branchDto.Location,
+                PhoneNumber = branchDto.PhoneNumber,
+                Email = branchDto.Email,
+                CreatedAt = DateTime.UtcNow,
+                Status = BranchStatus.Active,
+                CompanyId = 1 // This should be the ID of the newly created company, but for now it's hardcoded to 1
+            };
+            #endregion
 
-        //public Task<int> CreateNewAdmin() {
-        //    throw new NotImplementedException();
-        //}
-        #endregion
+            await _unitOfWork.GetRepository<Branch>().AddAsync(branch);
+            var count = await _unitOfWork.SaveChangesAsync();
 
+            return branch.Id;
+        }
+
+        
     }
 }
+
+#region To Be Created
+//public Task<int> AssignCompanyToUser(int companyId, int userId) {
+//    throw new NotImplementedException();
+//}
+//public Task<int> CreateNewAdmin() {
+//    throw new NotImplementedException();
+//}
+#endregion

@@ -16,7 +16,7 @@ namespace Tanzeem.Presentation.BusinessCore {
         [HttpPost]
         [Route("CompanyCreation")]
         public async Task<IActionResult> CreateNewCompany(CompanyDto companyDto) {
-            var result = await registerationService.CreateNewCompany(companyDto);
+            var result = await registerationService.CreateNewCompanyAsync(companyDto);
             return Ok(result);
         }
 

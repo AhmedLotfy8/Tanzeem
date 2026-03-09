@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 namespace Tanzeem.Shared.Dtos.Branches {
     public class BranchDto {
 
+        public int Id { get; set; }
+
         public string Name { get; set; }
 
         public string Location { get; set; }

@@ -20,17 +20,17 @@ namespace Tanzeem.Presentation.Products {
             return Ok(result);
         }
 
-        [HttpGet]
-        [Route("Products/{id}")]
-        public async Task<IActionResult> GetProductById(int id) {
-            var result = await productService.GetProductByIdAsync(id);
-            return Ok(result);
-        }
-
         [HttpPost]
         [Route("Products")]
         public async Task<IActionResult> CreateProduct(ProductDto dto) {
             var result = await productService.CreateProductAsync(dto);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("Products/{id}")]
+        public async Task<IActionResult> GetProductById(int id) {
+            var result = await productService.GetProductByIdAsync(id);
             return Ok(result);
         }
 

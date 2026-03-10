@@ -43,7 +43,7 @@ namespace Tanzeem.Services.BusinessCore {
                 Email = branchDto.Email,
                 CreatedAt = DateTime.UtcNow,
                 Status = BranchStatus.Active,
-                CompanyId = 1 // This should be the ID of the newly created company, but for now it's hardcoded to 1
+                CompanyId = 3 // This should be the ID of the newly created company, but for now it's hardcoded to 1
             };
             #endregion
 

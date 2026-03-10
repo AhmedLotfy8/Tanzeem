@@ -1,12 +1,12 @@
-
-
 using Microsoft.EntityFrameworkCore;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Persistence;
 using Tanzeem.Persistence.Data.DbContexts;
+using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Services.Abstractions.Products;
+using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
 using Tanzeem.Services.Products;
@@ -26,6 +26,7 @@ namespace Tanzeem.Web
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
             builder.Services.AddScoped<IRegisterationService, RegisterationService>();
+            builder.Services.AddScoped<IBranchService, BranchService>();
             #endregion
 
 

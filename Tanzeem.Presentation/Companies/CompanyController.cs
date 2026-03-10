@@ -30,7 +30,7 @@ namespace Tanzeem.Presentation.Companies {
         }
 
         [HttpDelete]
-        [Route("Companies/{id}")]
+            [Route("Companies/{id}")]
         public async Task<IActionResult> DeleteCompany(int id) {
             var result = await companyService.DeleteCompanyAsync(id);
             return Ok(result);

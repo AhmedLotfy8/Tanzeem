@@ -79,6 +79,7 @@ namespace Tanzeem.Services.Branches {
                 PhoneNumber = branchDto.PhoneNumber,
                 Email = branchDto.Email,
                 CreatedAt = DateTime.UtcNow,
+                CompanyId = 3 // This is hardcoded for now, later we will get the company id from the user context
             };
             #endregion
 

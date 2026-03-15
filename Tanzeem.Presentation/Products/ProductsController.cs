@@ -15,8 +15,8 @@ namespace Tanzeem.Presentation.Products {
 
         [HttpGet]
         [Route("Products")]
-        public async Task<IActionResult> GetAllProducts() {
-            var result = await productService.GetAllProductsAsync();
+        public async Task<IActionResult> GetAllProducts(int? sortId) {
+            var result = await productService.GetAllProductsAsync(sortId);
             return Ok(result);
         }
 

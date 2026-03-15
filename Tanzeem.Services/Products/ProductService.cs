@@ -13,16 +13,15 @@ using Tanzeem.Shared.Dtos.Products;
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork) : IProductService {
         
-        public Task<ProductDto> GetProductByIdAsync(int id) {
+        public async Task<ProductDto> GetProductByIdAsync(int id) {
 
-            var product = _unitOfWork.GetRepository<Product>()
-                .GetByIdAsync(id).Result;
+            var product = await _unitOfWork.GetRepository<Product>()
+                .GetByIdAsync(id);
 
 
             if (product is null) {
                 throw new Exception("Product not found");
             }
-
 
             #region Mapping
             var result = new ProductDto {
@@ -43,30 +42,32 @@ namespace Tanzeem.Services.Products {
             #endregion
 
 
-            return Task.FromResult(result);
+            return result;
         }
 
-        public Task<IEnumerable<ProductDto>> GetAllProductsAsync() {
+        public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId) {
+
+            var products = await ProductsSortingHelper.SortProducts(sortId, _unitOfWork);
 
             #region Mapping
-            var result = _unitOfWork.GetRepository<Product>()
-                .GetAllAsync().Result.Select(product => new ProductDto {
-                    Name = product.Name,
-                    SKU = product.SKU,
-                    Category = "TempCat",
-                    Stock = _unitOfWork.GetRepository<Inventory>()
-                        .GetAllAsync().Result.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
-                    CostPrice = product.CostPrice,
-                    SellingPrice = product.SellingPrice,
-                    ExpiryDate = product.ExpiryDate,
-                    Barcode = product.Barcode,
-                    Description = product.Description,
-                    ReorderLevel = product.ReorderLevel,
-                    Status = product.Status
-                });
+            var result = products.Select(product => new ProductDto {
+                Name = product.Name,
+                SKU = product.SKU,
+                Category = "TempCat",
+                Stock = _unitOfWork.GetRepository<Inventory>()
+                    .GetAllAsync().Result.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
+                CostPrice = product.CostPrice,
+                SellingPrice = product.SellingPrice,
+                ExpiryDate = product.ExpiryDate,
+                Barcode = product.Barcode,
+                Description = product.Description,
+                ReorderLevel = product.ReorderLevel,
+                Status = product.Status,
+                
+            });
             #endregion
 
-            return Task.FromResult(result);
+            return result;
         }
 
         public async Task<int> CreateProductAsync(ProductDto productDto) {

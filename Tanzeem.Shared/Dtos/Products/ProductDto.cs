@@ -11,7 +11,7 @@ namespace Tanzeem.Shared.Dtos.Products {
 
         public string SKU { get; set; }
 
-        public string Category { get; set; }
+        public string? Category { get; set; }
 
         public int Stock { get; set; }
 

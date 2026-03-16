@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Products\ProductsSortingHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Tanzeem.Domain\Tanzeem.Domain.csproj" />
     <ProjectReference Include="..\Tanzeem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj" />
   </ItemGroup>

@@ -63,9 +63,10 @@ namespace Tanzeem.Services.Transactions {
         }
 
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
-            
+
+            #region Mapping
             var transaction = new Transaction {
-                TransactionId = transactionDto.Id,
+                TransactionId = Guid.NewGuid().ToString(),
                 Type = transactionDto.Type,
                 CreatedAt = transactionDto.CreatedAt,
                 Status = transactionDto.Status,
@@ -76,6 +77,7 @@ namespace Tanzeem.Services.Transactions {
                 Notes = transactionDto.Notes,
                 BranchId = 1 // dummy value
             };
+            #endregion
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
             var count = await _unitOfWork.SaveChangesAsync();

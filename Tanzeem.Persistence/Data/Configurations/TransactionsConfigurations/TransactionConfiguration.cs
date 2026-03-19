@@ -12,6 +12,9 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
         
         public void Configure(EntityTypeBuilder<Transaction> builder) {
 
+            builder.Property(x => x.TransactionId)
+                .HasMaxLength(128);
+
             builder.Property(x => x.Type)
                 .HasMaxLength(128);
 

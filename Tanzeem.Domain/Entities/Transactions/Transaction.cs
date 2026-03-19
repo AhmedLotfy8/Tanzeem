@@ -11,6 +11,8 @@ namespace Tanzeem.Domain.Entities.Transactions {
     
         public int Id { get; set; }
 
+        public string TransactionId { get; set; }
+        
         public string Type { get; set; }          // In_Out_Adjustment
 
         public DateTime CreatedAt { get; set; }
@@ -42,7 +44,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         #region Navigation
         #endregion
-        public required Branch Branch { get; set; }
+        public Branch Branch { get; set; } = default!;
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
 
     }

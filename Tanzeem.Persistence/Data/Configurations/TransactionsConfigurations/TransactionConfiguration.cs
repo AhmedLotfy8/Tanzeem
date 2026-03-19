@@ -20,6 +20,21 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
             builder.Property(x => x.Status)
                 .HasMaxLength(128);
 
+            builder.Property(x => x.Value)
+                .HasColumnType("decimal(18, 2)");
+
+            builder.Property(x => x.Quantity)
+                .HasColumnType("int");
+
+            builder.Property(x => x.SourceReason)
+                .HasMaxLength(256);
+
+            builder.Property(x => x.ReferenceNumber)
+                .HasMaxLength(128);
+
+            builder.Property(x => x.Notes)
+                .HasMaxLength(512);
+
 
 
             builder.HasOne(t => t.Branch)

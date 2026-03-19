@@ -15,7 +15,7 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
             builder.Property(x => x.Quantity)
                 .HasColumnType("int");
 
-            builder.Property(x => x.UnitCost)
+            builder.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
 

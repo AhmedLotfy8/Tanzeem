@@ -11,11 +11,28 @@ namespace Tanzeem.Domain.Entities.Transactions {
     
         public int Id { get; set; }
 
-        public string Type { get; set; }          // In_Out
-    
+        public string Type { get; set; }          // In_Out_Adjustment
+
         public DateTime CreatedAt { get; set; }
 
         public string Status { get; set; }         // Pending_Completed_Failed
+
+        public decimal Value { get; set; }
+
+        public int Quantity { get; set; }
+
+        public string SourceReason { get; set; }        
+
+        public string ReferenceNumber { get; set; }
+
+        public string Notes { get; set; }
+
+        #region Later
+
+        #endregion
+        //public User PreformedBy { get; set; }
+        // public String BatchNumber { get; set; }
+
 
 
         #region Relationships

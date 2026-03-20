@@ -15,22 +15,13 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
             builder.Property(x => x.TransactionId)
                 .HasMaxLength(128);
 
-            builder.Property(x => x.Type)
-                .HasMaxLength(128);
-
             builder.Property(x => x.CreatedAt);
-
-            builder.Property(x => x.Status)
-                .HasMaxLength(128);
 
             builder.Property(x => x.Value)
                 .HasColumnType("decimal(18, 2)");
 
             builder.Property(x => x.Quantity)
                 .HasColumnType("int");
-
-            builder.Property(x => x.SourceReason)
-                .HasMaxLength(256);
 
             builder.Property(x => x.ReferenceNumber)
                 .HasMaxLength(128);

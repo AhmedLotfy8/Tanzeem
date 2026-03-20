@@ -7,23 +7,49 @@ using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 
 namespace Tanzeem.Domain.Entities.Transactions {
-    public class Transaction {
+
+    #region Enums
+
+    public enum TransactionType {
+        In = 1,
+        Out = 2,
+        Adjustment = 3,
+    }
+
+    public enum TransactionStatus {
+        Completed = 4,
+        Pending = 5,
+        Failed = 6,
+    }
+
+    public enum TransactionSource {
+        Supplier = 7,
+        Production = 8,
+        Return = 9,
+        Recovered = 10,
+        FromAnotherBranch = 11,
+        Adjustment = 12,
+    }
+
+    #endregion
     
+    public class Transaction {
+
         public int Id { get; set; }
 
         public string TransactionId { get; set; }
-        
-        public string Type { get; set; }          // In_Out_Adjustment
+
+        public TransactionType Type { get; set; }          // In_Out_Adjustment
 
         public DateTime CreatedAt { get; set; }
 
-        public string Status { get; set; }         // Pending_Completed_Failed
+        public TransactionStatus Status { get; set; }         // Pending_Completed_Failed
 
         public decimal Value { get; set; }
 
         public int Quantity { get; set; }
 
-        public string SourceReason { get; set; }        
+        public TransactionSource SourceReason { get; set; }    // Supplier_Return_Production_Recovered_FromAnoterBranch_Adjustment    
 
         public string ReferenceNumber { get; set; }
 

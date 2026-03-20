@@ -13,11 +13,11 @@ namespace Tanzeem.Services.Products {
     public static class ProductHelperService {
 
         public static async Task<IEnumerable<Product>> GetAllProducts(IUnitOfWork _unitOfWork, int? sortId, int? filterId) {
-            
+
             var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
 
-
             #region Cases (Is sorted / Is filtered)
+
             if (sortId.HasValue && filterId.HasValue) {
                 var filteredProducts = FilterProducts(_unitOfWork, products, filterId);
                 return await SortProducts(_unitOfWork, filteredProducts, sortId);
@@ -25,13 +25,13 @@ namespace Tanzeem.Services.Products {
 
             else if (filterId.HasValue)
                 return FilterProducts(_unitOfWork, products, filterId);
-            
+
             else if (sortId.HasValue)
                 return await SortProducts(_unitOfWork, products, sortId);
 
-
-            return await _unitOfWork.GetRepository<Product>().GetAllAsync();
             #endregion
+
+            return products;
 
         }
 
@@ -60,7 +60,7 @@ namespace Tanzeem.Services.Products {
 
         }
 
-        private static IEnumerable<Product> FilterProducts(IUnitOfWork _unitOfWork,IEnumerable<Product> products, int? filterId) {
+        private static IEnumerable<Product> FilterProducts(IUnitOfWork _unitOfWork, IEnumerable<Product> products, int? filterId) {
 
             return products.Where(p => p.CategoryId == filterId).ToList();
         }

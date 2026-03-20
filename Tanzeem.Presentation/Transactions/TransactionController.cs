@@ -24,8 +24,8 @@ namespace Tanzeem.Presentation.Transactions {
 
         [HttpGet]
         [Route("Transactions")]
-        public async Task<IActionResult> GetTransactions() {
-            var result = await transactionService.GetAllTransactions();
+        public async Task<IActionResult> GetTransactions(int? sortId, int? filterId) {
+            var result = await transactionService.GetAllTransactions(sortId, filterId);
             return Ok(result);
         }
 

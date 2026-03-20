@@ -23,12 +23,12 @@ namespace Tanzeem.Services.Transactions {
             #region Mapping
             var result = new TransactionDto {
                 Id = transaction.TransactionId,
-                Type = transaction.Type,
+                Type = transaction.Type.ToString(),
                 CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status,
+                Status = transaction.Status.ToString(),
                 Value = transaction.Value,
                 Quantity = transaction.Quantity,
-                SourceReason = transaction.SourceReason,
+                SourceReason = transaction.SourceReason.ToString(),
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 PreformedBy = "User", // dummy value
@@ -40,18 +40,18 @@ namespace Tanzeem.Services.Transactions {
 
         }
 
-        public async Task<IEnumerable<TransactionDto>> GetAllTransactions() {
+        public async Task<IEnumerable<TransactionDto>> GetAllTransactions(int? filterId, int? sortId) {
             
-            var transactions = await _unitOfWork.GetRepository<Transaction>().GetAllAsync();
+            var transactions = await TransactionHelperService.GetAllTransactions(_unitOfWork, sortId, filterId);
 
             var result = transactions.Select(transaction => new TransactionDto {
                 Id = transaction.TransactionId,
-                Type = transaction.Type,
+                Type = transaction.Type.ToString(),
                 CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status,
+                Status = transaction.Status.ToString(),
                 Value = transaction.Value,
                 Quantity = transaction.Quantity,
-                SourceReason = transaction.SourceReason,
+                SourceReason = transaction.SourceReason.ToString(),
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 PreformedBy = "User", // dummy value
@@ -67,12 +67,12 @@ namespace Tanzeem.Services.Transactions {
             #region Mapping
             var transaction = new Transaction {
                 TransactionId = Guid.NewGuid().ToString(),
-                Type = transactionDto.Type,
+                Type = Enum.Parse<TransactionType>(transactionDto.Type),
                 CreatedAt = transactionDto.CreatedAt,
-                Status = transactionDto.Status,
+                Status = Enum.Parse<TransactionStatus>(transactionDto.Status),
                 Value = transactionDto.Value,
                 Quantity = transactionDto.Quantity,
-                SourceReason = transactionDto.SourceReason,
+                SourceReason = Enum.Parse<TransactionSource>(transactionDto.SourceReason),
                 ReferenceNumber = transactionDto.ReferenceNumber,
                 Notes = transactionDto.Notes,
                 BranchId = 1 // dummy value

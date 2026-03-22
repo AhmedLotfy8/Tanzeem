@@ -17,9 +17,9 @@ namespace Tanzeem.Shared.Dtos.Transactions {
 
         public decimal Value { get; set; }
 
-        public int Quantity { get; set; }
+        public int TotalTransactedItems { get; set; }
 
-        public string SourceReason { get; set; }
+        public string SourceReason { get; set; }     // Supplier_Production_etc
 
         public string ReferenceNumber { get; set; }
 
@@ -29,7 +29,7 @@ namespace Tanzeem.Shared.Dtos.Transactions {
 
         public string BatchNumber { get; set; }
 
-
+        public List<TransactionItemDto> TransactionItemDtos { get; set; } = new List<TransactionItemDto>();
 
     }
 }

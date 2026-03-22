@@ -11,7 +11,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
     
         public int Id { get; set; }
 
-        public int Quantity { get; set; }
+        public int QuantityOfTransactedItem { get; set; }
 
         public decimal UnitPrice { get; set; }
 
@@ -26,7 +26,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
         #region Navigation
 
         #endregion
-        public required Transaction Transaction { get; set; } = default!;
+        public Transaction Transaction { get; set; } = default!;
         public required Product Product { get; set; } = default!;
 
     }

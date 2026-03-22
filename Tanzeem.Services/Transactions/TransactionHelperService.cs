@@ -12,7 +12,7 @@ namespace Tanzeem.Services.Transactions {
         public static async Task<IEnumerable<Transaction>> GetAllTransactions(IUnitOfWork _unitOfWork, int? sortId, int? filterId) {
 
             var transactions = await _unitOfWork.GetRepository<Transaction>().GetAllAsync();
-
+            
             #region Cases (Is sorted / Is filtered)
 
             if (sortId.HasValue && filterId.HasValue) {
@@ -44,7 +44,7 @@ namespace Tanzeem.Services.Transactions {
                     return transactions.OrderBy(t => t.Value).ToList();
                 
                 case 3:
-                    return transactions.OrderBy(t => t.Quantity).ToList();
+                    return transactions.OrderBy(t => t.TotalTransactedItems).ToList();
                 
                 case null:
                     return transactions.OrderBy(t => t.Id).ToList();

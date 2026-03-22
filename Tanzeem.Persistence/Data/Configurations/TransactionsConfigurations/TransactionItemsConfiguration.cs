@@ -12,7 +12,7 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
         
         public void Configure(EntityTypeBuilder<TransactionItem> builder) {
         
-            builder.Property(x => x.Quantity)
+            builder.Property(x => x.QuantityOfTransactedItem)
                 .HasColumnType("int");
 
             builder.Property(x => x.UnitPrice)

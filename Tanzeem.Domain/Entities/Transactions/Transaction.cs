@@ -47,7 +47,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         public decimal Value { get; set; }
 
-        public int Quantity { get; set; }
+        public int TotalTransactedItems { get; set; }
 
         public TransactionSource SourceReason { get; set; }    // Supplier_Return_Production_Recovered_FromAnoterBranch_Adjustment    
 

@@ -24,7 +24,9 @@ namespace Tanzeem.Shared.Dtos.Products {
         public string Barcode { get; set; }
 
         public string Description { get; set; }
+
         public int ReorderLevel { get; set; }
+
         public string Status { get; set; }
 
     }

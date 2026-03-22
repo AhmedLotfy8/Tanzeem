@@ -20,7 +20,7 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
             builder.Property(x => x.Value)
                 .HasColumnType("decimal(18, 2)");
 
-            builder.Property(x => x.Quantity)
+            builder.Property(x => x.TotalTransactedItems)
                 .HasColumnType("int");
 
             builder.Property(x => x.ReferenceNumber)

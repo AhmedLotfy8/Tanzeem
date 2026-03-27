@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Transactions;
 
 namespace Tanzeem.Domain.Entities.Branches {
@@ -42,6 +43,7 @@ namespace Tanzeem.Domain.Entities.Branches {
         public Company Company { get; set; } = default!;
         public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
 
     }
 }

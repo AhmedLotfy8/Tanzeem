@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Orders;
 
@@ -20,6 +21,7 @@ namespace Tanzeem.Domain.Entities.Suppliers
         public string Street { get; set; } 
         public string City { get; set; }
         public string Country { get; set; }
+        public string? Tax_Id { get; set; }
         public int LeadTime { get; set; }
         public string? Notes { get; set; }
 
@@ -31,5 +33,6 @@ namespace Tanzeem.Domain.Entities.Suppliers
         #region Relations
         #endregion
         public int CompanyId { get; set; }
+       
     }
 }

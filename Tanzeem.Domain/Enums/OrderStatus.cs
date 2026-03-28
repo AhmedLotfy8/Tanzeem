@@ -8,8 +8,8 @@ namespace Tanzeem.Domain.Enums
 {
     public enum OrderStatus
     {
-        Pending = 1,
-        Deliverd = 2,
-        Cancelled = 3,
+        Pending = 0,
+        Deliverd = 1,
+        Cancelled = 2,
     }
 }

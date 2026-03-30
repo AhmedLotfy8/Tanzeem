@@ -22,7 +22,6 @@ namespace Tanzeem.Domain.Entities.Suppliers
         public string City { get; set; }
         public string Country { get; set; }
         public string? Tax_Id { get; set; }
-        public int LeadTime { get; set; }
         public string? Notes { get; set; }
 
         #region Navigation Property

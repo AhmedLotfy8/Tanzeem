@@ -11,7 +11,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace Tanzeem.Presentation.Suppliers
 {
-    ///TODO : make migration and update before run
+
     [ApiController]
     [Route("api/[controller]")]
     public class SupplierController(ISupplierService _supplierService) : ControllerBase

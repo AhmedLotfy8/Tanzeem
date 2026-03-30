@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class createOrderAndSupplier : Migration
+    public partial class orderandsupplierdata : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Supplier",
+                name: "Suppliers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -20,22 +20,21 @@ namespace Tanzeem.Persistence.Data.Migrations
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     PhoneNumberOne = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    PhoneNumberTwo = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumberTwo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ContactPersonName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     WebsiteURL = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     Street = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     City = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Country = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Tax_Id = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    LeadTime = table.Column<int>(type: "int", nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     CompanyId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Supplier", x => x.Id);
+                    table.PrimaryKey("PK_Suppliers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Supplier_Companies_CompanyId",
+                        name: "FK_Suppliers_Companies_CompanyId",
                         column: x => x.CompanyId,
                         principalTable: "Companies",
                         principalColumn: "Id",
@@ -43,7 +42,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Order",
+                name: "Orders",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -51,8 +50,8 @@ namespace Tanzeem.Persistence.Data.Migrations
                     OrderDate = table.Column<DateTime>(type: "date", nullable: false, defaultValueSql: "GETDATE()"),
                     Total = table.Column<decimal>(type: "decimal(10,2)", precision: 10, scale: 2, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Pending"),
-                    ExpectedDeliveryDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    RecievedDeliveryDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    ExpectedDeliveryDate = table.Column<DateTime>(type: "date", nullable: false),
+                    RecievedDeliveryDate = table.Column<DateTime>(type: "date", nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
                     ShippingCost = table.Column<decimal>(type: "decimal(7,2)", precision: 7, scale: 2, nullable: false),
                     Taxes = table.Column<decimal>(type: "decimal(7,2)", precision: 7, scale: 2, nullable: false),
@@ -63,29 +62,29 @@ namespace Tanzeem.Persistence.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Order", x => x.Id);
+                    table.PrimaryKey("PK_Orders", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Order_Branches_BranchId",
+                        name: "FK_Orders_Branches_BranchId",
                         column: x => x.BranchId,
                         principalTable: "Branches",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Order_Companies_CompanyId",
+                        name: "FK_Orders_Companies_CompanyId",
                         column: x => x.CompanyId,
                         principalTable: "Companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Order_Supplier_SupplierId",
+                        name: "FK_Orders_Suppliers_SupplierId",
                         column: x => x.SupplierId,
-                        principalTable: "Supplier",
+                        principalTable: "Suppliers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrderItem",
+                name: "OrderItems",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -98,15 +97,15 @@ namespace Tanzeem.Persistence.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OrderItem", x => x.Id);
+                    table.PrimaryKey("PK_OrderItems", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_OrderItem_Order_OrderId",
+                        name: "FK_OrderItems_Orders_OrderId",
                         column: x => x.OrderId,
-                        principalTable: "Order",
+                        principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_OrderItem_Products_ProductId",
+                        name: "FK_OrderItems_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -114,38 +113,38 @@ namespace Tanzeem.Persistence.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Order_BranchId",
-                table: "Order",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Order_CompanyId",
-                table: "Order",
-                column: "CompanyId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Order_SupplierId",
-                table: "Order",
-                column: "SupplierId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_OrderItem_OrderId",
-                table: "OrderItem",
+                name: "IX_OrderItems_OrderId",
+                table: "OrderItems",
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderItem_ProductId",
-                table: "OrderItem",
+                name: "IX_OrderItems_ProductId",
+                table: "OrderItems",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Supplier_CompanyId",
-                table: "Supplier",
+                name: "IX_Orders_BranchId",
+                table: "Orders",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_CompanyId",
+                table: "Orders",
                 column: "CompanyId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Supplier_Email",
-                table: "Supplier",
+                name: "IX_Orders_SupplierId",
+                table: "Orders",
+                column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_CompanyId",
+                table: "Suppliers",
+                column: "CompanyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_Email",
+                table: "Suppliers",
                 column: "Email",
                 unique: true);
         }
@@ -154,13 +153,13 @@ namespace Tanzeem.Persistence.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "OrderItem");
+                name: "OrderItems");
 
             migrationBuilder.DropTable(
-                name: "Order");
+                name: "Orders");
 
             migrationBuilder.DropTable(
-                name: "Supplier");
+                name: "Suppliers");
         }
     }
 }

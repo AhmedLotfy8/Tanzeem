@@ -12,8 +12,8 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    [Migration("20260328102417_createOrderAndSupplier")]
-    partial class createOrderAndSupplier
+    [Migration("20260330165912_order and supplier data")]
+    partial class orderandsupplierdata
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -150,7 +150,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
-                    b.Property<DateOnly>("ExpectedDeliveryDate")
+                    b.Property<DateTime>("ExpectedDeliveryDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Notes")
@@ -162,7 +162,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("date")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<DateOnly?>("RecievedDeliveryDate")
+                    b.Property<DateTime?>("RecievedDeliveryDate")
                         .HasColumnType("date");
 
                     b.Property<decimal>("ShippingCost")
@@ -198,7 +198,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Order");
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.OrderItem", b =>
@@ -232,7 +232,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderItem");
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Category", b =>
@@ -344,9 +344,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("LeadTime")
-                        .HasColumnType("int");
-
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -357,7 +354,9 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PhoneNumberTwo")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Street")
                         .IsRequired()
@@ -378,7 +377,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Supplier");
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Transactions.Transaction", b =>

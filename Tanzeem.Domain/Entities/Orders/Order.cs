@@ -16,8 +16,8 @@ namespace Tanzeem.Domain.Entities.Orders
         public DateTime OrderDate { get; set; }
         public decimal Total { get; set; } // calculated from order items
         public OrderStatus Status { get; set; } = OrderStatus.Pending; //enum
-        public DateOnly ExpectedDeliveryDate { get; set; } 
-        public DateOnly? RecievedDeliveryDate { get; set; } // can be null until recieving order
+        public DateTime ExpectedDeliveryDate { get; set; } 
+        public DateTime? RecievedDeliveryDate { get; set; } // can be null until recieving order
         public string? Notes { get; set; }
         public decimal ShippingCost { get; set; } = 0;
         public decimal Taxes { get; set; } = 0;

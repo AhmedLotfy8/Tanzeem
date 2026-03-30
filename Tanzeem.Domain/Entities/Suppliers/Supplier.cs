@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Orders;
+using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Suppliers
 {

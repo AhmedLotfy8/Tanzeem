@@ -11,6 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.20" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Tanzeem.Domain\Tanzeem.Domain.csproj" />
     <ProjectReference Include="..\Tanzeem.Services.Abstractions\Tanzeem.Services.Abstractions.csproj" />
   </ItemGroup>

@@ -133,105 +133,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.ToTable("Inventories");
                 });
 
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ExpectedDeliveryDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<DateTime>("OrderDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<DateTime?>("RecievedDeliveryDate")
-                        .HasColumnType("date");
-
-                    b.Property<decimal>("ShippingCost")
-                        .HasPrecision(7, 2)
-                        .HasColumnType("decimal(7,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("Pending");
-
-                    b.Property<int?>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SupplierName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Taxes")
-                        .HasPrecision(7, 2)
-                        .HasColumnType("decimal(7,2)");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.OrderItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Total")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("OrderItems");
-                });
-
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -308,73 +209,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Suppliers.Supplier", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContactPersonName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("PhoneNumberOne")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("PhoneNumberTwo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tax_Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("WebsiteURL")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Transactions.Transaction", b =>
@@ -487,51 +321,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
-                {
-                    b.HasOne("Tanzeem.Domain.Entities.Branches.Branch", "Branch")
-                        .WithMany("Orders")
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tanzeem.Domain.Entities.Companies.Company", "Company")
-                        .WithMany("Orders")
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tanzeem.Domain.Entities.Suppliers.Supplier", "Supplier")
-                        .WithMany("Orders")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Supplier");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.OrderItem", b =>
-                {
-                    b.HasOne("Tanzeem.Domain.Entities.Orders.Order", "Order")
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Tanzeem.Domain.Entities.Products.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Product", b =>
                 {
                     b.HasOne("Tanzeem.Domain.Entities.Products.Category", "Category")
@@ -547,17 +336,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
-
-                    b.Navigation("Company");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Suppliers.Supplier", b =>
-                {
-                    b.HasOne("Tanzeem.Domain.Entities.Companies.Company", "Company")
-                        .WithMany("Suppliers")
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
 
                     b.Navigation("Company");
                 });
@@ -596,8 +374,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                 {
                     b.Navigation("Inventories");
 
-                    b.Navigation("Orders");
-
                     b.Navigation("Transactions");
                 });
 
@@ -605,16 +381,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                 {
                     b.Navigation("Branches");
 
-                    b.Navigation("Orders");
-
                     b.Navigation("Products");
-
-                    b.Navigation("Suppliers");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Product", b =>
@@ -622,11 +389,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Inventories");
 
                     b.Navigation("TransactionItems");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Suppliers.Supplier", b =>
-                {
-                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Transactions.Transaction", b =>

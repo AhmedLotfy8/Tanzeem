@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Tanzeem.Domain.Contracts {
     public interface IGenericRepository<Entity> where Entity : class {
 
-        Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes);
+        Task<IEnumerable<Entity>> GetAllAsync();
 
         Task<Entity?> GetByIdAsync(int id);
 

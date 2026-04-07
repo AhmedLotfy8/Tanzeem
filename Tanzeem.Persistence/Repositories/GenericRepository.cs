@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,19 +16,9 @@ namespace Tanzeem.Persistence.Repositories {
             return await _context.Set<Entity>().FindAsync(id);
         }
 
-        public async Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes) {
+        public async Task<IEnumerable<Entity>> GetAllAsync() {
 
-            // return await _context.Set<Entity>().ToListAsync();
-            IQueryable<Entity> query = _context.Set<Entity>();
-            if (includes != null)
-            {
-                foreach (var include in includes)
-                {
-                    query = query.Include(include);
-                }
-            }
-            return await query.ToListAsync();
-///TODO : better to make it return IQuerable due to performance then convert to .ToListAsync at service logic..
+            return await _context.Set<Entity>().ToListAsync();
         }
 
         public async Task AddAsync(Entity entity) {

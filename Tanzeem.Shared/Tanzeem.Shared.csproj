@@ -6,8 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Tanzeem.Domain\Tanzeem.Domain.csproj" />
-  </ItemGroup>
-
 </Project>

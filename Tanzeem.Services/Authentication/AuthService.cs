@@ -27,12 +27,13 @@ namespace Tanzeem.Services.Authentication {
                 throw new Exception("Email is already Registered");
             }
 
+
             #region Mapping
             var user = new User() {
                 Name = userDto.Name,
                 Email = userDto.Email,
-                Role = UserRoles.Admin,
-                CompanyId = 3 // hardcoded for now, will be dynamic when company registration is implemented
+                Role = (UserRoles)userDto.Role,
+                CompanyId = 4 // hardcoded for now, will be dynamic when company registration is implemented
             };
 
             var hashedPassword = new PasswordHasher<User>()
@@ -47,17 +48,17 @@ namespace Tanzeem.Services.Authentication {
             return user.Id;
         }
 
-        public async Task<string?> Login(UserDto userDto) {
+        public async Task<string?> Login(UserLoginDto userLoginDto) {
 
             var users = await unitOfWork.GetRepository<User>().GetAllAsync();
-            var user = users.FirstOrDefault(u => u.Email == userDto.Email);
+            var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
 
             if (user is null) {
                 throw new Exception("User not found");
             }
 
 
-            if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userDto.Password)
+            if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userLoginDto.Password)
                 == PasswordVerificationResult.Failed) {
                 throw new Exception("Wrong password");
             }
@@ -67,6 +68,7 @@ namespace Tanzeem.Services.Authentication {
             return token;
         }
 
+        
 
     }
 

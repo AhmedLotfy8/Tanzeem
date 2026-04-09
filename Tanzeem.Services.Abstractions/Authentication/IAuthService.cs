@@ -8,9 +8,9 @@ using Tanzeem.Shared.Dtos.Users;
 namespace Tanzeem.Services.Abstractions.Authentication {
     public interface IAuthService {
     
-        Task<string?> Login(UserDto userDto);
-
         Task<int?> Register(UserDto userDto);
+
+        Task<string?> Login(UserLoginDto userLoginDto);
 
     }
 }

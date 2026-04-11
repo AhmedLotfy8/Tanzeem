@@ -10,10 +10,11 @@ namespace Tanzeem.Persistence.Data.Configurations.OrderConfigurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Quantity);
-            builder.Property(x => x.Price).HasPrecision(10,2);
-            builder.Property(x => x.Total).HasPrecision(10,2);
+            builder.Property(x => x.Price).HasPrecision(10, 2);
+            builder.Property(x => x.Total).HasPrecision(10, 2);
 
             builder.HasOne(x => x.Order).WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
 
         }
     }

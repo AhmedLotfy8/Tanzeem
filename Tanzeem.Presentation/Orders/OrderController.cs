@@ -1,0 +1,53 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Tanzeem.Services.Abstractions.Orders;
+using Tanzeem.Shared.Dtos.Orders;
+
+namespace Tanzeem.Presentation.Orders
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrderController(IOrderService _orderService) : ControllerBase
+    {
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder(OrderRequestDto orderDto)
+        {
+            var result = await _orderService.CreateOrderAsync(orderDto);
+            return Ok(result);
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            var result = await _orderService.DeleteOrderAsync(id);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewOrders()
+        {
+            var result = await _orderService.GetAllOrdersAsync();
+            return Ok(result);
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
+        {
+            var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);
+            return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ViewOrderDetails(int id)
+        {
+            var result = await _orderService.GetOrderByIdAsync(id);
+            return Ok(result);
+        }
+
+        [HttpGet("Lookup_Products")]
+        public async Task<IActionResult> GetProductsLookup(string term)
+        {
+            var result = await _orderService.GetProductsLookupAsync(term);
+            return Ok(result);
+        }
+    }
+}

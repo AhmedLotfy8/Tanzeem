@@ -10,16 +10,18 @@ namespace Tanzeem.Services.Abstractions.Suppliers
 {
     public interface ISupplierService
     {
-        Task<SupplierDto> GetSupplierByIdAsync(int id);
+        Task<SupplierResponseDto> GetSupplierByIdAsync(int id);
         
-        Task<IEnumerable<SupplierDto>> GetAllSuppliersAsync();
+        Task<IEnumerable<SupplierResponseDto>> GetAllSuppliersAsync();
 
-        Task<int> CreateSupplierAsync(SupplierDto supplierDto);
+        Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto);
        
         // Task<int> CsvUploadAsync(string filePath);
 
-        Task<int> UpdateSupplierAsync(int id, SupplierDto supplierDto);
+        Task<int> UpdateSupplierAsync(int id, SupplierRequestDto supplierDto);
 
         Task<bool> DeleteSupplierAsync(int id);
+
+        Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync();
     }
 }

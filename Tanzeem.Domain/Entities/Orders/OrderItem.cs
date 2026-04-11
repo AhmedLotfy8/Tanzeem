@@ -1,4 +1,4 @@
-using Tanzeem.Domain.Entities.Products;
+﻿using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Orders
 {
@@ -17,6 +17,7 @@ namespace Tanzeem.Domain.Entities.Orders
         #region Relations
         #endregion
         public int OrderId { get; set; }
+        public int ProductId { get; set; }
 
     }
 }

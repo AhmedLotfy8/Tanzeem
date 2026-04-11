@@ -7,13 +7,9 @@ using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Shared.Dtos.Suppliers
 {
-    public class SupplierDto
+    public class SupplierRequestDto
     {
-        public string SupplierName {  get; set; }
-        public decimal onTimePercentage { get; set; }
-        public double LeadTime { get; set; }
-        public SupplierStatus Status { get; set; }       
-        public string Badge { get; set; }
+        public string SupplierName { get; set; }
         public string Email { get; set; }
         public string PhoneNumberOne { get; set; }
         public string? PhoneNumberTwo { get; set; }

@@ -12,8 +12,8 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    [Migration("20260330165912_order and supplier data")]
-    partial class orderandsupplierdata
+    [Migration("20260403104217_order and supplier db")]
+    partial class orderandsupplierdb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -527,7 +527,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasOne("Tanzeem.Domain.Entities.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");

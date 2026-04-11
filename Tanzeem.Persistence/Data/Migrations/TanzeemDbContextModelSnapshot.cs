@@ -524,7 +524,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasOne("Tanzeem.Domain.Entities.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");

@@ -5,12 +5,16 @@ using Tanzeem.Persistence.Data.DbContexts;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
+using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
+using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
+using Tanzeem.Services.Suppliers;
 using Tanzeem.Services.Transactions;
 
 namespace Tanzeem.Web
@@ -30,6 +34,8 @@ namespace Tanzeem.Web
             builder.Services.AddScoped<IRegisterationService, RegisterationService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddScoped<ISupplierService, SupplierService>();
+            builder.Services.AddScoped<IOrderService,OrderService>();
             #endregion
 
 

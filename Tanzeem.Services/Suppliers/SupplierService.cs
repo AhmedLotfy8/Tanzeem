@@ -16,7 +16,7 @@ namespace Tanzeem.Services.Suppliers
     public class SupplierService(IUnitOfWork _unitOfWork) : ISupplierService
     {
   
-        public async Task<int> CreateSupplierAsync(SupplierDto supplierDto)
+        public async Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto)
         {
             #region mapping
             Supplier supplier = new Supplier
@@ -32,7 +32,7 @@ namespace Tanzeem.Services.Suppliers
                 Notes = supplierDto.Notes,
                 Tax_Id = supplierDto.Tax_Id,
                 ContactPersonName = supplierDto.ContactPersonName,
-                CompanyId = 1 ///TODO change CompanyId after auth
+                CompanyId = 4 ///TODO change CompanyId after auth
             };
             #endregion
             await _unitOfWork.GetRepository<Supplier>().AddAsync(supplier);
@@ -53,12 +53,12 @@ namespace Tanzeem.Services.Suppliers
             return false;
         }
 
-        public async Task<IEnumerable<SupplierDto>> GetAllSuppliersAsync()
+        public async Task<IEnumerable<SupplierResponseDto>> GetAllSuppliersAsync()
         {
             var suppliers = await _unitOfWork.GetRepository<Supplier>().GetAllAsync(o => o.Orders);
 
             #region mapping
-            var supplierDtos = suppliers.Select(s => new SupplierDto
+            var supplierDtos = suppliers.Select(s => new SupplierResponseDto
             {
                 SupplierName = s.FullName,
                 Email = s.Email,
@@ -76,7 +76,7 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(s.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(s.Orders),
+                Status = SupplierServiceHelper.GetSupplierStatus(s.Orders).ToString(),
 
                  Badge = SupplierServiceHelper.GetBadge(s.Orders),
 
@@ -86,13 +86,13 @@ namespace Tanzeem.Services.Suppliers
             return supplierDtos;
         }
 
-        public async Task<SupplierDto> GetSupplierByIdAsync(int id)
+        public async Task<SupplierResponseDto> GetSupplierByIdAsync(int id)
         {
             var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
 
             if (supplier == null) { return null!; }
 
-            var supplierDto = new SupplierDto
+            var supplierDto = new SupplierResponseDto
             {
                 SupplierName = supplier.FullName,
                 Email = supplier.Email,
@@ -110,7 +110,7 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(supplier.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(supplier.Orders),
+                Status = SupplierServiceHelper.GetSupplierStatus(supplier.Orders).ToString(),
 
                 Badge = SupplierServiceHelper.GetBadge(supplier.Orders),
 
@@ -118,33 +118,57 @@ namespace Tanzeem.Services.Suppliers
             return supplierDto;
         }
 
-        public async Task<int> UpdateSupplierAsync(int id, SupplierDto supplierDto)
+        public async Task<int> UpdateSupplierAsync(int id, SupplierRequestDto supplierDto)
         {
             var supplierToUpdate = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
 
-            if (supplierToUpdate == null) { return 0; }
+            if (supplierToUpdate == null)
+            {
+                throw new Exception("this supplier not found"); ///TODO exception handling
+            }
 
             #region mapping
-            Supplier supplier = new Supplier
-            {
-                FullName = supplierDto.SupplierName,
-                Email = supplierDto.Email,
-                PhoneNumberOne = supplierDto.PhoneNumberOne,
-                PhoneNumberTwo = supplierDto.PhoneNumberTwo,
-                City = supplierDto.City,
-                Country = supplierDto.Country,
-                Street = supplierDto.Street,
-                WebsiteURL = supplierDto.WebsiteURL,
-                Notes = supplierDto.Notes,
-                Tax_Id = supplierDto.Tax_Id,
-                ContactPersonName = supplierDto.ContactPersonName,
-                CompanyId = 1 ///TODO change CompanyId after auth
-            };
+
+            supplierToUpdate.FullName = supplierDto.SupplierName;
+            supplierToUpdate.Email = supplierDto.Email;
+            supplierToUpdate.PhoneNumberOne = supplierDto.PhoneNumberOne;
+            supplierToUpdate.PhoneNumberTwo = supplierDto.PhoneNumberTwo;
+            supplierToUpdate.City = supplierDto.City;
+            supplierToUpdate.Country = supplierDto.Country;
+            supplierToUpdate.Street = supplierDto.Street;
+            supplierToUpdate.WebsiteURL = supplierDto.WebsiteURL;
+            supplierToUpdate.Notes = supplierDto.Notes;
+            supplierToUpdate.Tax_Id = supplierDto.Tax_Id;
+            supplierToUpdate.ContactPersonName = supplierDto.ContactPersonName;
+            supplierToUpdate.CompanyId = 4; ///TODO change CompanyId after auth
+
             #endregion
 
             _unitOfWork.GetRepository<Supplier>().UpdateAsync(supplierToUpdate);
             await _unitOfWork.SaveChangesAsync();
             return supplierToUpdate.Id;
+        }
+
+
+        /// <summary>
+        /// it used for field supplier name when you create new order
+        /// </summary>
+        /// <returns>supliers names</returns>
+        public async Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync()
+        {
+            var suppliers = await _unitOfWork.GetRepository<Supplier>().GetAllAsync();
+
+            if (suppliers is null)
+            {
+                throw new Exception("no suppliers");
+            }
+            
+            var supplierLookupDtos = suppliers.Select(s => new SupplierLookupDto
+            {
+                Id = s.Id,
+                Name = s.FullName
+            });
+            return supplierLookupDtos;
         }
     }
 }

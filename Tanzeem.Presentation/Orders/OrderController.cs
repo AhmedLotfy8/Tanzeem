@@ -50,6 +50,13 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
+        [HttpPut("ConfirmDelivery/{id}")]
+        public async Task<IActionResult> ConfirmDelivery(int id, OrderConfirmDto confirmDto)
+        {
+            var result = await _orderService.ChangeOrderToDeliverd(confirmDto, id);
+            return Ok(result);
+        }
+
         [HttpGet("Lookup_Products")]
         public async Task<IActionResult> GetProductsLookup(string term)
         {

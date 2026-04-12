@@ -1,8 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
@@ -23,7 +26,18 @@ namespace Tanzeem.Services.Orders
             ///TODO change it after exception handling
 
             //check on orderTotal >0
+            var productIds = orderDto.Items.Select(i => i.ProductId).Distinct().ToList();
 
+            var existingProducts = await _unitOfWork.GetRepository<Product>()
+                    .GetAllAsIQueryable()
+                    .Where(product => productIds.Contains(product.Id))
+                    .ToListAsync();
+
+            if (existingProducts.Count != productIds.Count)
+                throw new Exception("One or more products were not found!");
+            ///TODO after exceptionHandling
+        
+            #region mapping
             var OrderItems = orderDto.Items.Select(item => new OrderItem
             {
                 ProductId = item.ProductId,
@@ -31,14 +45,7 @@ namespace Tanzeem.Services.Orders
                 Quantity = item.Quantity,
                 Total = item.Price * item.Quantity,
             }).ToList();
-
-            foreach (var item in OrderItems)
-            {
-                var productExists = await _unitOfWork.GetRepository<Product>().GetByIdAsync(item.ProductId);
-                if (productExists is null) throw new Exception($"this item id: {item.ProductId} not found!");
-                ///TODO after exceptionHandling
-            }
-            #region mapping
+            
             Order order = new Order //status must be default as pending
             {
                 OrderDate = orderDto.OrderDate,
@@ -252,5 +259,90 @@ namespace Tanzeem.Services.Orders
 
             return selectedProducts;
         }
+
+        public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto, int id)
+        {
+            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+                .Include(o => o.Items).FirstOrDefault();
+
+            if (order == null)
+                throw new Exception("No order with this id");
+
+            if (order.Status != OrderStatus.Deliverd)
+            {
+                return order.Status.ToString();
+            }
+
+            ///TODO exception handling
+            if (order.Items == null || !order.Items.Any())
+            {
+                throw new Exception("you cannot receive empty order");
+            }
+
+            if (confirmDto.ItemsConfirmDtos.Count() != order.Items.Count)
+            {
+                throw new Exception("there are some items deleted");
+            }
+
+            var orderIds = order.Items.Select(i => i.ProductId);
+
+            var products = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable().AsTracking()
+                .Where(product => orderIds.Contains(product.Id)).ToList();
+
+            if (!products.Any())
+            {
+                throw new Exception("No products");
+            }
+            ///TODO exception handling
+
+            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
+                .Where(inv => orderIds.Contains(inv.ProductId)).ToList();
+
+            if (!inventories.Any())
+            {
+                throw new Exception("No inventories");
+            }
+            ///TODO exception handling
+            if (confirmDto is null)
+                throw new Exception("empty confirmation fields");
+
+            #region changes after deliver
+            order.Status = Domain.Enums.OrderStatus.Deliverd;
+            order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
+
+            foreach (var product in products)
+            {
+                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
+
+                if (itemsConfirm != null)
+                {
+                    product.CostPrice = itemsConfirm.CostPrice;
+                    product.SellingPrice = itemsConfirm.SellPrice;
+                }
+            }
+
+            foreach (var inventory in inventories)
+            {
+                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == 1);
+                ///TODO change after authorization
+
+                var originalOrderItem = order.Items.FirstOrDefault(i => i.ProductId == inventory.ProductId);
+
+                if (itemsConfirm != null && originalOrderItem != null)
+                {
+                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - itemsConfirm.DamagedQuantity;
+                }
+            }
+            #endregion
+
+            int rowsAffected = await _unitOfWork.SaveChangesAsync();
+
+            if (rowsAffected <= 0)
+                throw new Exception("Status not changed");
+            ///TODO exception handling
+            
+            return order.Status.ToString();
+        }
+
     }
 }

@@ -58,9 +58,8 @@ namespace Tanzeem.Services.Orders
                 SupplierName = supplier.FullName,
                 Items = OrderItems,
                 Status = orderDto.Status,
-                ///TODO change branch and company id after auth
+                ///TODO change branch after auth
                 BranchId = 2,
-                CompanyId = 3
             };
             #endregion
 

@@ -26,14 +26,12 @@ namespace Tanzeem.Domain.Entities.Orders
         #region Navigation property
         #endregion
         public Supplier? Supplier { get; set; }
-        public Company Company { get; set; }
         public Branch Branch { get; set; }
         public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
         #region Relations
         #endregion
         public int? SupplierId { get; set; }
-        public int CompanyId { get; set; }
         public int BranchId { get; set; }
 
 

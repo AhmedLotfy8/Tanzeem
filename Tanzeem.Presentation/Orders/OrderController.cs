@@ -71,5 +71,18 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
+        [HttpGet("Pending_Order_Count")]
+        public IActionResult CountPendingOrders()
+        {
+            var result = _orderService.CountPendingOrders();
+            return Ok(result);
+        }
+        
+        [HttpGet("Delivered_Order_Count")]
+        public IActionResult CountDeliverdOrders()
+        {
+            var result = _orderService.CountDeliverdOrders();
+            return Ok(result);
+        }
     }
 }

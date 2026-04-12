@@ -350,5 +350,19 @@ namespace Tanzeem.Services.Orders
            .Select(s => new { Id = (int)s, Name = s.ToString() });
         }
 
+        public int CountPendingOrders()
+        {
+            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Count(o => o.Status == OrderStatus.Pending);
+        }
+
+        public int CountDeliverdOrders()
+        {
+            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Count(o => o.Status == OrderStatus.Deliverd);
+        }
+    
+
+
     }
 }

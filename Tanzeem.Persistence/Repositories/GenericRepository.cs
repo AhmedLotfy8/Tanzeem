@@ -67,5 +67,6 @@ namespace Tanzeem.Persistence.Repositories
             return _context.Set<Entity>() //int for cast
                            .Where(e => EF.Property<int>(e, keyName) == id);
         }
+
     }
 }

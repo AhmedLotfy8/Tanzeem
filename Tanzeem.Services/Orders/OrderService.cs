@@ -4,6 +4,7 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Services.Abstractions.Orders;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 
@@ -49,7 +50,7 @@ namespace Tanzeem.Services.Orders
                 Notes = orderDto.Notes,
                 SupplierName = supplier.FullName,
                 Items = OrderItems,
-                Status = Domain.Enums.OrderStatus.Pending,
+                Status = orderDto.Status,
                 ///TODO change branch and company id after auth
                 BranchId = 2,
                 CompanyId = 3
@@ -92,7 +93,8 @@ namespace Tanzeem.Services.Orders
                 throw new Exception("No orders");
             ///TODO exception handling
 
-            var orderDtos = await query.Select(order => new OrderSummaryResponseDto
+            var orderDtos = await query
+            .Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
                 OrderDate = order.OrderDate,
@@ -195,6 +197,42 @@ namespace Tanzeem.Services.Orders
             ///TODO exception handling
 
             return order.Id;
+        }
+
+        public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize)
+        {
+            if (page <= 0) page = 1;
+
+            const int maxPageSize = 10;
+            
+            if (pageSize > maxPageSize) pageSize = maxPageSize;
+
+            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
+
+            var totalCount = await query.CountAsync();
+
+            var orders = await query
+                .OrderByDescending(o => o.OrderDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var mappedData = orders.Select(order => new OrderSummaryResponseDto
+            {
+                Id = order.Id,
+                OrderDate = order.OrderDate,
+                SupplierName = order.SupplierName,
+                Total = order.Total,
+                Status = order.Status.ToString(),
+            }).ToList();
+
+            return new PaginationResponseDto<OrderSummaryResponseDto>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Data = mappedData
+            };
         }
 
         public async Task<IEnumerable<ProductLookupDto>> GetProductsLookupAsync(string searchTerm)

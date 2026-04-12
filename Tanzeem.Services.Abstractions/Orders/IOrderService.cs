@@ -1,4 +1,5 @@
-﻿using Tanzeem.Shared.Dtos.Orders;
+﻿using Tanzeem.Shared.Dtos;
+using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Abstractions.Orders
@@ -17,5 +18,7 @@ namespace Tanzeem.Services.Abstractions.Orders
         Task<bool> DeleteOrderAsync(int id);
 
         public Task<IEnumerable<ProductLookupDto>> GetProductsLookupAsync(string searchTerm);
+
+        public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize);
     }
 }

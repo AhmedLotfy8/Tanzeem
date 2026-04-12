@@ -43,6 +43,13 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
+        [HttpGet("Pagination")]
+        public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "Page_Size")] int pageSize, [FromQuery(Name = "Page")] int page = 1)
+        {
+            var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize);
+            return Ok(result);
+        }
+
         [HttpGet("Lookup_Products")]
         public async Task<IActionResult> GetProductsLookup(string term)
         {

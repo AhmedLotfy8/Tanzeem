@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Entities.Users;
 
 namespace Tanzeem.Domain.Entities.Companies {
@@ -30,6 +32,8 @@ namespace Tanzeem.Domain.Entities.Companies {
         public ICollection<Branch> Branches { get; set; } = new List<Branch>();
         public ICollection<Product> Products  { get; set; } = new List<Product>();
         public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
+        public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
 
     }
 }

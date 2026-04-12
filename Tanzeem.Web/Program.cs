@@ -1,7 +1,13 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Persistence;
 using Tanzeem.Persistence.Data.DbContexts;
+using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
@@ -9,6 +15,7 @@ using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
 using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Services.Abstractions.Transactions;
+using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
@@ -16,13 +23,11 @@ using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
 using Tanzeem.Services.Suppliers;
 using Tanzeem.Services.Transactions;
+using Tanzeem.Shared;
 
-namespace Tanzeem.Web
-{
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
+namespace Tanzeem.Web {
+    public class Program {
+        public static void Main(string[] args) {
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -34,10 +39,31 @@ namespace Tanzeem.Web
             builder.Services.AddScoped<IRegisterationService, RegisterationService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
+
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IOrderService,OrderService>();
             #endregion
 
+            #region Added Authentication
+
+            var jwtOptions = builder.Configuration.GetSection("JwtOptions").Get<JwtOptions>()!;
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options => {
+                    options.TokenValidationParameters = new TokenValidationParameters {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidAudience = jwtOptions.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecurityKey))
+                    };
+                });
+            
+            #endregion
 
 
             builder.Services.AddControllers();

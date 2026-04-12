@@ -344,5 +344,11 @@ namespace Tanzeem.Services.Orders
             return order.Status.ToString();
         }
 
+        public IEnumerable<object> DisplayOrderStatuses()
+        {
+            return Enum.GetValues<OrderStatus>()
+           .Select(s => new { Id = (int)s, Name = s.ToString() });
+        }
+
     }
 }

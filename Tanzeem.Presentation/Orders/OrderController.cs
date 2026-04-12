@@ -63,5 +63,13 @@ namespace Tanzeem.Presentation.Orders
             var result = await _orderService.GetProductsLookupAsync(term);
             return Ok(result);
         }
+
+        [HttpGet("display_order_status")]
+        public IActionResult DisplayOrderStatuses()
+        {
+            var result = _orderService.DisplayOrderStatuses();
+            return Ok(result);
+        }
+
     }
 }

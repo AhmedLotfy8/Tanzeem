@@ -22,5 +22,6 @@ namespace Tanzeem.Services.Abstractions.Orders
         public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize);
 
         public Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto, int id);
+        public IEnumerable<object> DisplayOrderStatuses();
     }
 }

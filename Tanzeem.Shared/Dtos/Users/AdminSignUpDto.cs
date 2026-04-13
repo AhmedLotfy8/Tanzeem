@@ -5,15 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Tanzeem.Shared.Dtos.Users {
-    public class UserDto {
+    public class AdminSignUpDto {
     
         public string Name { get; set; }
     
         public string Email { get; set; }
         
         public string Password { get; set; }
-
-        public int Role { get; set; }
 
     }
 }

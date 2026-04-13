@@ -12,21 +12,20 @@ namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
         IOptions<JwtOptions> options) : IAuthService {
 
-        public async Task<int?> SignUp(UserDto userDto) {
 
-            var users = await unitOfWork.GetRepository<User>().GetAllAsync();
-            var userCheck = users.FirstOrDefault(u => u.Email == userDto.Email);
+        public async Task<int?> CreateAdminAsync(AdminSignUpDto userDto) {
 
-            if (userCheck is not null) {
-                throw new Exception("Email is already Registered");
+            var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userDto.Email);
+            
+            if (user is not null) {
+                throw new Exception("Email is already Registered!");
             }
 
-
             #region Mapping
-            var user = new User() {
+            var admin = new User() {
                 Name = userDto.Name,
                 Email = userDto.Email,
-                Role = (UserRoles)userDto.Role,
+                Role = UserRoles.Admin,
                 CompanyId = 3, // hardcoded for now, will be dynamic when company registration is implemented
                 BURelations = new List<BranchUserRelationship> {
                     new BranchUserRelationship {
@@ -37,21 +36,20 @@ namespace Tanzeem.Services.Authentication {
             };
 
             var hashedPassword = new PasswordHasher<User>()
-                .HashPassword(user, userDto.Password);
-            user.PasswordHash = hashedPassword;
+                .HashPassword(admin, userDto.Password);
+            admin.PasswordHash = hashedPassword;
 
             #endregion
 
-            await unitOfWork.GetRepository<User>().AddAsync(user);
+            await unitOfWork.GetRepository<User>().AddAsync(admin);
             var count = await unitOfWork.SaveChangesAsync();
 
-            return user.Id;
+            return admin.Id;
         }
 
         public async Task<string?> Login(UserLoginDto userLoginDto) {
 
-            var users = await unitOfWork.GetRepository<User>().GetAllAsync(u => u.BURelations);
-            var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
+            var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userLoginDto.Email);
 
             if (user is null) {
                 throw new Exception("User not found");
@@ -63,13 +61,20 @@ namespace Tanzeem.Services.Authentication {
                 throw new Exception("Wrong password");
             }
 
-            var token = AuthHelper.GenerateToken(user, options);
+            var token = await AuthHelper.GenerateToken(user, options, unitOfWork);
 
             return token;
         }
 
-        
-
     }
 
 }
+
+
+#region Temp -> delete if current code works
+//var users = await unitOfWork.GetRepository<User>().GetAllAsync();
+//var userCheck = users.FirstOrDefault(u => u.Email == userDto.Email);
+
+//var users = await unitOfWork.GetRepository<User>().GetAllAsync(u => u.BURelations);
+//var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
+#endregion

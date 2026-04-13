@@ -15,10 +15,11 @@ using Tanzeem.Shared;
 namespace Tanzeem.Services.Authentication {
     public static class AuthHelper {
 
-        public static string GenerateToken(User user, IOptions<JwtOptions> options) {
+        public static async Task<string> GenerateToken(User user, IOptions<JwtOptions> options
+            , IUnitOfWork unitOfWork) {
 
             var jwtOptions = options.Value;
-            var primaryBranch = user.BURelations.FirstOrDefault(x => x.IsPrimary);
+            var primaryBranch = await unitOfWork.GetRepository<BranchUserRelationship>().GetAsync(bu => bu.UserId == user.Id);
 
 
             var authClaims = new List<Claim>() {
@@ -32,8 +33,8 @@ namespace Tanzeem.Services.Authentication {
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtOptions.SecurityKey));
-
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+
 
             var tokenDescriptor = new JwtSecurityToken(
                 issuer: jwtOptions.Issuer,

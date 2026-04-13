@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.BusinessCore;
+using Tanzeem.Services.Authentication;
+using Tanzeem.Shared;
 using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Companies;
+using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.BusinessCore {
-    public class RegisterationService(IUnitOfWork _unitOfWork)
+    public class RegisterationService(IUnitOfWork _unitOfWork, IOptions<JwtOptions> options)
         : IRegisterationService {
 
+        
         public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
 
             #region Mapping
@@ -54,15 +56,11 @@ namespace Tanzeem.Services.BusinessCore {
             return branch.Id;
         }
 
-        
     }
 }
 
 #region To Be Created
 //public Task<int> AssignCompanyToUser(int companyId, int userId) {
-//    throw new NotImplementedException();
-//}
-//public Task<int> CreateNewAdmin() {
 //    throw new NotImplementedException();
 //}
 #endregion

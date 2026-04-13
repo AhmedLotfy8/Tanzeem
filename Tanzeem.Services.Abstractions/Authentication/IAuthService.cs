@@ -8,7 +8,7 @@ using Tanzeem.Shared.Dtos.Users;
 namespace Tanzeem.Services.Abstractions.Authentication {
     public interface IAuthService {
     
-        Task<int?> SignUp(UserDto userDto);
+        Task<int?> CreateAdminAsync(AdminSignUpDto userDto);
 
         Task<string?> Login(UserLoginDto userLoginDto);
 

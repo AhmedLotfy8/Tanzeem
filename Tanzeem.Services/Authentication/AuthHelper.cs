@@ -19,7 +19,8 @@ namespace Tanzeem.Services.Authentication {
             , IUnitOfWork unitOfWork) {
 
             var jwtOptions = options.Value;
-            var primaryBranch = await unitOfWork.GetRepository<BranchUserRelationship>().GetAsync(bu => bu.UserId == user.Id);
+            var primaryBranch = await unitOfWork.GetRepository<BranchUserRelationship>()
+                .GetAsync(bu => bu.UserId == user.Id && bu.IsPrimary == true);
 
 
             var authClaims = new List<Claim>() {

@@ -72,3 +72,24 @@ namespace Tanzeem.Services.Companies {
 
     }
 }
+
+#region Note
+//public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
+
+//    #region Mapping
+//    var company = new Company {
+//        Name = companyDto.Name,
+//        Field = companyDto.Field,
+//        Email = companyDto.Email,
+//        Phone = companyDto.Phone,
+//        CreatedAt = DateTime.UtcNow,
+//        IsActive = true
+//    };
+//    #endregion
+
+//    await unitOfWork.GetRepository<Company>().AddAsync(company);
+//    var count = await unitOfWork.SaveChangesAsync();
+
+//    return company.Id;
+//}
+#endregion

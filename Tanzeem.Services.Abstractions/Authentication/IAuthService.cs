@@ -7,10 +7,12 @@ using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.Abstractions.Authentication {
     public interface IAuthService {
-    
         Task<int?> CreateAdminAsync(AdminSignUpDto userDto);
-
         Task<string?> Login(UserLoginDto userLoginDto);
 
     }
 }
+
+#region For later
+//Task ResetPasswordAsync(ResetPasswordDto dto);
+#endregion

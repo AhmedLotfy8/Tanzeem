@@ -23,7 +23,7 @@ namespace Tanzeem.Presentation.Authentication {
 
         [HttpPost]
         [Route("Admin-Register")]
-        public async Task<IActionResult> UserRegister(AdminSignUpDto userDto) {
+        public async Task<IActionResult> AdminRegister(AdminSignUpDto userDto) {
             var userId = await authService.CreateAdminAsync(userDto);
             return Ok(userId);
         }

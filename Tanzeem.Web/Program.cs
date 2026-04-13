@@ -34,8 +34,8 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
-            builder.Services.AddScoped<IRegisterationService, RegisterationService>();
-            builder.Services.AddScoped<IBranchService, BranchService>();
+            builder.Services.AddScoped<Services.Abstractions.BusinessCore.IBusinessCore, BusinessCore>();
+            builder.Services.AddScoped<Services.Abstractions.Branches.IBranchService, Services.Branches.BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));

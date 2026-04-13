@@ -10,8 +10,7 @@ using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Shared.Dtos.Branches;
 
 namespace Tanzeem.Services.Branches {
-    public class BranchService(IUnitOfWork _unitOfWork) :
-        IBranchService {
+    public class BranchService(IUnitOfWork _unitOfWork) : IBranchService {
 
         public async Task<BranchDto> GetBranchAsync(int branchId) {
 
@@ -38,19 +37,6 @@ namespace Tanzeem.Services.Branches {
             #endregion
 
             return result;
-        }
-
-        public async Task<int> SetCurrentBranchAsync(int branchId) {
-
-            #region Notes
-            // This function is currently useless
-            // Until we implement user authentication and session management, we cannot set a current branch for the user
-            // Later the function will updated branch context
-            #endregion
-
-            var branch = await GetBranchAsync(branchId);
-
-            return branch.Id;
         }
 
         public async Task<List<BranchDto>> GetCompanyBranchesAsync(int companyId) { // Branches List
@@ -154,4 +140,26 @@ namespace Tanzeem.Services.Branches {
     }
 }
 
+#region 
+//public async Task<int> CreateDefaultBranchAsync(BranchDto branchDto) {
+
+//    #region Mapping
+//    var branch = new Branch {
+//        Name = branchDto.Name,
+//        Location = branchDto.Location,
+//        PhoneNumber = branchDto.PhoneNumber,
+//        Email = branchDto.Email,
+//        CreatedAt = DateTime.UtcNow,
+//        Status = BranchStatus.Active,
+//        CompanyId = 3 // This should be the ID of the newly created company, but for now it's hardcoded to 1
+//    };
+//    #endregion
+
+//    await unitOfWork.GetRepository<Branch>().AddAsync(branch);
+//    var count = await unitOfWork.SaveChangesAsync();
+
+//    return branch.Id;
+//}
+
+#endregion
 

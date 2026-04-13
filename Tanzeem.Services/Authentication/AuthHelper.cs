@@ -7,6 +7,8 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Shared;
 
@@ -16,13 +18,16 @@ namespace Tanzeem.Services.Authentication {
         public static string GenerateToken(User user, IOptions<JwtOptions> options) {
 
             var jwtOptions = options.Value;
+            var primaryBranch = user.BURelations.FirstOrDefault(x => x.IsPrimary);
+
 
             var authClaims = new List<Claim>() {
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim("UserId", user.Id.ToString()),
-                new Claim("CompanyId", user.CompanyId.ToString())
+                new Claim("CompanyId", user.CompanyId.ToString()),
+                new Claim("BranchId", primaryBranch?.BranchId.ToString() ?? "")
             };
 
             var key = new SymmetricSecurityKey(

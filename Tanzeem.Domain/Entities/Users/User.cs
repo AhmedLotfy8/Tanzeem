@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Users { 
-     public enum UserRoles {
-        Admin = 1,
-        Manager = 2,
-        Staff = 3,
-    }
 
     public class User {
     
@@ -33,6 +30,8 @@ namespace Tanzeem.Domain.Entities.Users {
         #region Navigation
         #endregion
         public Company Company { get; set; } = default!;
+        public ICollection<BranchUserRelationship> BURelations { get; set; } = default!;
+
 
     }
 }

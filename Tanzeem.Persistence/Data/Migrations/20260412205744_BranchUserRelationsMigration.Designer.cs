@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tanzeem.Persistence.Data.DbContexts;
 
@@ -11,9 +12,11 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    partial class TanzeemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412205744_BranchUserRelationsMigration")]
+    partial class BranchUserRelationsMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,6 +80,9 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("bit");
 
@@ -87,9 +93,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[IsPrimary] = 1");
+                    b.HasIndex("CompanyId");
 
                     b.HasIndex("UserId", "BranchId")
                         .IsUnique();
@@ -538,6 +542,10 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Tanzeem.Domain.Entities.Companies.Company", null)
+                        .WithMany("BURelations")
+                        .HasForeignKey("CompanyId");
+
                     b.HasOne("Tanzeem.Domain.Entities.Users.User", "User")
                         .WithMany("BURelations")
                         .HasForeignKey("UserId")
@@ -689,6 +697,8 @@ namespace Tanzeem.Persistence.Data.Migrations
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Companies.Company", b =>
                 {
+                    b.Navigation("BURelations");
+
                     b.Navigation("Branches");
 
                     b.Navigation("Products");

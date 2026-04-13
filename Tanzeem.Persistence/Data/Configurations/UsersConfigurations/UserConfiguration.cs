@@ -26,6 +26,12 @@ namespace Tanzeem.Persistence.Data.Configurations.UsersConfigurations {
                 .HasForeignKey(x => x.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasMany(x => x.BURelations)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
         }
     }
 }

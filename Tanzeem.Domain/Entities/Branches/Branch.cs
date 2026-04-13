@@ -7,14 +7,11 @@ using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Transactions;
+using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Branches {
     
-    public enum BranchStatus {
-        Active = 1,
-        Inactive = 2,
-        Closed = 3
-    }
+
 
     public class Branch {
     
@@ -43,8 +40,10 @@ namespace Tanzeem.Domain.Entities.Branches {
         public Company Company { get; set; } = default!;
         public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+        public ICollection<BranchUserRelationship> BURelations { get; set; }
 
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+
 
     }
 }

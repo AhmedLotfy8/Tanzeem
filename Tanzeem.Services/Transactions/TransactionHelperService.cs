@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Transactions;
+using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Services.Transactions {
     public static class TransactionHelperService {

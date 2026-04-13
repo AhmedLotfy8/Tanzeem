@@ -7,6 +7,7 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;

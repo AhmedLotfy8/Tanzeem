@@ -43,6 +43,11 @@ namespace Tanzeem.Persistence.Data.Configurations.BranchConfigurations {
                 .HasForeignKey(i => i.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasMany(x => x.BURelations)
+                .WithOne(x => x.Branch)
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
 
     }

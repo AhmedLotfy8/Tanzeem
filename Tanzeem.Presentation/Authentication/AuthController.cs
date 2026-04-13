@@ -24,7 +24,7 @@ namespace Tanzeem.Presentation.Authentication {
         [HttpPost]
         [Route("User-Register")]
         public async Task<IActionResult> UserRegister(UserDto userDto) {
-            var userId = await authService.Register(userDto);
+            var userId = await authService.SignUp(userDto);
             return Ok(userId);
         }
 

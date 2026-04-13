@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Shared.Dtos.Branches;
 

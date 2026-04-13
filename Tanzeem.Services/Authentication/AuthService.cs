@@ -1,15 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Shared;
 using Tanzeem.Shared.Dtos.Users;
@@ -18,7 +12,7 @@ namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
         IOptions<JwtOptions> options) : IAuthService {
 
-        public async Task<int?> Register(UserDto userDto) {
+        public async Task<int?> SignUp(UserDto userDto) {
 
             var users = await unitOfWork.GetRepository<User>().GetAllAsync();
             var userCheck = users.FirstOrDefault(u => u.Email == userDto.Email);
@@ -33,7 +27,13 @@ namespace Tanzeem.Services.Authentication {
                 Name = userDto.Name,
                 Email = userDto.Email,
                 Role = (UserRoles)userDto.Role,
-                CompanyId = 4 // hardcoded for now, will be dynamic when company registration is implemented
+                CompanyId = 3, // hardcoded for now, will be dynamic when company registration is implemented
+                BURelations = new List<BranchUserRelationship> {
+                    new BranchUserRelationship {
+                        BranchId = 2, // hardcoded
+                        IsPrimary = true,
+                    }
+                }
             };
 
             var hashedPassword = new PasswordHasher<User>()
@@ -50,7 +50,7 @@ namespace Tanzeem.Services.Authentication {
 
         public async Task<string?> Login(UserLoginDto userLoginDto) {
 
-            var users = await unitOfWork.GetRepository<User>().GetAllAsync();
+            var users = await unitOfWork.GetRepository<User>().GetAllAsync(u => u.BURelations);
             var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
 
             if (user is null) {

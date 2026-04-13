@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Companies;

@@ -32,7 +32,6 @@ namespace Tanzeem.Domain.Entities.Products {
 
 
         #region Relationships
-
         #endregion
         public int CompanyId { get; set; }
         public int CategoryId { get; set; }

@@ -30,17 +30,19 @@ namespace Tanzeem.Persistence.Repositories {
             return await query.FirstOrDefaultAsync(predicate);
         }
 
-        public async Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes) {
+       // public async Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes) {
 
-            // return await _context.Set<Entity>().ToListAsync();
-            IQueryable<Entity> query = _context.Set<Entity>();
-            if (includes != null) {
-                foreach (var include in includes) {
-                    query = query.Include(include);
-                }
-            }
-            return await query.AsNoTracking().ToListAsync();
-        }
+        //    // return await _context.Set<Entity>().ToListAsync();
+        //    IQueryable<Entity> query = _context.Set<Entity>();
+        //    if (includes != null)
+        //    {
+        //        foreach (var include in includes)
+        //        {
+        //            query = query.Include(include);
+        //        }
+        //    }
+        //    return await query.AsNoTracking().ToListAsync();
+        //}
 
         public async Task AddAsync(Entity entity) {
             await _context.AddAsync(entity);
@@ -71,5 +73,11 @@ namespace Tanzeem.Persistence.Repositories {
                            .Where(e => EF.Property<int>(e, keyName) == id);
         }
 
+        public async Task<IEnumerable<Entity>> GetAllAsync()
+        {
+
+            return await _context.Set<Entity>().ToListAsync();
+        }
+
+        }
     }
-}

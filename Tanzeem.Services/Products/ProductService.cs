@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,8 @@ using Tanzeem.Shared.Dtos.Products;
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork) : IProductService {
 
-        public async Task<ProductDto> GetProductByIdAsync(int id) {
+        public async Task<ProductDto> GetProductByIdAsync(int id)
+        {
 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
 
@@ -21,12 +23,14 @@ namespace Tanzeem.Services.Products {
             var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
             var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
 
-            if (product is null || inventory is null) {
+            if (product is null || inventory is null)
+            {
                 throw new Exception("Product not found");
             }
 
             #region Mapping
-            var result = new ProductDto {
+            var result = new ProductDto
+            {
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category.Name ?? "-",
@@ -186,6 +190,50 @@ namespace Tanzeem.Services.Products {
             var count = await _unitOfWork.SaveChangesAsync();
             return count > 0;
         }
+
+        //public async Task<ProductDto> GetProductByIdAsync(int id)
+        //{
+
+        //    var query = _unitOfWork.GetRepository<Product>().GetByIdAsQueryable(id);
+            
+        //    var product = await query.Include(x => x.Inventories).Include(x => x.Category)
+        //        .FirstOrDefaultAsync();
+            
+        //    if (product is null )
+        //    {
+        //        throw new Exception("Product not found");
+        //    }
+            
+        //    var inventoryQuantity = product.Inventories
+        //    .FirstOrDefault(x => x.BranchId == 1);
+        //    ///TODO Authentication
+            
+        //    if (inventoryQuantity is null)
+        //    {
+        //        throw new Exception("inventory not found");
+        //    }
+
+        //    #region Mapping
+        //    var result = new ProductDto
+        //    {
+        //        Name = product.Name,
+        //        SKU = product.SKU,
+        //        Category = product.Category?.Name ?? "-",
+        //        Stock = inventoryQuantity.Quantity ?? 0,
+        //        CostPrice = product.CostPrice,
+        //        SellingPrice = product.SellingPrice,
+        //        ExpiryDate = product.ExpiryDate,
+        //        Barcode = product.Barcode,
+        //        Description = product.Description,
+        //        ReorderLevel = product.ReorderLevel,
+        //        Status = product.Status,
+
+        //    };
+        //    #endregion
+
+
+        //    return result;
+        //}
 
     }
 

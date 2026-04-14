@@ -53,9 +53,9 @@ namespace Tanzeem.Services.Suppliers
             return false;
         }
 
-        public async Task<IEnumerable<SupplierResponseDto>> GetAllSuppliersAsync()
+        public IEnumerable<SupplierResponseDto> GetAllSuppliersAsync()
         {
-            var suppliers = await _unitOfWork.GetRepository<Supplier>().GetAllAsync(o => o.Orders);
+            var suppliers = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable().ToList();
 
             #region mapping
             var supplierDtos = suppliers.Select(s => new SupplierResponseDto

@@ -12,7 +12,7 @@ namespace Tanzeem.Services.Abstractions.Suppliers
     {
         Task<SupplierResponseDto> GetSupplierByIdAsync(int id);
         
-        Task<IEnumerable<SupplierResponseDto>> GetAllSuppliersAsync();
+        IEnumerable<SupplierResponseDto> GetAllSuppliersAsync();
 
         Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto);
        

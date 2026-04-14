@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
@@ -48,10 +49,11 @@ namespace Tanzeem.Services.Authentication {
             return user.Id;
         }
 
+        ///TODO i changed somethings at Login Auth Service
         public async Task<string?> Login(UserLoginDto userLoginDto) {
 
-            var users = await unitOfWork.GetRepository<User>().GetAllAsync(u => u.BURelations);
-            var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
+            var users = unitOfWork.GetRepository<User>().GetAllAsIQueryable().Include(u => u.BURelations);
+            var user = await users.FirstOrDefaultAsync(u => u.Email == userLoginDto.Email);
 
             if (user is null) {
                 throw new Exception("User not found");

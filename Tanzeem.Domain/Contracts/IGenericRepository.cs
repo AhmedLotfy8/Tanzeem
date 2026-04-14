@@ -10,7 +10,7 @@ namespace Tanzeem.Domain.Contracts
     public interface IGenericRepository<Entity> where Entity : class
     {
 
-        Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes);
+        Task<IEnumerable<Entity>> GetAllAsync();
 
         Task<Entity?> GetByIdAsync(int id);
 

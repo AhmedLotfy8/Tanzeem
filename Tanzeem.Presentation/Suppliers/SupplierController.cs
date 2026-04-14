@@ -41,9 +41,9 @@ namespace Tanzeem.Presentation.Suppliers
 
         [HttpGet]
        // [Route("suppliers/{id}")]
-        public async Task<IActionResult> DisplayAllSuppliers()
+        public IActionResult DisplayAllSuppliers()
         {
-            var result = await _supplierService.GetAllSuppliersAsync();
+            var result = _supplierService.GetAllSuppliersAsync();
 
             if (result.Any())
                 return Ok(result);

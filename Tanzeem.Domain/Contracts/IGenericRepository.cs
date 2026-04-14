@@ -1,14 +1,8 @@
 ﻿using System.Linq.Expressions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Tanzeem.Domain.Contracts
-{
-    public interface IGenericRepository<Entity> where Entity : class
-    {
+
+namespace Tanzeem.Domain.Contracts {
+    public interface IGenericRepository<Entity> where Entity : class {
 
         Task<IEnumerable<Entity>> GetAllAsync();
 
@@ -23,6 +17,9 @@ namespace Tanzeem.Domain.Contracts
         #region new methods
         IQueryable<Entity> GetAllAsIQueryable();
         IQueryable<Entity> GetByIdAsQueryable(int id);
+
+        Task<Entity?> GetAsync(Expression<Func<Entity, bool>> predicate, params Expression<Func<Entity, object>>[] includes);
+
         #endregion
 
     }

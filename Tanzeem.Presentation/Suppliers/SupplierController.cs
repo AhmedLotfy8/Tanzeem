@@ -24,7 +24,7 @@ namespace Tanzeem.Presentation.Suppliers
             return Ok(result);
         }
 
-        [HttpDelete]
+        [HttpDelete("{id}")]
        // [Route("suppliers/")]
         public async Task<IActionResult> RemoveSupplier(int id)
         {
@@ -62,7 +62,7 @@ namespace Tanzeem.Presentation.Suppliers
             return Ok(result);
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
       //  [Route("suppliers/{id}")]
         public async Task<IActionResult> UpdateSupplier(SupplierRequestDto supplierDto,int id)
         {

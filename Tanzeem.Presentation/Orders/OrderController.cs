@@ -15,7 +15,7 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpDelete]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             var result = await _orderService.DeleteOrderAsync(id);
@@ -29,7 +29,7 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
         {
             var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);

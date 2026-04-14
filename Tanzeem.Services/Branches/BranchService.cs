@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,20 +40,26 @@ namespace Tanzeem.Services.Branches {
             return result;
         }
 
-        public async Task<List<BranchDto>> GetCompanyBranchesAsync(int companyId) { // Branches List
+        public async Task<List<BranchDto>> GetCompanyBranchesAsync() { // CompanyId to be changed -> token companyId
 
-            var branches = await _unitOfWork.GetRepository<Branch>().GetAllAsync();
+            var companyId = 3;
+            var branches = _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable().ToList();
 
-            var result = branches.Where(b => b.CompanyId == companyId)
-                .Select(branch => new BranchDto {
-                    Id = branch.Id,
-                    Name = branch.Name,
-                    Location = branch.Location,
-                    PhoneNumber = branch.PhoneNumber,
-                    Email = branch.Email,
-                    CreatedAt = branch.CreatedAt,
-                    Status = branch.Status.ToString()
-                }).ToList();
+            var result = new List<BranchDto>();
+
+            foreach (var branch in branches) {
+                if (branch.CompanyId == companyId) {
+                    result.Add(new BranchDto {
+                        Id = branch.Id,
+                        Name = branch.Name,
+                        Location = branch.Location,
+                        PhoneNumber = branch.PhoneNumber,
+                        Email = branch.Email,
+                        CreatedAt = branch.CreatedAt,
+                        Status = branch.Status.ToString()
+                    });
+                }
+            }
 
             return result;
         }
@@ -66,6 +73,7 @@ namespace Tanzeem.Services.Branches {
                 PhoneNumber = branchDto.PhoneNumber,
                 Email = branchDto.Email,
                 CreatedAt = DateTime.UtcNow,
+                Status = BranchStatus.Active,
                 CompanyId = 3 // This is hardcoded for now, later we will get the company id from the user context
             };
             #endregion
@@ -110,56 +118,31 @@ namespace Tanzeem.Services.Branches {
             return count > 0;
         }
 
-
-        #region Might use
-
-        //Task<bool> SetBranchActivity(int branchId);
-
-        //public async Task<bool> SetBranchActivity(int branchId) {
-
-        //    var branch = await _unitOfWork.GetRepository<Branch>().GetByIdAsync(branchId);
-
-        //    if (branch == null) {
-        //        throw new Exception("Branch not found");
-        //    }
-
-        //    if (branch.Status == BranchStatus.Active) {
-        //        branch.Status = BranchStatus.Inactive;
-        //        return false;
-        //    }
-
-        //    else {
-        //        branch.Status = BranchStatus.Active;
-        //        return true;
-        //    }
-
-        //}
-
-        #endregion
-
     }
 }
 
-#region 
-//public async Task<int> CreateDefaultBranchAsync(BranchDto branchDto) {
+#region Might use
 
-//    #region Mapping
-//    var branch = new Branch {
-//        Name = branchDto.Name,
-//        Location = branchDto.Location,
-//        PhoneNumber = branchDto.PhoneNumber,
-//        Email = branchDto.Email,
-//        CreatedAt = DateTime.UtcNow,
-//        Status = BranchStatus.Active,
-//        CompanyId = 3 // This should be the ID of the newly created company, but for now it's hardcoded to 1
-//    };
-//    #endregion
+//Task<bool> SetBranchActivity(int branchId);
 
-//    await unitOfWork.GetRepository<Branch>().AddAsync(branch);
-//    var count = await unitOfWork.SaveChangesAsync();
+//public async Task<bool> SetBranchActivity(int branchId) {
 
-//    return branch.Id;
+//    var branch = await _unitOfWork.GetRepository<Branch>().GetByIdAsync(branchId);
+
+//    if (branch == null) {
+//        throw new Exception("Branch not found");
+//    }
+
+//    if (branch.Status == BranchStatus.Active) {
+//        branch.Status = BranchStatus.Inactive;
+//        return false;
+//    }
+
+//    else {
+//        branch.Status = BranchStatus.Active;
+//        return true;
+//    }
+
 //}
 
 #endregion
-

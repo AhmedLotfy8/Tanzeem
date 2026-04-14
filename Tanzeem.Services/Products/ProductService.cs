@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,23 +15,22 @@ using Tanzeem.Shared.Dtos.Products;
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork) : IProductService {
 
-        public async Task<ProductDto> GetProductByIdAsync(int id)
-        {
+        public async Task<ProductDto> GetProductByIdAsync(int id) {
 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
 
-            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-            var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
-            var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
+            //var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
+            //var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
+            var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id);
+            var categoryName = await _unitOfWork.GetRepository<Category>().GetAsync(c => c.Name == product.Category.Name);
+            //var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
 
-            if (product is null || inventory is null)
-            {
+            if (product is null || inventory is null) {
                 throw new Exception("Product not found");
             }
 
             #region Mapping
-            var result = new ProductDto
-            {
+            var result = new ProductDto {
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category.Name ?? "-",
@@ -58,14 +58,12 @@ namespace Tanzeem.Services.Products {
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
             var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
 
-
             #region Mapping
             var result = products.Select(product => new ProductDto {
                 Name = product.Name,
                 SKU = product.SKU,
-                Category = product.Category.Name,
-                Stock = _unitOfWork.GetRepository<Inventory>()
-                    .GetAllAsync().Result.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
+                Category = product.Category.Name ?? "UnCategorized",
+                Stock = inventories.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
                 ExpiryDate = product.ExpiryDate,
@@ -76,7 +74,7 @@ namespace Tanzeem.Services.Products {
 
             });
             #endregion
-
+                
 
             return result;
         }
@@ -84,8 +82,7 @@ namespace Tanzeem.Services.Products {
         public async Task<int> CreateProductAsync(ProductDto productDto) {
 
             #region Category Retrieval and Assigning
-            var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
-            var category = categories.FirstOrDefault(c => c.Name == productDto.Category);
+            var category = await _unitOfWork.GetRepository<Category>().GetAsync(c => c.Name == productDto.Category);
 
             if (category == null) {
                 category = new Category { Name = productDto.Category ?? "null" };
@@ -94,7 +91,7 @@ namespace Tanzeem.Services.Products {
             }
             #endregion
 
-            // Hardcoded companyId/BranchId
+            // Hardcoded companyId
             #region Mapping and Adding
             var product = new Product {
                 Name = productDto.Name,
@@ -108,31 +105,27 @@ namespace Tanzeem.Services.Products {
                 ReorderLevel = productDto.ReorderLevel,
                 Status = productDto.Status,
                 CompanyId = 3, // hardcoded companyId
-
             };
-            await _unitOfWork.GetRepository<Product>().AddAsync(product);
 
-            await _unitOfWork.GetRepository<Inventory>().AddAsync(new Inventory { // hardcoded branchId
-                ProductId = product.Id,
-                Quantity = productDto.Stock,
-                BranchId = 1,
-            });
+            product.Inventories = new List<Inventory> {
+                new Inventory {
+                    Quantity = productDto.Stock,
+                    BranchId = 12,
+                }
+            };
             #endregion
 
+            await _unitOfWork.GetRepository<Product>().AddAsync(product);
             var count = await _unitOfWork.SaveChangesAsync();
-            return product.Id;
-        }
 
-        public Task<int> CsvUploadAsync(string filePath) {
-            throw new NotImplementedException();
+            return product.Id;
         }
 
         public async Task<int> UpdateProductAsync(int id, ProductDto productDto) {
 
+            var branchId = 1; // hardcoded branchId
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
-            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-            var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
-
+            var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id && branchId == 1);
 
             if (product is null || inventory is null) {
                 throw new Exception("Product not found");
@@ -172,13 +165,13 @@ namespace Tanzeem.Services.Products {
             return product.Id;
         }
 
-
         // Hard delete logic (Deleting inventory record before product record)
         public async Task<bool> DeletedProductAsync(int id) {
 
+            var branchId = 1; // hardcoded branchId
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
-            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-            var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
+            var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id && branchId == 1);
+
 
             if (product is null || inventory is null) {
                 throw new Exception("Product not found");
@@ -191,50 +184,22 @@ namespace Tanzeem.Services.Products {
             return count > 0;
         }
 
-        //public async Task<ProductDto> GetProductByIdAsync(int id)
-        //{
-
-        //    var query = _unitOfWork.GetRepository<Product>().GetByIdAsQueryable(id);
-            
-        //    var product = await query.Include(x => x.Inventories).Include(x => x.Category)
-        //        .FirstOrDefaultAsync();
-            
-        //    if (product is null )
-        //    {
-        //        throw new Exception("Product not found");
-        //    }
-            
-        //    var inventoryQuantity = product.Inventories
-        //    .FirstOrDefault(x => x.BranchId == 1);
-        //    ///TODO Authentication
-            
-        //    if (inventoryQuantity is null)
-        //    {
-        //        throw new Exception("inventory not found");
-        //    }
-
-        //    #region Mapping
-        //    var result = new ProductDto
-        //    {
-        //        Name = product.Name,
-        //        SKU = product.SKU,
-        //        Category = product.Category?.Name ?? "-",
-        //        Stock = inventoryQuantity.Quantity ?? 0,
-        //        CostPrice = product.CostPrice,
-        //        SellingPrice = product.SellingPrice,
-        //        ExpiryDate = product.ExpiryDate,
-        //        Barcode = product.Barcode,
-        //        Description = product.Description,
-        //        ReorderLevel = product.ReorderLevel,
-        //        Status = product.Status,
-
-        //    };
-        //    #endregion
-
-
-        //    return result;
-        //}
+        public Task<int> CsvUploadAsync(string filePath) {
+            throw new NotImplementedException();
+        }
 
     }
 
 }
+
+#region Delete if code works
+// Create product
+//var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
+//var category = categories.FirstOrDefault(c => c.Name == productDto.Category);
+
+// Update product / Delete product
+//var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
+//var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
+
+
+#endregion

@@ -1,9 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Enums;
@@ -40,13 +35,15 @@ namespace Tanzeem.Services.Branches {
             return result;
         }
 
-        public async Task<List<BranchDto>> GetCompanyBranchesAsync() { // CompanyId to be changed -> token companyId
+        // Hard coded function (companyId)
+        public async Task<List<BranchDto>> GetCompanyBranchesAsync() {
 
             var companyId = 3;
-            var branches = _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable().ToList();
+            var branches = await _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable().ToListAsync();
+
+            #region Mapping
 
             var result = new List<BranchDto>();
-
             foreach (var branch in branches) {
                 if (branch.CompanyId == companyId) {
                     result.Add(new BranchDto {
@@ -56,15 +53,21 @@ namespace Tanzeem.Services.Branches {
                         PhoneNumber = branch.PhoneNumber,
                         Email = branch.Email,
                         CreatedAt = branch.CreatedAt,
-                        Status = branch.Status.ToString()
+                        Status = branch.Status.ToString(),
                     });
                 }
             }
 
+            #endregion
+
             return result;
         }
 
-        public async Task<int> CreateNewBranchAsync(BranchDto branchDto) {
+        // Hard coded function (companyId, BranchId)
+        public async Task<int> CreateNewBranchAsync(BranchDto branchDto, int adminId, int companyId) {
+
+            adminId = 8; // This is hardcoded for now, later we will get the user id from the user context
+            companyId = 3; // This is hardcoded for now, later we will get the company id from the user context
 
             #region Mapping
             var branch = new Branch {
@@ -74,8 +77,14 @@ namespace Tanzeem.Services.Branches {
                 Email = branchDto.Email,
                 CreatedAt = DateTime.UtcNow,
                 Status = BranchStatus.Active,
-                CompanyId = 3 // This is hardcoded for now, later we will get the company id from the user context
+                CompanyId = companyId // This is hardcoded for now, later we will get the company id from the user context
             };
+
+            branch.BURelations = new List<BranchUserRelationship>() {
+                new BranchUserRelationship {
+                        UserId = adminId, 
+                    }
+            }; 
             #endregion
 
             await _unitOfWork.GetRepository<Branch>().AddAsync(branch);
@@ -118,31 +127,6 @@ namespace Tanzeem.Services.Branches {
             return count > 0;
         }
 
+
     }
 }
-
-#region Might use
-
-//Task<bool> SetBranchActivity(int branchId);
-
-//public async Task<bool> SetBranchActivity(int branchId) {
-
-//    var branch = await _unitOfWork.GetRepository<Branch>().GetByIdAsync(branchId);
-
-//    if (branch == null) {
-//        throw new Exception("Branch not found");
-//    }
-
-//    if (branch.Status == BranchStatus.Active) {
-//        branch.Status = BranchStatus.Inactive;
-//        return false;
-//    }
-
-//    else {
-//        branch.Status = BranchStatus.Active;
-//        return true;
-//    }
-
-//}
-
-#endregion

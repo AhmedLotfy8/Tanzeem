@@ -11,7 +11,7 @@ using Tanzeem.Shared.Dtos.Companies;
 namespace Tanzeem.Presentation.BusinessCore {
     [ApiController]
     [Route("api/[controller]")]
-    public class BusinessCoreController(IBusinessCore businessCore) : ControllerBase {
+    public class BusinessCoreController(IBusinessCoreService businessCore) : ControllerBase {
 
     }
 }

@@ -11,8 +11,10 @@ namespace Tanzeem.Services.Abstractions.Companies {
         Task<CompanyDto> GetCurrentCompanyAsync(int companyId); // Assuming you want to get a company by its ID
 
         Task<int> UpdateCompanyAsync(int companyId, CompanyDto companyDto);
+        Task<int> CreateNewCompanyAsync(CompanyDto companyDto);
 
         Task<bool> DeleteCompanyAsync(int companyId);
+
 
 
     }

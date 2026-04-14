@@ -34,7 +34,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
-            builder.Services.AddScoped<IBusinessCore, BusinessCore>();
+            builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();

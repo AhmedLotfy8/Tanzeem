@@ -10,8 +10,7 @@ using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Shared.Dtos.Companies;
 
 namespace Tanzeem.Services.Companies {
-    public class CompanyService(IUnitOfWork _unitOfWork)
-    : ICompanyService {
+    public class CompanyService(IUnitOfWork _unitOfWork) : ICompanyService {
 
         public async Task<CompanyDto> GetCurrentCompanyAsync(int companyId) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
 
@@ -32,6 +31,25 @@ namespace Tanzeem.Services.Companies {
             return result;
         }
 
+        public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
+
+            #region Mapping
+            var company = new Company {
+                Name = companyDto.Name,
+                Field = companyDto.Field,
+                Email = companyDto.Email,
+                Phone = companyDto.Phone,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+            #endregion
+
+            await _unitOfWork.GetRepository<Company>().AddAsync(company);
+            var count = await _unitOfWork.SaveChangesAsync();
+
+            return company.Id;
+        }
+
         public async Task<int> UpdateCompanyAsync(int companyId, CompanyDto companyDto) { // Using companyId now, will use ClaimBasedTenant for implicied companyId in the future
 
             var company = _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId).Result;
@@ -45,7 +63,6 @@ namespace Tanzeem.Services.Companies {
             company.Field = companyDto.Field;
             company.Email = companyDto.Email;
             company.Phone = companyDto.Phone;
-
             #endregion
 
 
@@ -73,23 +90,3 @@ namespace Tanzeem.Services.Companies {
     }
 }
 
-#region Note
-//public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
-
-//    #region Mapping
-//    var company = new Company {
-//        Name = companyDto.Name,
-//        Field = companyDto.Field,
-//        Email = companyDto.Email,
-//        Phone = companyDto.Phone,
-//        CreatedAt = DateTime.UtcNow,
-//        IsActive = true
-//    };
-//    #endregion
-
-//    await unitOfWork.GetRepository<Company>().AddAsync(company);
-//    var count = await unitOfWork.SaveChangesAsync();
-
-//    return company.Id;
-//}
-#endregion

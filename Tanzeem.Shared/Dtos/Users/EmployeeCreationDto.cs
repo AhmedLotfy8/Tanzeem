@@ -16,5 +16,6 @@ namespace Tanzeem.Shared.Dtos.Users {
 
         public string? PhoneNumber { get; set; }
 
+        public string tempPassword { get; set; } = string.Empty;
     }
 }

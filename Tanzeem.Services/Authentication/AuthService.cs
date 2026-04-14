@@ -13,7 +13,7 @@ namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
         IOptions<JwtOptions> options) : IAuthService {
 
-
+        // Hard coded function (companyId, BranchId)
         public async Task<int?> CreateAdminAsync(AdminSignUpDto userDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userDto.Email);

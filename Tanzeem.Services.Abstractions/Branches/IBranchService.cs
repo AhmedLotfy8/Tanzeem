@@ -12,7 +12,7 @@ namespace Tanzeem.Services.Abstractions.Branches {
     
         Task<List<BranchDto>> GetCompanyBranchesAsync();
 
-        Task<int> CreateNewBranchAsync(BranchDto branchDto);
+        Task<int> CreateNewBranchAsync(BranchDto branchDto, int adminId, int companyId);
         
         Task<int> UpdateBranchAsync(int branchId, BranchDto branchDto);
 

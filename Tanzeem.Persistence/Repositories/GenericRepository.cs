@@ -16,6 +16,22 @@ namespace Tanzeem.Persistence.Repositories {
             return await _context.Set<Entity>().FindAsync(id);
         }
 
+        public async Task<IEnumerable<Entity>> GetAllAsync() {
+            return await _context.Set<Entity>().ToListAsync();
+        }
+
+        public async Task AddAsync(Entity entity) {
+            await _context.AddAsync(entity);
+        }
+
+        public void UpdateAsync(Entity entity) {
+            _context.Update(entity);
+        }
+
+        public void DeleteAsync(Entity entity) {
+            _context.Remove(entity);
+        }
+
         public async Task<Entity?> GetAsync(Expression<Func<Entity, bool>> predicate,
             params Expression<Func<Entity, object>>[] includes) {
 
@@ -30,31 +46,7 @@ namespace Tanzeem.Persistence.Repositories {
             return await query.FirstOrDefaultAsync(predicate);
         }
 
-       // public async Task<IEnumerable<Entity>> GetAllAsync(params Expression<Func<Entity, object>>[] includes) {
 
-        //    // return await _context.Set<Entity>().ToListAsync();
-        //    IQueryable<Entity> query = _context.Set<Entity>();
-        //    if (includes != null)
-        //    {
-        //        foreach (var include in includes)
-        //        {
-        //            query = query.Include(include);
-        //        }
-        //    }
-        //    return await query.AsNoTracking().ToListAsync();
-        //}
-
-        public async Task AddAsync(Entity entity) {
-            await _context.AddAsync(entity);
-        }
-
-        public void UpdateAsync(Entity entity) {
-            _context.Update(entity);
-        }
-
-        public void DeleteAsync(Entity entity) {
-            _context.Remove(entity);
-        }
 
         public IQueryable<Entity> GetAllAsIQueryable() {
             //we dont need to return task, we will need it when convert to list
@@ -73,11 +65,5 @@ namespace Tanzeem.Persistence.Repositories {
                            .Where(e => EF.Property<int>(e, keyName) == id);
         }
 
-        public async Task<IEnumerable<Entity>> GetAllAsync()
-        {
-
-            return await _context.Set<Entity>().ToListAsync();
-        }
-
-        }
     }
+}

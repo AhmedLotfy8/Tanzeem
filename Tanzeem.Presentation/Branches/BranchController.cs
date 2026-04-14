@@ -38,8 +38,8 @@ namespace Tanzeem.Presentation.Branches {
 
         [HttpGet]
         [Route("Branches")]
-        public async Task<IActionResult> GetBranches(int id) {
-            var branches = await branchService.GetCompanyBranchesAsync(id);
+        public async Task<IActionResult> GetBranches() {
+            var branches = await branchService.GetCompanyBranchesAsync();
             return Ok(branches);
         }
 
@@ -49,17 +49,6 @@ namespace Tanzeem.Presentation.Branches {
             var result = await branchService.CreateNewBranchAsync(branchDto);
             return Ok(result);
         }
-
-
-
-        #region For later
-        /*        public async Task<IActionResult> SetCurrentBranch(int id) {
-                    var result = await branchService.SetCurrentBranchAsync(id);
-                    return Ok(result);
-                }
-        */
-        #endregion
-
 
     }
 }

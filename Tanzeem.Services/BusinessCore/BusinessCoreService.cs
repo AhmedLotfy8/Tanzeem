@@ -15,13 +15,18 @@ namespace Tanzeem.Services.BusinessCore {
     public class BusinessCoreService(IUnitOfWork unitOfWork, IOptions<JwtOptions> options) : IBusinessCoreService {
 
         // Hard coded function (companyId, BranchId)
-        public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) { 
+        public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == employeeCreationDto.Email);
 
             if (user is not null) {
                 throw new Exception("Email is already Registered!");
             }
+
+            if (employeeCreationDto.Role == UserRoles.Admin) {
+                throw new Exception("Cannot create employee with Admin role.");
+            }
+
 
             #region Mapping
             var employee = new User() {
@@ -49,29 +54,52 @@ namespace Tanzeem.Services.BusinessCore {
             return employee.Id;
         }
 
-        public async Task<bool> AssignUserToBranch(BranchUserRelationship currentPrimaryRelation, int newBranchId) {
-          
-            // Prevent duplicate assignment
-            var existing = await unitOfWork.GetRepository<BranchUserRelationship>()
-                .GetAsync(bur => bur.UserId == currentPrimaryRelation.UserId && bur.BranchId == newBranchId);
+        public async Task<bool> AssignUserToBranch(int userId, int currentBranchId, int newBranchId) {
 
-            if (existing is not null)
-                throw new Exception("User is already assigned to this branch.");
+            #region Validate entities exist
+
+            var userExists = await unitOfWork.GetRepository<User>().GetAsync(u => u.Id == userId);
+            var branchExists = await unitOfWork.GetRepository<Branch>().GetAsync(b => b.Id == newBranchId);
+            if (userExists is null || branchExists is null)
+                throw new Exception("User or Branch not found.");
+
+            #endregion
+
+
+            #region Fetch current primary
+
+            var currentPrimaryRelation = await unitOfWork.GetRepository<BranchUserRelationship>()
+                .GetAsync(bur => bur.UserId == userId && bur.BranchId == currentBranchId);
+            if (currentPrimaryRelation is null)
+                throw new Exception("Current primary branch relation not found.");
+
+            #endregion
+
 
             currentPrimaryRelation.IsPrimary = false;
             unitOfWork.GetRepository<BranchUserRelationship>().UpdateAsync(currentPrimaryRelation);
 
-            // Assign new primary
-            var newRelation = new BranchUserRelationship {
-                UserId = currentPrimaryRelation.UserId,
-                BranchId = newBranchId,
-                IsPrimary = true
-            };
+            var newPrimaryRelation = await unitOfWork.GetRepository<BranchUserRelationship>()
+                .GetAsync(bur => bur.UserId == userId && bur.BranchId == newBranchId);
 
-            await unitOfWork.GetRepository<BranchUserRelationship>().AddAsync(newRelation);
+            // If the relation already exists, just update it to be primary. 
+            if (newPrimaryRelation is not null) {
+                newPrimaryRelation.IsPrimary = true;
+                unitOfWork.GetRepository<BranchUserRelationship>().UpdateAsync(newPrimaryRelation);
+            }
+
+            // Otherwise, create a new relation.
+            else {
+                await unitOfWork.GetRepository<BranchUserRelationship>().AddAsync(new BranchUserRelationship {
+                    UserId = userId,
+                    BranchId = newBranchId,
+                    IsPrimary = true
+                });
+            }
+
             return await unitOfWork.SaveChangesAsync() > 0;
         }
-
+    
     }
 }
 

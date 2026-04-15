@@ -11,15 +11,28 @@ namespace Tanzeem.Presentation.Branches {
 
     [ApiController]
     [Route("api/[controller]")]
-    public class BranchController(IBranchService branchService) :
-        ControllerBase {
-
+    public class BranchController(IBranchService branchService) : ControllerBase {
 
         [HttpGet]
         [Route("Branches/{id}")]
         public async Task<IActionResult> GetBranch(int id) {
             var branch = await branchService.GetBranchAsync(id);
             return Ok(branch);
+        }
+
+        [HttpGet]
+        [Route("Branches")]
+        public async Task<IActionResult> GetBranches() {
+            var branches = await branchService.GetCompanyBranchesAsync();
+            return Ok(branches);
+        }
+
+        [HttpPost]
+        [Route("Branches")]
+        // Hard coded values (adminId/companyId)
+        public async Task<IActionResult> CreateBranch(BranchDto branchDto, int adminId, int companyId) {
+            var result = await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
+            return Ok(result);
         }
 
         [HttpPut]
@@ -33,20 +46,6 @@ namespace Tanzeem.Presentation.Branches {
         [Route("Branches/{id}")]
         public async Task<IActionResult> DeleteBranch(int id) {
             var result = await branchService.DeleteBranchAsync(id);
-            return Ok(result);
-        }
-
-        [HttpGet]
-        [Route("Branches")]
-        public async Task<IActionResult> GetBranches() {
-            var branches = await branchService.GetCompanyBranchesAsync();
-            return Ok(branches);
-        }
-
-        [HttpPost]
-        [Route("Branches")]
-        public async Task<IActionResult> CreateBranch(BranchDto branchDto) {
-            var result = await branchService.CreateNewBranchAsync(branchDto);
             return Ok(result);
         }
 

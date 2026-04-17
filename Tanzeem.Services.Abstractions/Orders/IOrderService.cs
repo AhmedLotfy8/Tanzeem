@@ -8,7 +8,7 @@ namespace Tanzeem.Services.Abstractions.Orders
     {
         Task<OrderResponseDto> GetOrderByIdAsync(int id);
 
-        Task<IEnumerable<OrderSummaryResponseDto>> GetAllOrdersAsync();
+       // Task<IEnumerable<OrderSummaryResponseDto>> GetAllOrdersAsync();
 
         Task<int> CreateOrderAsync(OrderRequestDto orderDto);
 

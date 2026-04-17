@@ -30,7 +30,7 @@ namespace Tanzeem.Services.Notifications
                 }
             }
 
-            return 1;//notify id
+            //notify id
         }
     }
 }

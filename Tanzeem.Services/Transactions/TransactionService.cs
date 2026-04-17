@@ -1,4 +1,6 @@
-﻿using Tanzeem.Domain.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
@@ -190,6 +192,14 @@ namespace Tanzeem.Services.Transactions {
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
             var count = await _unitOfWork.SaveChangesAsync();
+
+            #region low stock alert
+            if (transaction.Type == TransactionType.Out)
+            {
+                
+
+            }
+            #endregion
 
             return transaction.Id;
         }

@@ -10,6 +10,7 @@ using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
 using Tanzeem.Services.Abstractions.Suppliers;
@@ -18,6 +19,7 @@ using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
+using Tanzeem.Services.Notifications;
 using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
 using Tanzeem.Services.Suppliers;
@@ -43,6 +45,7 @@ namespace Tanzeem.Web {
 
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IOrderService,OrderService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
             #endregion
 
             #region Added Authentication

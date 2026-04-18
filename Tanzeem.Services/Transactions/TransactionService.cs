@@ -4,12 +4,13 @@ using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;
 
 namespace Tanzeem.Services.Transactions {
-    public class TransactionService(IUnitOfWork _unitOfWork)
+    public class TransactionService(IUnitOfWork _unitOfWork, INotificationService _notificationService)
         : ITransactionService {
 
         public async Task<TransactionDto> GetTransactionByIdAsync(int id) {
@@ -196,7 +197,7 @@ namespace Tanzeem.Services.Transactions {
             #region low stock alert
             if (transaction.Type == TransactionType.Out)
             {
-                
+                await _notificationService.CreateLowStockNotification(transaction);
 
             }
             #endregion

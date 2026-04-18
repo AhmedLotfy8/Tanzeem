@@ -30,25 +30,29 @@ namespace Tanzeem.Services.Notifications
             });
             return messageDtos;
         }
-        public async Task<IEnumerable<int>> CreateLowStockNotification(Transaction transaction)
+        public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems,List<Inventory> inventories)
         {
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().Include(x => x.Product);
+
             List<Notification> notifications = new List<Notification>();
 
-            foreach (var item in transaction.TransactionItems)
+            foreach (var item in lowStockItems)
             {
-                var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
-                if (inventory == null)
+                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.ProductId);
+                if (inventory == null) { 
+                    throw new Exception("no inventory found");
+                }
+                Notification notification = new Notification
                 {
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow,
-                        Type = NotificationType.LowStockAlert,
-                        Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}"
-                    };
-                    notifications.Add(notification);
-                    await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    Type = NotificationType.LowStockAlert,
+                    Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}",
+                    UserId = 1 //TODO Auth
+                };
+                notifications.Add(notification);
+                await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
             }
-
+                
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
             {
@@ -58,5 +62,12 @@ namespace Tanzeem.Services.Notifications
             var ids = notifications.Select(x => x.Id);
             return ids;
         }
+
+        //public async Task<IEnumerable<int>> CreateDeadStockNotification(Transaction transaction)
+        //{
+        //    var outTransactions = _unitOfWork.GetRepository<Transaction>().GetAllAsIQueryable()
+        //        .Where(x => x.Type == TransactionType.Out && x.CreatedAt <= DateTime.UtcNow.AddMonths(-3));
+
+        //}
     }
 }

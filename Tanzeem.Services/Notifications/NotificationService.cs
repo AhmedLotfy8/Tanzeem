@@ -40,13 +40,6 @@ namespace Tanzeem.Services.Notifications
                 var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
                 if (inventory == null)
                 {
-                    throw new Exception("this inventory not found");
-                    ///TODO exception handling
-                }
-               
-                if (inventory.Quantity <= inventory.Product.ReorderLevel)
-                {
-                    Notification notification = new Notification {
                         IsRead = false,
                         CreatedAt = DateTime.UtcNow,
                         Type = NotificationType.LowStockAlert,
@@ -54,9 +47,8 @@ namespace Tanzeem.Services.Notifications
                     };
                     notifications.Add(notification);
                     await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
-                }
-
             }
+
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
             {

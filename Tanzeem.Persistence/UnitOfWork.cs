@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,10 @@ namespace Tanzeem.Persistence {
 
         public async Task<int> SaveChangesAsync() {
             return await _context.SaveChangesAsync();
+        }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync() {
+            return await _context.Database.BeginTransactionAsync();
         }
 
     }

@@ -24,7 +24,7 @@ namespace Tanzeem.Domain.Entities.Users {
         #region Relationships
 
         #endregion
-        public int CompanyId { get; set; }
+        public int? CompanyId { get; set; }
 
 
         #region Navigation

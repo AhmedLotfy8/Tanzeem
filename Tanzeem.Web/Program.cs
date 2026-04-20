@@ -9,6 +9,7 @@ using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Onboarding;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
 using Tanzeem.Services.Abstractions.Suppliers;
@@ -17,6 +18,7 @@ using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
+using Tanzeem.Services.Onboarding;
 using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
 using Tanzeem.Services.Suppliers;
@@ -34,10 +36,11 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
-            builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
+            builder.Services.AddScoped<IOnboardingService, OnboardingService>();
             builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
 
             builder.Services.AddScoped<ISupplierService, SupplierService>();

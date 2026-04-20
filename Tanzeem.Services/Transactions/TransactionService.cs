@@ -1,13 +1,16 @@
-﻿using Tanzeem.Domain.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;
 
 namespace Tanzeem.Services.Transactions {
-    public class TransactionService(IUnitOfWork _unitOfWork)
+    public class TransactionService(IUnitOfWork _unitOfWork, INotificationService _notificationService)
         : ITransactionService {
 
         public async Task<TransactionDto> GetTransactionByIdAsync(int id) {
@@ -190,6 +193,14 @@ namespace Tanzeem.Services.Transactions {
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
             var count = await _unitOfWork.SaveChangesAsync();
+
+            #region low stock alert
+            if (transaction.Type == TransactionType.Out)
+            {
+                await _notificationService.CreateLowStockNotification(transaction);
+
+            }
+            #endregion
 
             return transaction.Id;
         }

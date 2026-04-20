@@ -91,27 +91,27 @@ namespace Tanzeem.Services.Orders
             return true;
         }
 
-        public async Task<IEnumerable<OrderSummaryResponseDto>> GetAllOrdersAsync()
-        {
-            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
+        //public async Task<IEnumerable<OrderSummaryResponseDto>> GetAllOrdersAsync()
+        //{
+        //    var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
 
-            if (!query.Any())
-                throw new Exception("No orders");
-            ///TODO exception handling
+        //    if (!query.Any())
+        //        throw new Exception("No orders");
+        //    ///TODO exception handling
 
-            var orderDtos = await query
-            .Select(order => new OrderSummaryResponseDto
-            {
-                Id = order.Id,
-                OrderDate = order.OrderDate,
-                SupplierName = order.SupplierName,
-                Total = order.Total,
-                Status = order.Status.ToString(),
-            }
-            ).ToListAsync();
+        //    var orderDtos = await query
+        //    .Select(order => new OrderSummaryResponseDto
+        //    {
+        //        Id = order.Id,
+        //        OrderDate = order.OrderDate,
+        //        SupplierName = order.SupplierName,
+        //        Total = order.Total,
+        //        Status = order.Status.ToString(),
+        //    }
+        //    ).ToListAsync();
 
-            return orderDtos;
-        }
+        //    return orderDtos;
+        //}
 
         public async Task<OrderResponseDto> GetOrderByIdAsync(int id)
         {

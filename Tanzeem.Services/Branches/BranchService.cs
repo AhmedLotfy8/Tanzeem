@@ -66,10 +66,6 @@ namespace Tanzeem.Services.Branches {
         // Hard coded function (companyId, BranchId)
         public async Task<int> CreateNewBranchAsync(BranchDto branchDto, int adminId, int companyId) {
 
-            adminId = 8; // This is hardcoded for now, later we will get the user id from the user context
-            companyId = 3; // This is hardcoded for now, later we will get the company id from the user context
-
-            #region Mapping
             var branch = new Branch {
                 Name = branchDto.Name,
                 Location = branchDto.Location,
@@ -80,14 +76,15 @@ namespace Tanzeem.Services.Branches {
                 CompanyId = companyId // This is hardcoded for now, later we will get the company id from the user context
             };
 
+            await _unitOfWork.GetRepository<Branch>().AddAsync(branch);
+
             branch.BURelations = new List<BranchUserRelationship>() {
                 new BranchUserRelationship {
-                        UserId = adminId, 
-                    }
-            }; 
-            #endregion
+                    UserId = adminId, // This is hardcoded for now, later we will get the user id from the user 
+                    IsPrimary = true
+                }
+            };
 
-            await _unitOfWork.GetRepository<Branch>().AddAsync(branch);
             var count = await _unitOfWork.SaveChangesAsync();
 
             return branch.Id;
@@ -128,5 +125,16 @@ namespace Tanzeem.Services.Branches {
         }
 
 
+
+        // Hard coded function (companyId, adminId)
+        //private Branch AssignCreatedCompanyAndBranchToAdmin(BranchDto branchDto, int adminId, int companyId) {
+
+
+
+        //    return branch;
+        //}
+
+
     }
+
 }

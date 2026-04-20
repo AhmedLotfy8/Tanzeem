@@ -21,9 +21,10 @@ namespace Tanzeem.Persistence.Data.Configurations.UsersConfigurations {
                 .HasMaxLength(512);
 
 
-            builder.HasOne(x=> x.Company)
+            builder.HasOne(x => x.Company)
                 .WithMany(c => c.Users)
                 .HasForeignKey(x => x.CompanyId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(x => x.BURelations)

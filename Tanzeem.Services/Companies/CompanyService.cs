@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Shared.Dtos.Companies;
 
@@ -31,7 +32,9 @@ namespace Tanzeem.Services.Companies {
             return result;
         }
 
-        public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto) {
+        public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto, int adminId) {
+
+            var admin = await _unitOfWork.GetRepository<User>().GetAsync(u => u.Id == adminId);
 
             #region Mapping
             var company = new Company {
@@ -42,9 +45,12 @@ namespace Tanzeem.Services.Companies {
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
             };
+
+            admin.Company = company;
             #endregion
 
             await _unitOfWork.GetRepository<Company>().AddAsync(company);
+
             var count = await _unitOfWork.SaveChangesAsync();
 
             return company.Id;

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tanzeem.Persistence.Data.DbContexts;
 
@@ -11,9 +12,11 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    partial class TanzeemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420150702_UserCompanyEdit")]
+    partial class UserCompanyEdit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -159,39 +162,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("Inventories");
-                });
-
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Notifications.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notification");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
@@ -598,17 +568,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Notifications.Notification", b =>
-                {
-                    b.HasOne("Tanzeem.Domain.Entities.Users.User", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
                 {
                     b.HasOne("Tanzeem.Domain.Entities.Branches.Branch", "Branch")
@@ -763,8 +722,6 @@ namespace Tanzeem.Persistence.Data.Migrations
             modelBuilder.Entity("Tanzeem.Domain.Entities.Users.User", b =>
                 {
                     b.Navigation("BURelations");
-
-                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

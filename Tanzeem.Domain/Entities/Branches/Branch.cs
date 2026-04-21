@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
@@ -41,7 +42,7 @@ namespace Tanzeem.Domain.Entities.Branches {
         public ICollection<BranchUserRelationship> BURelations { get; set; }
 
         public ICollection<Order> Orders { get; set; } = new List<Order>();
-
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     }
 }

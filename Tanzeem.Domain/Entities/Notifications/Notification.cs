@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 
@@ -18,10 +19,10 @@ namespace Tanzeem.Domain.Entities.Notifications
 
         #region FK
         #endregion
-        public int UserId { get; set; }
+        public int BranchId { get; set; }
 
         #region navigation properties
         #endregion
-        public User User { get; set; }
+        public Branch Branch { get; set; }
     }
 }

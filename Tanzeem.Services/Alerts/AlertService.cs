@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Alerts;
@@ -28,9 +29,13 @@ namespace Tanzeem.Services.Alerts
                 case NotificationType.DeadStockAlert:
                     alerts.AddRange(ShowDeadStockAlerts());
                     break;
+                case NotificationType.ExpiryAlert:
+                    alerts.AddRange(ShowExpiryAlerts());
+                    break;
                 default:
                     alerts.AddRange(ShowLowStockAlerts());
                     alerts.AddRange(ShowDeadStockAlerts());
+                    alerts.AddRange(ShowExpiryAlerts());
                     break;
             }
 
@@ -81,7 +86,7 @@ namespace Tanzeem.Services.Alerts
                     AlertDescription = $"{inv.Product.Name} has not moved in {dateResult}",
                     AlertSubTitle = $"{inv.Product.Name}(SKU: {inv.Product.SKU})",
                     ProductId = inv.ProductId,
-                    Type = NotificationType.DeadStockAlert,
+                    Type = NotificationType.DeadStockAlert.ToString(),
                     Priority = AlertPriority.Critical.ToString(),
                 };
             }).ToList();
@@ -106,13 +111,43 @@ namespace Tanzeem.Services.Alerts
                         AlertDescription = $"{inventory.Product.Name} stock is below minimum threshold",
                         AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU}), Current Quantity: {inventory.Quantity}",
                         ProductId = inventory.ProductId,
-                        Type = NotificationType.LowStockAlert,
+                        Type = NotificationType.LowStockAlert.ToString(),
                         Priority = AlertPriority.Warning.ToString(),
                     };
                     lowAlerts.Add(low);
                 }
             }
             return lowAlerts;
+        }
+
+        public IEnumerable<AlertDto> ShowExpiryAlerts()
+        {
+            var products = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(3)) ///TODO settings
+                .ToList();
+
+            if (!products.Any())
+            {
+                throw new Exception("No products");
+            }
+            List<AlertDto> alerts = new List<AlertDto>();
+
+            foreach (var product in products)
+            {
+                AlertDto expiry = new AlertDto
+                {
+                    AlertTitle = "Expiry Warning",
+                    AlertDescription = $"{product.Name} will expire in " +
+                    $"{NotificationServiceHelper.GenerateSinceDate(product.ExpiryDate)}",
+                    AlertSubTitle =$"{product.Name} (SKU: {product.SKU})",
+                    Priority = AlertPriority.Warning.ToString(),
+                    ProductId = product.Id,
+                    Type = NotificationType.ExpiryAlert.ToString(),
+                };
+                alerts.Add(expiry);
+            }
+
+            return alerts;
         }
     }
 }

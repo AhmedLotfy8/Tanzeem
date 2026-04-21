@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
+using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Notifications;
@@ -100,7 +101,32 @@ namespace Tanzeem.Services.Notifications
                 throw new Exception("error at dead notification add");
         }
         
+        public async Task CreateExpiryNotification()
+        {
+            var products = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Select(p => p.ExpiryDate)
+                .Where(p => p <= DateTime.UtcNow.AddMonths(3)) ///TODO settings
+                .ToList();
 
+            if (!products.Any())
+            {
+                throw new Exception("No products");
+            }
+
+            Notification notification = new Notification
+            {
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow,
+                Type = NotificationType.ExpiryAlert,
+                Message = $"{products.Count()} products are near expiry.",
+                UserId = 1 ///TODO auth 
+            };
+
+           await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            int affected = await _unitOfWork.SaveChangesAsync();
+            if (affected <= 0)
+                throw new Exception("error at expiry notification add");
+        }
 
     }
 }

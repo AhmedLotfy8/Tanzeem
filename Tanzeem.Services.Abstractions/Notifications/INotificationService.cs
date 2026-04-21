@@ -16,5 +16,7 @@ namespace Tanzeem.Services.Abstractions.Notifications
         public Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> transactionItems,List<Inventory> inventories);
         public Task CreateDeadStockNotification();
 
+        public Task CreateExpiryNotification();
+
     }
 }

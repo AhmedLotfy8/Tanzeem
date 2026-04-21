@@ -105,7 +105,12 @@ namespace Tanzeem.Web {
                 recurringJobManager.AddOrUpdate(
                     "check-dead-stock-weekly",
                     () => notificationService.CreateDeadStockNotification(),
-                    Cron.Weekly(DayOfWeek.Saturday)
+                    Cron.Weekly(DayOfWeek.Saturday,1)
+                );
+                recurringJobManager.AddOrUpdate(
+                    "check-expiration-products-weekly",
+                    () => notificationService.CreateExpiryNotification(),
+                    Cron.Weekly(DayOfWeek.Saturday,6)
                 );
             }
             #endregion

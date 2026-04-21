@@ -63,6 +63,14 @@ namespace Tanzeem.Web {
             
             #endregion
 
+            #region Added Hangfire
+            builder.Services.AddHangfire(config => config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer() //when create job use simple service name not full name with version and Public Key Token
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddHangfireServer();
+            #endregion
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -78,7 +86,19 @@ namespace Tanzeem.Web {
 
             var app = builder.Build();
 
+            #region background services
+            using (var scope = app.Services.CreateScope())
+            {
+                var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
+                recurringJobManager.AddOrUpdate(
+                    "check-dead-stock-weekly",
+                    () => notificationService.CreateDeadStockNotification(),
+                    Cron.Weekly(DayOfWeek.Saturday)
+                );
+            }
+            #endregion
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment()){}
             app.UseSwagger();

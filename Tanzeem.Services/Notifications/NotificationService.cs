@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
@@ -30,6 +32,8 @@ namespace Tanzeem.Services.Notifications
             }).ToList();
             return messageDtos;
         }
+
+               
         public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems,List<Inventory> inventories)
         {
 
@@ -61,7 +65,6 @@ namespace Tanzeem.Services.Notifications
             }
             return notifications.Select(x => x.Id).ToList();
         }
-
         public async Task CreateDeadStockNotification()
         {
 
@@ -76,36 +79,17 @@ namespace Tanzeem.Services.Notifications
                 .Include(p => p.Product)
                 .Include(p => p.Product.TransactionItems)
                 .ThenInclude(ti => ti.Transaction)
+                ///TODO auth
                 .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == 1)
                 .ToList();
   
-            //foreach (var inventory in inventories)
-            //{
-               
-            //    var lastTransactionItem = inventory.Product.TransactionItems
-            //        .Where(ti => ti.Transaction.Type == TransactionType.Out)
-            //        .OrderByDescending(ti => ti.Transaction.CreatedAt)
-            //        .FirstOrDefault();
-
-            //    string lastSellingDate;
-            //    if (lastTransactionItem != null)
-            //    {
-                   
-            //        lastSellingDate = NotificationServiceHelper.GenerateSinceDate(lastTransactionItem.Transaction.CreatedAt);
-            //    }
-            //    else
-            //    {
-                    
-            //        lastSellingDate = "the beginning (No sales recorded yet)";
-            //    }          
-            //}
             Notification notification = new Notification
             {
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
                 Type = NotificationType.DeadStockAlert,
                 Message = $"There are {inventories.Count()} products have shown no sales activity since {3} months, Check them now.",
-                ///TODO settings
+                ///TODO settings dead stock period
                 UserId = 1
             };
 
@@ -115,12 +99,8 @@ namespace Tanzeem.Services.Notifications
             if (affected <= 0 && inventories.Any())
                 throw new Exception("error at dead notification add");
         }
+        
 
-        //public async Task<IEnumerable<int>> CreateDeadStockNotification(Transaction transaction)
-        //{
-        //    var outTransactions = _unitOfWork.GetRepository<Transaction>().GetAllAsIQueryable()
-        //        .Where(x => x.Type == TransactionType.Out && x.CreatedAt <= DateTime.UtcNow.AddMonths(-3));
 
-        //}
     }
 }

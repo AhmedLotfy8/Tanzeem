@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Tanzeem.Domain.Enums
 {
-    public enum NotificationType
+    public enum AlertPriority
     {
-        LowStockAlert,
-        DeadStockAlert,
-        ExpiryAlert,
-        OrderDelivered,
-        SystemMessage,
-        OutOfStock
+        Critical,
+        Warning,
+        Info
+
     }
 }

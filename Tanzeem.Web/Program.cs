@@ -27,6 +27,8 @@ using Tanzeem.Services.Products;
 using Tanzeem.Services.Suppliers;
 using Tanzeem.Services.Transactions;
 using Tanzeem.Shared;
+using Tanzeem.Services.Abstractions.Alerts;
+using Tanzeem.Services.Alerts;
 
 namespace Tanzeem.Web {
     public class Program {
@@ -49,6 +51,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IOrderService,OrderService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IAlertService, AlertService>();
             #endregion
 
             #region Added Authentication

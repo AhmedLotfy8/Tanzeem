@@ -18,5 +18,6 @@ namespace Tanzeem.Presentation.Notifications
             var result = _notificationService.GetAllNotifications();
             return Ok(result);
         }
+
     }
 }

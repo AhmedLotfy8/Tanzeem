@@ -15,6 +15,7 @@ namespace Tanzeem.Persistence.Data.Configurations.NotificationConfigurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Message).HasMaxLength(500);
+            builder.Property(x => x.Title).HasMaxLength(100);
             builder.Property(x => x.Type).HasConversion<string>();
 
             builder.HasOne(x => x.Branch).WithMany(x => x.Notifications).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);

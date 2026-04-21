@@ -10,6 +10,7 @@ using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Onboarding;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
@@ -19,6 +20,7 @@ using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
+using Tanzeem.Services.Onboarding;
 using Tanzeem.Services.Notifications;
 using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
@@ -37,10 +39,11 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
-            builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
+            builder.Services.AddScoped<IOnboardingService, OnboardingService>();
             builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
 
             builder.Services.AddScoped<ISupplierService, SupplierService>();
@@ -72,6 +75,8 @@ namespace Tanzeem.Web {
             .UseSimpleAssemblyNameTypeSerializer() //when create job use simple service name not full name with version and Public Key Token
             .UseRecommendedSerializerSettings()
             .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddHangfireServer();
             #endregion
 
             builder.Services.AddControllers();
@@ -88,7 +93,19 @@ namespace Tanzeem.Web {
 
             var app = builder.Build();
 
+            #region background services
+            using (var scope = app.Services.CreateScope())
+            {
+                var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
+                recurringJobManager.AddOrUpdate(
+                    "check-dead-stock-weekly",
+                    () => notificationService.CreateDeadStockNotification(),
+                    Cron.Weekly(DayOfWeek.Saturday)
+                );
+            }
+            #endregion
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment()){}
             app.UseSwagger();

@@ -12,6 +12,6 @@ namespace Tanzeem.Shared.Dtos.Notifications
         public bool IsRead { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Message { get; set; }
-        public NotificationType Type { get; set; }
+        public string Type { get; set; }
     }
 }

@@ -33,7 +33,6 @@ namespace Tanzeem.Domain.Entities.Users {
         public Company Company { get; set; } = default!;
         public ICollection<BranchUserRelationship> BURelations { get; set; } = default!;
 
-        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
 
     }

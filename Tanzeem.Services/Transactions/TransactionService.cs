@@ -156,6 +156,8 @@ namespace Tanzeem.Services.Transactions {
 
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
 
+            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().Include(x => x.Product).ToList();
+            
             #region Mapping
 
             // Mapping TransactionItemDtos to TransactionItems
@@ -197,8 +199,21 @@ namespace Tanzeem.Services.Transactions {
             #region low stock alert
             if (transaction.Type == TransactionType.Out)
             {
-                await _notificationService.CreateLowStockNotification(transaction);
-
+                var lowStockItems = transactionItems.Where(item =>
+                {
+                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
+                    if (inventory == null)
+                    {
+                        throw new Exception("this inventory not found");
+                        ///TODO exception handling
+                    }
+                    return inventory.Quantity <= inventory.Product.ReorderLevel;
+                }).ToList();
+                
+                if(lowStockItems.Any())
+                {
+                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
+                }
             }
             #endregion
 

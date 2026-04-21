@@ -30,8 +30,7 @@ namespace Tanzeem.Services.Notifications
             }).ToList();
             return messageDtos;
         }
-
-        public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems, List<Inventory> inventories)
+        public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems,List<Inventory> inventories)
         {
 
             List<Notification> notifications = new List<Notification>();
@@ -39,21 +38,21 @@ namespace Tanzeem.Services.Notifications
             foreach (var item in lowStockItems)
             {
                 var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.ProductId);
-                if (inventory == null) {
+                if (inventory == null) { 
                     throw new Exception("no inventory found");
                 }
                 Notification notification = new Notification
                 {
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow,
-                        Type = NotificationType.LowStockAlert,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    Type = NotificationType.LowStockAlert,
                     Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}",
                     UserId = 1 //TODO Auth
-                    };
-                    notifications.Add(notification);
-                    await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+                };
+                notifications.Add(notification);
+                await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
             }
-
+                
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
             {
@@ -116,8 +115,12 @@ namespace Tanzeem.Services.Notifications
             if (affected <= 0 && inventories.Any())
                 throw new Exception("error at dead notification add");
         }
-        // $"Product Name: {inventory.Product.Name} (SKU: {inventory.Product.SKU}) " +
-                  //            $"has shown no sales activity for {lastSellingDate}. " +
-                    //          $"{inventory.Quantity} units are still in stock.",
+
+        //public async Task<IEnumerable<int>> CreateDeadStockNotification(Transaction transaction)
+        //{
+        //    var outTransactions = _unitOfWork.GetRepository<Transaction>().GetAllAsIQueryable()
+        //        .Where(x => x.Type == TransactionType.Out && x.CreatedAt <= DateTime.UtcNow.AddMonths(-3));
+
+        //}
     }
 }

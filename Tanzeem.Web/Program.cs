@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,6 +10,7 @@ using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
 using Tanzeem.Services.Abstractions.Suppliers;

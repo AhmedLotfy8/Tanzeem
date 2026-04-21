@@ -22,12 +22,12 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> ViewOrders()
-        {
-            var result = await _orderService.GetAllOrdersAsync();
-            return Ok(result);
-        }
+        //[HttpGet]
+        //public async Task<IActionResult> ViewOrders()
+        //{
+        //    var result = await _orderService.GetAllOrdersAsync();
+        //    return Ok(result);
+        //}
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
@@ -43,7 +43,7 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpGet("Pagination")]
+        [HttpGet]
         public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "Page_Size")] int pageSize, [FromQuery(Name = "Page")] int page = 1)
         {
             var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize);
@@ -64,7 +64,7 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpGet("display_order_status")]
+        [HttpGet("display_order_statuses")]
         public IActionResult DisplayOrderStatuses()
         {
             var result = _orderService.DisplayOrderStatuses();

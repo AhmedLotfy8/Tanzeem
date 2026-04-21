@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tanzeem.Persistence.Data.DbContexts;
 
@@ -11,9 +12,11 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    partial class TanzeemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417205317_notificationTable")]
+    partial class notificationTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,10 +40,12 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("Location")
+                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -50,6 +55,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("PhoneNumber")
+                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
@@ -521,7 +527,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CompanyId")
+                    b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
@@ -711,7 +717,8 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasOne("Tanzeem.Domain.Entities.Companies.Company", "Company")
                         .WithMany("Users")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Company");
                 });

@@ -1,18 +1,13 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
-using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.BusinessCore;
-using Tanzeem.Shared;
-using Tanzeem.Shared.Dtos.Branches;
-using Tanzeem.Shared.Dtos.Companies;
 using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.BusinessCore {
-    public class BusinessCoreService(IUnitOfWork unitOfWork, IOptions<JwtOptions> options) : IBusinessCoreService {
+    public class BusinessCoreService(IUnitOfWork unitOfWork) : IBusinessCoreService {
 
         // Hard coded function (companyId, BranchId)
         public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) {

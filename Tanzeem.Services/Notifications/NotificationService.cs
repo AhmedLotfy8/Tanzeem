@@ -44,14 +44,14 @@ namespace Tanzeem.Services.Notifications
                 }
                 Notification notification = new Notification
                 {
-                    IsRead = false,
-                    CreatedAt = DateTime.UtcNow,
-                    Type = NotificationType.LowStockAlert,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow,
+                        Type = NotificationType.LowStockAlert,
                     Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}",
                     UserId = 1 //TODO Auth
-                };
-                notifications.Add(notification);
-                await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+                    };
+                    notifications.Add(notification);
+                    await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
             }
 
             int affected = await _unitOfWork.SaveChangesAsync();

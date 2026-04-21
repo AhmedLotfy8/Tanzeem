@@ -14,7 +14,7 @@ namespace Tanzeem.Services.Authentication {
         IOptions<JwtOptions> options) : IAuthService {
 
         // Hard coded function (companyId, BranchId)
-        public async Task<int?> CreateAdminAsync(AdminSignUpDto userDto) {
+        public async Task<int> CreateAdminAsync(AdminSignUpDto userDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userDto.Email);
             
@@ -27,13 +27,6 @@ namespace Tanzeem.Services.Authentication {
                 Name = userDto.Name,
                 Email = userDto.Email,
                 Role = UserRoles.Admin,
-                CompanyId = 3, // hardcoded for now, will be dynamic when company registration is implemented
-                BURelations = new List<BranchUserRelationship> {
-                    new BranchUserRelationship {
-                        BranchId = 2, // hardcoded
-                        IsPrimary = true,
-                    }
-                }
             };
 
             var hashedPassword = new PasswordHasher<User>()

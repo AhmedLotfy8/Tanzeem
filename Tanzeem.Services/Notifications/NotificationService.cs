@@ -52,6 +52,7 @@ namespace Tanzeem.Services.Notifications
                     CreatedAt = DateTime.UtcNow,
                     Type = NotificationType.LowStockAlert,
                     Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}",
+                    Title = "Low Stock Alert",
                     BranchId = 1 //TODO Auth
                 };
                 notifications.Add(notification);
@@ -91,7 +92,8 @@ namespace Tanzeem.Services.Notifications
                 Type = NotificationType.DeadStockAlert,
                 Message = $"There are {inventories.Count()} products have shown no sales activity since {3} months, Check them now.",
                 ///TODO settings dead stock period
-                BranchId = 1
+                BranchId = 1, ///TODO auth
+                Title = "Dead Stock Alert"
             };
 
             await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
@@ -118,8 +120,9 @@ namespace Tanzeem.Services.Notifications
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
                 Type = NotificationType.ExpiryAlert,
-                Message = $"{products.Count()} products are near expiry.",
-                BranchId = 1 ///TODO auth 
+                Message = $"There are {products.Count()} products near expiry.",
+                BranchId = 1, ///TODO auth 
+                Title = "Expiry Warning"
             };
 
            await _unitOfWork.GetRepository<Notification>().AddAsync(notification);

@@ -20,9 +20,6 @@ namespace Tanzeem.Services.Products {
             query = query.Include(x => x.Category);
             query = query.Include(x => x.Inventories);
             
-            // to be global query filter
-            query = query.Where(p => p.CompanyId == currentService.CompanyId);
-
             // Filter by category
             if (filterId.HasValue)
                 query = query.Where(p => p.CategoryId == filterId);

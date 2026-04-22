@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace Tanzeem.Presentation.Notifications
     public class NotificationController(INotificationService _notificationService) : ControllerBase
     {
         [HttpGet]
+        //[Authorize(Roles = "")]
         public IActionResult GetNotifications()
         {
             var result = _notificationService.GetAllNotifications();

@@ -76,6 +76,8 @@ namespace Tanzeem.Services.Products {
 
             return result;
         }
+        
+        // Hard coded function
         public async Task<int> CreateProductAsync(ProductDto productDto) {
 
             #region Category Retrieval and Assigning
@@ -107,7 +109,7 @@ namespace Tanzeem.Services.Products {
             product.Inventories = new List<Inventory> {
                 new Inventory {
                     Quantity = productDto.Stock,
-                    BranchId = 12,
+                    BranchId = 12, // hard coded branchId
                 }
             };
             #endregion
@@ -118,9 +120,10 @@ namespace Tanzeem.Services.Products {
             return product.Id;
         }
 
+        // Hard coded function
         public async Task<int> UpdateProductAsync(int id, ProductDto productDto) {
 
-            var branchId = 1; // hardcoded branchId
+            var branchId = 1; 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
             var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id && branchId == 1);
 
@@ -162,7 +165,7 @@ namespace Tanzeem.Services.Products {
             return product.Id;
         }
 
-        // Hard delete logic (Deleting inventory record before product record)
+        // Hard coded function / delete logic (Deleting inventory record before product record)
         public async Task<bool> DeletedProductAsync(int id) {
 
             var branchId = 1; // hardcoded branchId

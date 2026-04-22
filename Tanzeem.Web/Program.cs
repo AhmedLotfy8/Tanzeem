@@ -29,6 +29,8 @@ using Tanzeem.Services.Transactions;
 using Tanzeem.Shared;
 using Tanzeem.Services.Abstractions.Alerts;
 using Tanzeem.Services.Alerts;
+using Tanzeem.Services.Abstractions.Current;
+using Tanzeem.Services.Current;
 
 namespace Tanzeem.Web {
     public class Program {
@@ -40,6 +42,7 @@ namespace Tanzeem.Web {
             #region Added Services
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<ProductHelperService>();
             builder.Services.AddScoped<ICompanyService, CompanyService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
@@ -47,6 +50,8 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IOnboardingService, OnboardingService>();
             builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
+            builder.Services.AddScoped<ICurrentService, CurrentService>();
+            builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IOrderService,OrderService>();

@@ -63,7 +63,7 @@ namespace Tanzeem.Services.Branches {
             return result;
         }
 
-        // Hard coded function (companyId, BranchId)
+        // Hard coded function (companyId)
         public async Task<int> CreateNewBranchAsync(BranchDto branchDto, int adminId, int companyId) {
 
             var branch = new Branch {

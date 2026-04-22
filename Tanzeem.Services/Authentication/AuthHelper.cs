@@ -27,9 +27,9 @@ namespace Tanzeem.Services.Authentication {
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("UserId", user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim("CompanyId", user.CompanyId.ToString()),
-                new Claim("BranchId", primaryBranch?.BranchId.ToString() ?? "")
+                new Claim("BranchId", primaryBranch?.BranchId.ToString() ?? "0")
             };
 
             var key = new SymmetricSecurityKey(

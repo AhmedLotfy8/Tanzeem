@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Tanzeem.Presentation.Suppliers
     public class SupplierController(ISupplierService _supplierService) : ControllerBase
     {
         [HttpPost]
-     //   [Route("suppliers/")]
+        //[Authorize(Roles= "")]
         public async Task<IActionResult> AddSupplier(SupplierRequestDto supplierDto)
         {
             var result = await _supplierService.CreateSupplierAsync(supplierDto);
@@ -25,7 +26,7 @@ namespace Tanzeem.Presentation.Suppliers
         }
 
         [HttpDelete("{id}")]
-       // [Route("suppliers/")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> RemoveSupplier(int id)
         {
             var result = await _supplierService.DeleteSupplierAsync(id);
@@ -40,7 +41,7 @@ namespace Tanzeem.Presentation.Suppliers
         }
 
         [HttpGet]
-       // [Route("suppliers/{id}")]
+        //[Authorize(Roles = "")]
         public IActionResult DisplayAllSuppliers()
         {
             var result = _supplierService.GetAllSuppliersAsync();
@@ -52,7 +53,7 @@ namespace Tanzeem.Presentation.Suppliers
         }
         
         [HttpGet("{id}")]
-      //  [Route("suppliers/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> GetSupplierById(int id)
         {
             var result = await _supplierService.GetSupplierByIdAsync(id);
@@ -63,7 +64,7 @@ namespace Tanzeem.Presentation.Suppliers
         }
 
         [HttpPut("{id}")]
-      //  [Route("suppliers/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> UpdateSupplier(SupplierRequestDto supplierDto,int id)
         {
             var result = await _supplierService.UpdateSupplierAsync(id,supplierDto);
@@ -72,6 +73,7 @@ namespace Tanzeem.Presentation.Suppliers
         }
 
         [HttpGet("lookup")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> getSupplierNames()
         {
             var result = await _supplierService.GetSuppliersLookupAsync();

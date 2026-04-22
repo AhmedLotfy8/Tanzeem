@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Shared.Dtos.Orders;
 
@@ -9,6 +10,7 @@ namespace Tanzeem.Presentation.Orders
     public class OrderController(IOrderService _orderService) : ControllerBase
     {
         [HttpPost]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> CreateOrder(OrderRequestDto orderDto)
         {
             var result = await _orderService.CreateOrderAsync(orderDto);
@@ -16,6 +18,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpDelete("{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             var result = await _orderService.DeleteOrderAsync(id);
@@ -30,6 +33,7 @@ namespace Tanzeem.Presentation.Orders
         //}
 
         [HttpPut("{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
         {
             var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);
@@ -37,6 +41,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpGet("{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> ViewOrderDetails(int id)
         {
             var result = await _orderService.GetOrderByIdAsync(id);
@@ -44,6 +49,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpGet]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "Page_Size")] int pageSize, [FromQuery(Name = "Page")] int page = 1)
         {
             var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize);
@@ -51,6 +57,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpPut("ConfirmDelivery/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> ConfirmDelivery(int id, OrderConfirmDto confirmDto)
         {
             var result = await _orderService.ChangeOrderToDeliverd(confirmDto, id);
@@ -58,6 +65,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpGet("Lookup_Products")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> GetProductsLookup(string term)
         {
             var result = await _orderService.GetProductsLookupAsync(term);
@@ -65,6 +73,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpGet("display_order_statuses")]
+        //[Authorize(Roles = "")]
         public IActionResult DisplayOrderStatuses()
         {
             var result = _orderService.DisplayOrderStatuses();
@@ -72,6 +81,7 @@ namespace Tanzeem.Presentation.Orders
         }
 
         [HttpGet("Pending_Order_Count")]
+        //[Authorize(Roles = "")]
         public IActionResult CountPendingOrders()
         {
             var result = _orderService.CountPendingOrders();
@@ -79,6 +89,7 @@ namespace Tanzeem.Presentation.Orders
         }
         
         [HttpGet("Delivered_Order_Count")]
+        //[Authorize(Roles = "")]
         public IActionResult CountDeliverdOrders()
         {
             var result = _orderService.CountDeliverdOrders();

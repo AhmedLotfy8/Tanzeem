@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace Tanzeem.Presentation.Alerts
     public class AlertController(IAlertService _alertService) : ControllerBase
     {
         [HttpGet]
+        //[Authorize(Roles = "")]
         public IActionResult GetAlerts(NotificationType? type)
         {
             var result = _alertService.ShowAlerts(type);

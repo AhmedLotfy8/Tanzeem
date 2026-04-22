@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace Tanzeem.Presentation.Transactions {
 
         [HttpGet]
         [Route("Transactions/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> GetTransactionById(int id) {
             var result = await transactionService.GetTransactionByIdAsync(id);
             return Ok(result);
@@ -24,6 +26,7 @@ namespace Tanzeem.Presentation.Transactions {
 
         [HttpGet]
         [Route("Transactions")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> GetTransactions(int? sortId, int? filterId) {
             var result = await transactionService.GetAllTransactions(sortId, filterId);
             return Ok(result);
@@ -31,6 +34,7 @@ namespace Tanzeem.Presentation.Transactions {
 
         [HttpPost]
         [Route("Transactions")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> CreateTransaction(TransactionDto transaction) {
             var result = await transactionService.CreateTransactionAsync(transaction);
             return Ok(result);

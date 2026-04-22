@@ -15,36 +15,40 @@ namespace Tanzeem.Presentation.Products {
     public class ProductsController(IProductService productService) : ControllerBase {
 
         [HttpGet]
+        [Route("Get-Products")]
         // [Authorize(Roles = "Admin, Manager")]
-        [Route("Products")]
         public async Task<IActionResult> GetAllProducts(int? sortId, int? filterId) {
             var result = await productService.GetAllProductsAsync(sortId, filterId);
             return Ok(result);
         }
 
         [HttpPost]
-        [Route("Products")]
+        [Route("Create-Product")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> CreateProduct(ProductDto dto) {
             var result = await productService.CreateProductAsync(dto);
             return Ok(result);
         }
 
         [HttpGet]
-        [Route("Products/{id}")]
+        [Route("Get-Product/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> GetProductById(int id) {
             var result = await productService.GetProductByIdAsync(id);
             return Ok(result);
         }
 
         [HttpPut]
-        [Route("Products/{id}")]
+        [Route("Update-Product/{id}")]
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> UpdateProduct(int id, ProductDto dto) {
             var result = await productService.UpdateProductAsync(id, dto);
             return Ok(result);
         }
 
         [HttpDelete]
-        [Route("Products/{id}")]    
+        [Route("Delete-Product/{id}")]    
+        //[Authorize(Roles = "")]
         public async Task<IActionResult> DeleteProduct(int id) {
             var result = await productService.DeletedProductAsync(id);
             return Ok(result);

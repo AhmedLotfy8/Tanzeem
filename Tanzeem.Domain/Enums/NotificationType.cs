@@ -11,8 +11,8 @@ namespace Tanzeem.Domain.Enums
         LowStockAlert,
         DeadStockAlert,
         ExpiryAlert,
-        OrderDelivered,
         OutOfStock,
+        OrderDelivered,        
         SystemMessage
         
     }

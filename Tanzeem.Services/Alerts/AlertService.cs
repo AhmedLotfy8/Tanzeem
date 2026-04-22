@@ -32,10 +32,14 @@ namespace Tanzeem.Services.Alerts
                 case NotificationType.ExpiryAlert:
                     alerts.AddRange(ShowExpiryAlerts());
                     break;
+                case NotificationType.OutOfStock:
+                    alerts.AddRange(ShowOutStockAlerts());
+                    break;
                 default:
                     alerts.AddRange(ShowLowStockAlerts());
                     alerts.AddRange(ShowDeadStockAlerts());
                     alerts.AddRange(ShowExpiryAlerts());
+                    alerts.AddRange(ShowOutStockAlerts());
                     break;
             }
 
@@ -103,7 +107,7 @@ namespace Tanzeem.Services.Alerts
             List<AlertDto> lowAlerts = new List<AlertDto>();
             foreach (var inventory in inventories)
             {
-                if (inventory.Quantity <= inventory.Product.ReorderLevel)
+                if (inventory.Quantity <= inventory.Product.ReorderLevel && inventory.Quantity > 0)
                 {
                     AlertDto low = new AlertDto
                     {
@@ -148,6 +152,33 @@ namespace Tanzeem.Services.Alerts
             }
 
             return alerts;
+        }
+
+        public IEnumerable<AlertDto> ShowOutStockAlerts()
+        {
+            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .Include(x => x.Product)
+                .Where(x => x.BranchId == 1) ///TODO auth
+                .ToList();
+
+            List<AlertDto> outAlerts = new List<AlertDto>();
+            foreach (var inventory in inventories)
+            {
+                if (inventory.Quantity == 0)
+                {
+                    AlertDto low = new AlertDto
+                    {
+                        AlertTitle = "Out Of Stock Alert",
+                        AlertDescription = $"{inventory.Product.Name} is completely out of stock",
+                        AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU})",
+                        ProductId = inventory.ProductId,
+                        Type = NotificationType.OutOfStock.ToString(),
+                        Priority = AlertPriority.Critical.ToString(),
+                    };
+                    outAlerts.Add(low);
+                }
+            }
+            return outAlerts;
         }
     }
 }

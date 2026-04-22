@@ -44,9 +44,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         private void ApplyAllGlobal(ModelBuilder modelBuilder) {
 
             // Company children
-            modelBuilder.Entity<Product>()
-                .HasQueryFilter(p => p.CompanyId == currentService.CompanyId
-                                            || currentService.CompanyId == null);
+            modelBuilder.Entity<Product>().HasQueryFilter(p => p.CompanyId == currentService.CompanyId);
             //modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.CompanyId == currentService.CompanyId);
 
             // Branch children

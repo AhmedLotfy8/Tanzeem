@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 namespace Tanzeem.Services.Abstractions.Current {
     public interface ICurrentService {
 
-        int? UserId { get; }
-        int? CompanyId { get; }
-        int? BranchId { get; }
-        string? Role { get; }
+        int UserId { get; }
+        int CompanyId { get; }
+        int BranchId { get; }
+        string Role { get; }
 
     }
 }

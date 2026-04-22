@@ -9,16 +9,15 @@ using Tanzeem.Services.Abstractions.Current;
 
 namespace Tanzeem.Services.Current {
     public class CurrentService(IHttpContextAccessor httpContextAccessor) : ICurrentService {
-        public int? UserId => TryGetInt(ClaimTypes.NameIdentifier);
-        public int? CompanyId => TryGetInt("CompanyId");
-        public int? BranchId => TryGetInt("BranchId");
-        public string? Role => httpContextAccessor.HttpContext?.User
-                                     ?.FindFirst(ClaimTypes.Role)?.Value;
+        public int UserId => int.Parse(GetClaim(ClaimTypes.NameIdentifier)!);
 
-        private int? TryGetInt(string claimType) {
-            var val = httpContextAccessor.HttpContext?.User?.FindFirst(claimType)?.Value;
-            return int.TryParse(val, out var result) ? result : null;
-        }
-    
+        public int CompanyId => int.Parse(GetClaim("CompanyId")!);
+
+        public int BranchId => int.Parse(GetClaim("BranchId")!);
+
+        public string Role => ClaimTypes.Role;
+
+        private string GetClaim(string claimType) =>
+            httpContextAccessor.HttpContext?.User?.FindFirst(claimType)?.Value;
     }
 }

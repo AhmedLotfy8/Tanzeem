@@ -28,10 +28,10 @@ namespace Tanzeem.Services.BusinessCore {
                 Name = employeeCreationDto.Name,
                 Email = employeeCreationDto.Email,
                 Role = employeeCreationDto.Role, // Staff / Manager
-                CompanyId = 3, // hardcoded for now, will be dynamic when company registration is implemented
+                CompanyId = 33, // hardcoded for now, will be dynamic when company registration is implemented
                 BURelations = new List<BranchUserRelationship> {
                     new BranchUserRelationship {
-                        BranchId = 13, // hardcoded
+                        BranchId = 34, // hardcoded
                         IsPrimary = true,
                     }
                 }

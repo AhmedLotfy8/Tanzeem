@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -8,65 +9,42 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Services.Abstractions.Current;
 
 namespace Tanzeem.Services.Products {
-    public static class ProductHelperService {
+    public class ProductHelperService(IUnitOfWork _unitOfWork,
+        ICurrentService currentService) {
 
-        public static async Task<IEnumerable<Product>> GetAllProducts(IUnitOfWork _unitOfWork, int? sortId, int? filterId) {
+        public async Task<IEnumerable<Product>> GetAllProducts(int? sortId, int? filterId) {
+            var query = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable();
+            query = query.Include(x => x.Category);
+            query = query.Include(x => x.Inventories);
+            
+            // to be global query filter
+            query = query.Where(p => p.CompanyId == currentService.CompanyId);
 
-            var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
+            // Filter by category
+            if (filterId.HasValue)
+                query = query.Where(p => p.CategoryId == filterId);
 
-            #region Cases (Is sorted / Is filtered)
+            // Sort
+            query = sortId switch {
+                1 => query.OrderBy(p => p.Name),
+                2 => query.OrderBy(p => p.SellingPrice),
+                3 => query.OrderBy(p => p.Inventories
+                             .Where(i => i.BranchId == currentService.BranchId)
+                             .Select(i => i.Quantity)
+                             .FirstOrDefault()),
+                null => query.OrderBy(p => p.Id),
+                _ => throw new Exception("Invalid sort option")
+            };
 
-            if (sortId.HasValue && filterId.HasValue) {
-                var filteredProducts = FilterProducts(_unitOfWork, products, filterId);
-                return await SortProducts(_unitOfWork, filteredProducts, sortId);
-            }
-
-            else if (filterId.HasValue)
-                return FilterProducts(_unitOfWork, products, filterId);
-
-            else if (sortId.HasValue)
-                return await SortProducts(_unitOfWork, products, sortId);
-
-            #endregion
-
-            return products;
-
+            return await query.ToListAsync();
         }
-
-        private static async Task<IEnumerable<Product>> SortProducts(IUnitOfWork _unitOfWork,
-            IEnumerable<Product> products, int? sortId) {
-
-            switch (sortId) {
-
-                case 1:
-                    return products.OrderBy(p => p.Name).ToList();
-
-                case 2:
-                    return products.OrderBy(p => p.SellingPrice).ToList();
-
-                case 3: // hard coded branch id for now, will use currentBranchId in the future
-                    var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-                    return products.OrderBy(p => inventories.FirstOrDefault(i => i.BranchId == 1 && i.ProductId == p.Id)?.Quantity ?? 0).ToList();
-
-                case null:
-                    return products.OrderBy(p => p.Id).ToList();
-
-                default:
-                    throw new Exception("Invalid sort option");
-
-            }
-
-        }
-
-        private static IEnumerable<Product> FilterProducts(IUnitOfWork _unitOfWork, IEnumerable<Product> products, int? filterId) {
-
-            return products.Where(p => p.CategoryId == filterId).ToList();
-        }
-
     }
+
 }
+
 
 #region To be Done Later
 //public static async Task<IEnumerable<Product>> SearchProducts(string searchTerm, IUnitOfWork _unitOfWork) {

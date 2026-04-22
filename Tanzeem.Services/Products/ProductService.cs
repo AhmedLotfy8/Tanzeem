@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,21 +10,20 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Products;
 using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Products {
-    public class ProductService(IUnitOfWork _unitOfWork) : IProductService {
+    public class ProductService(IUnitOfWork _unitOfWork,
+        ProductHelperService productHelperService, ICurrentService currentService) : IProductService {
 
         public async Task<ProductDto> GetProductByIdAsync(int id) {
 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
 
-            //var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-            //var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
             var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id);
             var categoryName = await _unitOfWork.GetRepository<Category>().GetAsync(c => c.Name == product.Category.Name);
-            //var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
 
             if (product is null || inventory is null) {
                 throw new Exception("Product not found");
@@ -51,19 +51,14 @@ namespace Tanzeem.Services.Products {
         }
 
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId) {
-
-            var products = await ProductHelperService.GetAllProducts(_unitOfWork, sortId, filterId);
-
-
-            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
-            var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
+            var products = await productHelperService.GetAllProducts(sortId, filterId);
 
             #region Mapping
+
             var result = products.Select(product => new ProductDto {
                 Name = product.Name,
                 SKU = product.SKU,
-                Category = product.Category.Name ?? "UnCategorized",
-                Stock = inventories.FirstOrDefault(i => i.ProductId == product.Id)?.Quantity ?? 0,
+                Category = product.Category?.Name ?? "UnCategorized",
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
                 ExpiryDate = product.ExpiryDate,
@@ -71,14 +66,16 @@ namespace Tanzeem.Services.Products {
                 Description = product.Description,
                 ReorderLevel = product.ReorderLevel,
                 Status = product.Status,
-
+                Stock = product.Inventories
+                               .Where(i => i.BranchId == currentService.BranchId!)
+                               .Select(i => i.Quantity)
+                               .FirstOrDefault()
             });
+
             #endregion
-                
 
             return result;
         }
-
         public async Task<int> CreateProductAsync(ProductDto productDto) {
 
             #region Category Retrieval and Assigning
@@ -193,6 +190,12 @@ namespace Tanzeem.Services.Products {
 }
 
 #region Delete if code works
+//get by id
+//var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsync();
+//var inventory = inventories.FirstOrDefault(i => i.ProductId == id);
+//var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
+
+
 // Create product
 //var categories = await _unitOfWork.GetRepository<Category>().GetAllAsync();
 //var category = categories.FirstOrDefault(c => c.Name == productDto.Category);

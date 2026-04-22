@@ -1,4 +1,5 @@
-﻿    using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace Tanzeem.Presentation.Products {
     public class ProductsController(IProductService productService) : ControllerBase {
 
         [HttpGet]
+        // [Authorize(Roles = "Admin, Manager")]
         [Route("Products")]
         public async Task<IActionResult> GetAllProducts(int? sortId, int? filterId) {
             var result = await productService.GetAllProductsAsync(sortId, filterId);

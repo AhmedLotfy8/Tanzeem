@@ -45,14 +45,24 @@ namespace Tanzeem.Persistence.Data.DbContexts {
 
             // Company children
             modelBuilder.Entity<Product>().HasQueryFilter(
-            p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+                p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+
+            modelBuilder.Entity<TransactionItem>().HasQueryFilter(
+                ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
+                   && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+
+            modelBuilder.Entity<OrderItem>().HasQueryFilter(
+                oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
+                   && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             //modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.CompanyId == currentService.CompanyId);
 
             // Branch children
+            modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
+            && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+
             /*
             modelBuilder.Entity<Transaction>().HasQueryFilter(t => t.BranchId == currentService.BranchId);
-            modelBuilder.Entity<Inventory>().HasQueryFilter(i => i.BranchId == currentService.BranchId);
             modelBuilder.Entity<Order>().HasQueryFilter(o => o.BranchId == currentService.BranchId);
             modelBuilder.Entity<Notification>().HasQueryFilter(n => n.BranchId == currentService.BranchId);
             */

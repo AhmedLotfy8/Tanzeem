@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Notifications;
+using Tanzeem.Domain.Entities.Subscriptions;
 using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Users { 
@@ -27,12 +28,12 @@ namespace Tanzeem.Domain.Entities.Users {
         #endregion
         public int? CompanyId { get; set; }
 
-
+        public string? StripeCustomerId { get; set; }
         #region Navigation
         #endregion
         public Company Company { get; set; } = default!;
         public ICollection<BranchUserRelationship> BURelations { get; set; } = default!;
-
+        public Subscription Subscription { get; set; } = default!;
 
 
     }

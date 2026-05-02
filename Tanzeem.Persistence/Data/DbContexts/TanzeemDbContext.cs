@@ -32,6 +32,10 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<TransactionItem> TransactionItems { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Order> Order { get; set; }
+        public DbSet<OrderItem> OrderItem { get; set; }
+        public DbSet<Notification> Notification { get; set; }
+        public DbSet<Supplier> Supplier { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {

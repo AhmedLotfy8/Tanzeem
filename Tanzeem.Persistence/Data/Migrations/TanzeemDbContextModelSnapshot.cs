@@ -60,7 +60,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("Branches");
+                    b.ToTable("Branches", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Branches.BranchUserRelationship", b =>
@@ -91,7 +91,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("UserId", "BranchId")
                         .IsUnique();
 
-                    b.ToTable("BranchUserRelationship");
+                    b.ToTable("BranchUserRelationship", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Companies.Company", b =>
@@ -132,7 +132,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Companies");
+                    b.ToTable("Companies", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Inventories.Inventory", b =>
@@ -158,7 +158,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Inventories");
+                    b.ToTable("Inventories", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Notifications.Notification", b =>
@@ -196,7 +196,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("Notification");
+                    b.ToTable("Notification", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.Order", b =>
@@ -256,7 +256,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Order");
+                    b.ToTable("Order", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Orders.OrderItem", b =>
@@ -290,7 +290,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderItem");
+                    b.ToTable("OrderItem", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Category", b =>
@@ -308,7 +308,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Category");
+                    b.ToTable("Category", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Products.Product", b =>
@@ -368,7 +368,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Subscriptions.Subscription", b =>
@@ -407,7 +407,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Subscription");
+                    b.ToTable("Subscription", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Suppliers.Supplier", b =>
@@ -474,7 +474,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Supplier");
+                    b.ToTable("Supplier", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Transactions.Transaction", b =>
@@ -525,7 +525,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Transactions.TransactionItem", b =>
@@ -554,7 +554,7 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasIndex("TransactionId");
 
-                    b.ToTable("TransactionItems");
+                    b.ToTable("TransactionItems", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Users.User", b =>
@@ -597,7 +597,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .IsUnique()
                         .HasFilter("[StripeCustomerId] IS NOT NULL");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Branches.Branch", b =>

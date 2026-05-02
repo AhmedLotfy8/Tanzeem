@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -13,25 +14,48 @@ using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Notifications;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Notifications;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tanzeem.Services.Notifications
 {
     public class NotificationService(IUnitOfWork _unitOfWork) : INotificationService
     {
-        public IEnumerable<NotificationDto> GetAllNotifications()
+        public async Task<PaginationResponseDto<NotificationDto>> GetAllNotifications(int page, int pageSize)
         {
-            var messages = _unitOfWork.GetRepository<Notification>().GetAllAsIQueryable()
-                .OrderByDescending(x => x.CreatedAt);
+            if (page <= 0) page = 1;
 
-            var messageDtos = messages.Select(x => new NotificationDto
+            const int maxPageSize = 20;
+
+            if (pageSize > maxPageSize) pageSize = maxPageSize;
+
+            var query = _unitOfWork.GetRepository<Notification>().GetAllAsIQueryable()
+                .OrderByDescending(x => x.CreatedAt);
+                
+
+            var rowsCount = query.Count();
+            
+            var messages = query.Skip((page - 1) * pageSize)
+                .Take(pageSize);
+            
+            var messageDtos = await messages.Select(x => new NotificationDto
             {
+                Title = x.Title,
                 IsRead = x.IsRead,
                 CreatedAt = x.CreatedAt,
                 Message = x.Message,
-                Type = x.Type.ToString(),
-            }).ToList();
-            return messageDtos;
+                Type = x.Type,
+            }).ToListAsync();
+
+
+            return new PaginationResponseDto<NotificationDto>()
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = rowsCount,
+                Data = messageDtos
+            };
         }
 
         // it creates out of stock notification else       
@@ -93,7 +117,8 @@ namespace Tanzeem.Services.Notifications
 
             var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3)
-                && ti.Transaction.BranchId == 1)
+                //&& ti.Transaction.BranchId == 1
+                )
                 ///TODO settings
                 /// TODO auth
                 .Select(ti => ti.ProductId)
@@ -105,7 +130,8 @@ namespace Tanzeem.Services.Notifications
                 .Include(p => p.Product.TransactionItems)
                 .ThenInclude(ti => ti.Transaction)
                 ///TODO auth
-                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == 1)
+                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) //&& inv.BranchId == 1
+                     )
                 .ToList();
   
             Notification notification = new Notification

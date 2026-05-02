@@ -46,24 +46,27 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         }
 
         private void ApplyAllGlobal(ModelBuilder modelBuilder) {
-
+            //
             // Company children
-            modelBuilder.Entity<Product>().HasQueryFilter(
-                p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+            //modelBuilder.Entity<Product>().HasQueryFilter(
+            //    p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
-            modelBuilder.Entity<TransactionItem>().HasQueryFilter(
-                ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
-                   && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //
+            //modelBuilder.Entity<TransactionItem>().HasQueryFilter(
+            //    ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
+            //       && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
-            modelBuilder.Entity<OrderItem>().HasQueryFilter(
-                oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
-                   && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //
+            //modelBuilder.Entity<OrderItem>().HasQueryFilter(
+            //    oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
+            //       && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             //modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.CompanyId == currentService.CompanyId);
 
+            //
             // Branch children
-            modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
-            && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
+            //&& (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             /*
             modelBuilder.Entity<Transaction>().HasQueryFilter(t => t.BranchId == currentService.BranchId);

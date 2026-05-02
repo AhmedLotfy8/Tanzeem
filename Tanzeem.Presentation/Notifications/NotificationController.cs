@@ -21,5 +21,24 @@ namespace Tanzeem.Presentation.Notifications
             return Ok(result);
         }
 
+        [HttpPatch("mark-as-read/{id}")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var result = await _notificationService.MarkAsReadAsync(id);
+            if (!result) return NotFound("Notification not found.");
+
+            return Ok(new { Message = "Notification marked as read." });
+        }
+
+        [HttpPatch("mark-all-read")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> MarkAllAsRead()
+        { 
+            await _notificationService.MarkAllAsReadAsync();
+
+            return Ok(new { Message = "All notifications marked as read." });
+        }
+
     }
 }

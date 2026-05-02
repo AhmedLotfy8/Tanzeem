@@ -15,6 +15,7 @@ using Tanzeem.Shared.Dtos.Notifications;
 
 namespace Tanzeem.Services.Alerts
 {
+    ///TODO filter by branchid after auth
     public class AlertService(IUnitOfWork _unitOfWork) : IAlertService
     {       
         public IEnumerable<AlertDto> ShowAlerts(NotificationType? type)

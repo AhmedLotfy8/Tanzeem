@@ -8,6 +8,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Products;
@@ -41,6 +42,7 @@ namespace Tanzeem.Services.Notifications
             
             var messageDtos = await messages.Select(x => new NotificationDto
             {
+                Id = x.Id,
                 Title = x.Title,
                 IsRead = x.IsRead,
                 CreatedAt = x.CreatedAt,
@@ -112,37 +114,40 @@ namespace Tanzeem.Services.Notifications
             }
             return notifications.Select(x => x.Id).ToList();
         }
-        public async Task CreateDeadStockNotification()
+        public async Task CreateDeadStockNotification(int branchId)
         {
-
-            var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
+            var recentlySoldIds = await _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
                 .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3)
-                //&& ti.Transaction.BranchId == 1
-                )
+                && ti.Transaction.BranchId == branchId)
                 ///TODO settings
                 /// TODO auth
                 .Select(ti => ti.ProductId)
                 .Distinct()
-                .ToList();
+                .ToListAsync();
 
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .Include(p => p.Product)
                 .Include(p => p.Product.TransactionItems)
                 .ThenInclude(ti => ti.Transaction)
                 ///TODO auth
-                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) //&& inv.BranchId == 1
-                     )
-                .ToList();
-  
+                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == branchId)
+                .ToListAsync();
+
+            if (!inventories.Any())
+            {
+                return;
+            }
+
             Notification notification = new Notification
             {
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow,
-                Type = NotificationType.DeadStockAlert,
-                Message = $"There are {inventories.Count()} products have shown no sales activity since {3} months, Check them now.",
-                ///TODO settings dead stock period
-                BranchId = 1, ///TODO auth
-                Title = "Dead Stock Alert"
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    Type = NotificationType.DeadStockAlert,
+                    Message = $"There are {inventories.Count} products have shown no sales activity since {3} months, Check them now.",
+                    ///TODO settings dead stock period
+                    BranchId = branchId,
+                    Title = "Dead Stock Alert"
             };
 
             await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
@@ -150,19 +155,20 @@ namespace Tanzeem.Services.Notifications
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0 && inventories.Any())
                 throw new Exception("error at dead notification add");
+          
         }
 
-        public async Task CreateExpiryNotification()
+        public async Task CreateExpiryNotification(int branchId)
         {
-            var productsCount = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
-              .Include(p => p.Inventories)
-              .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(3)) ///TODO settings
-                  .Count();
-            ///TODO auth test
+            var productsCount = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .IgnoreQueryFilters() 
+                .Where(p =>  p.ExpiryDate <= DateTime.UtcNow.AddMonths(3)
+                 && p.Inventories.Any(inv => inv.BranchId == branchId && inv.Quantity > 0))
+                .CountAsync();
 
             if (productsCount == 0)
             {
-                throw new Exception("No products");
+                return;
             }
 
             Notification notification = new Notification
@@ -170,8 +176,8 @@ namespace Tanzeem.Services.Notifications
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
                 Type = NotificationType.ExpiryAlert,
-                Message = $"There are {productsCount} products near expiry.",
-                BranchId = 1, ///TODO auth 
+                Message = $"There are {productsCount} products near expiry, Check them now.",
+                BranchId = branchId,
                 Title = "Expiry Warning"
             };
 
@@ -181,5 +187,52 @@ namespace Tanzeem.Services.Notifications
                 throw new Exception("error at expiry notification add");
         }
 
+
+        public async Task CreateNotification()
+        {
+            List<int> branchIds = _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()
+                .Select(br => br.Id)
+                .Distinct()
+                .ToList();
+            foreach (var branchId in branchIds)
+            {
+                await CreateDeadStockNotification(branchId);
+                await CreateExpiryNotification(branchId);
+            }
+        }
+
+        public async Task<bool> MarkAsReadAsync(int notificationId)
+        {
+            var notification = await _unitOfWork.GetRepository<Notification>().GetByIdAsync(notificationId);
+
+            if (notification == null) return false;
+
+            if (!notification.IsRead)
+            {
+                notification.IsRead = true;
+                _unitOfWork.GetRepository<Notification>().UpdateAsync(notification);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            return true;
+        }
+
+        public async Task MarkAllAsReadAsync()
+        {
+            var unreadNotifications = await _unitOfWork.GetRepository<Notification>()
+                .GetAllAsIQueryable()
+                .Where(n => n.BranchId == 1 && !n.IsRead) ///TODO auth
+                .ToListAsync();
+
+            if (unreadNotifications.Any())
+            {
+                foreach (var notification in unreadNotifications)
+                {
+                    notification.IsRead = true;
+                    _unitOfWork.GetRepository<Notification>().UpdateAsync(notification);
+                }
+                await _unitOfWork.SaveChangesAsync();
+            }
+        }
     }
 }

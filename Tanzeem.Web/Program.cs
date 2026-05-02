@@ -108,14 +108,9 @@ namespace Tanzeem.Web {
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
                 recurringJobManager.AddOrUpdate(
-                    "check-dead-stock-weekly",
-                    () => notificationService.CreateDeadStockNotification(),
-                    Cron.Weekly(DayOfWeek.Saturday,1)
-                );
-                recurringJobManager.AddOrUpdate(
-                    "check-expiration-products-weekly",
-                    () => notificationService.CreateExpiryNotification(),
-                    Cron.Weekly(DayOfWeek.Saturday,6)
+                    "check-dead-stock-and-expiry-weekly",
+                    () => notificationService.CreateNotification(),
+                    Cron.Weekly(DayOfWeek.Saturday, 1)
                 );
             }
             #endregion

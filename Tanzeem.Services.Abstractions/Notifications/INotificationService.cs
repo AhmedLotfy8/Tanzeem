@@ -15,9 +15,9 @@ namespace Tanzeem.Services.Abstractions.Notifications
     {
         public Task<PaginationResponseDto<NotificationDto>> GetAllNotifications(int page, int pageSize);
         public Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> transactionItems,List<Inventory> inventories);
-        public Task CreateDeadStockNotification();
-
-        public Task CreateExpiryNotification();
+        public Task<bool> MarkAsReadAsync(int notificationId);
+        public Task MarkAllAsReadAsync();
+        public Task CreateNotification();
 
     }
 }

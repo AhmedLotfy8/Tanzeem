@@ -15,9 +15,9 @@ namespace Tanzeem.Presentation.Notifications
     {
         [HttpGet]
         //[Authorize(Roles = "")]
-        public IActionResult GetNotifications()
+        public async Task<IActionResult> GetNotifications([FromQuery(Name = "Page_Size")] int pageSize =20, [FromQuery(Name = "Page")] int page = 1)
         {
-            var result = _notificationService.GetAllNotifications();
+            var result = await _notificationService.GetAllNotifications(page,pageSize);
             return Ok(result);
         }
 

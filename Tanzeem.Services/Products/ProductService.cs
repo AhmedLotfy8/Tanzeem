@@ -16,7 +16,8 @@ using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork,
-        ProductHelperService productHelperService, ICurrentService currentService) : IProductService {
+        ProductHelperService productHelperService,
+        ICurrentService currentService) : IProductService {
 
         public async Task<ProductDto> GetProductByIdAsync(int id) {
 
@@ -76,54 +77,98 @@ namespace Tanzeem.Services.Products {
 
             return result;
         }
-        
-        // Hard coded function
+
         public async Task<int> CreateProductAsync(ProductDto productDto) {
 
-            #region Category Retrieval and Assigning
-            var category = await _unitOfWork.GetRepository<Category>().GetAsync(c => c.Name == productDto.Category);
+            #region If Product is registered to the company
 
-            if (category == null) {
-                category = new Category { Name = productDto.Category ?? "null" };
-                await _unitOfWork.GetRepository<Category>().AddAsync(category);
-                await _unitOfWork.SaveChangesAsync();
-            }
-            #endregion
+            var existingProduct = await _unitOfWork.GetRepository<Product>().GetAsync(p => p.SKU == productDto.SKU);
+            if (existingProduct is not null) {
 
-            // Hardcoded companyId
-            #region Mapping and Adding
-            var product = new Product {
-                Name = productDto.Name,
-                SKU = productDto.SKU,
-                Category = category,
-                CostPrice = productDto.CostPrice,
-                SellingPrice = productDto.SellingPrice,
-                ExpiryDate = productDto.ExpiryDate,
-                Barcode = productDto.Barcode,
-                Description = productDto.Description,
-                ReorderLevel = productDto.ReorderLevel,
-                Status = productDto.Status,
-                CompanyId = 3, // hardcoded companyId
-            };
-
-            product.Inventories = new List<Inventory> {
-                new Inventory {
-                    Quantity = productDto.Stock,
-                    BranchId = 12, // hard coded branchId
+                var branchId = currentService.BranchId ?? throw new UnauthorizedAccessException("BranchId not found");
+                var isFoundInInventory = await _unitOfWork.GetRepository<Inventory>()
+                    .GetAsync(i => i.ProductId == existingProduct.Id && i.BranchId == branchId);
+                if (isFoundInInventory is not null) {
+                    throw new Exception("Product with the same SKU already exists! Cannot recreate.");
                 }
-            };
+
+                var tranac = await _unitOfWork.BeginTransactionAsync();
+                try {
+                    AddProductToBranch(branchId, existingProduct, productDto.Stock ?? 0);
+                    await _unitOfWork.SaveChangesAsync();
+                    await tranac.CommitAsync();
+                    return existingProduct.Id;
+                }
+                catch {
+                    await tranac.RollbackAsync();
+                    throw;
+                }
+
+            }
+
             #endregion
 
-            await _unitOfWork.GetRepository<Product>().AddAsync(product);
-            var count = await _unitOfWork.SaveChangesAsync();
+            #region If Product is Not registered to the company
 
-            return product.Id;
+            var transc = await _unitOfWork.BeginTransactionAsync();
+            try {
+
+                #region Category Assigning
+
+                var category = await _unitOfWork.GetRepository<Category>()
+                    .GetAsync(c => c.Name == productDto.Category);
+                if (category is null) {
+
+                    if (string.IsNullOrWhiteSpace(productDto.Category)) {
+                        throw new Exception("Category name cannot be empty");
+                    }
+
+                    category = new Category { Name = productDto.Category };
+                    await _unitOfWork.GetRepository<Category>().AddAsync(category);
+                }
+
+                #endregion
+
+                #region Mapping
+
+                var product = new Product {
+                    Name = productDto.Name,
+                    SKU = productDto.SKU,
+                    Category = category,
+                    CostPrice = productDto.CostPrice,
+                    SellingPrice = productDto.SellingPrice,
+                    ExpiryDate = productDto.ExpiryDate,
+                    Barcode = productDto.Barcode,
+                    Description = productDto.Description,
+                    ReorderLevel = productDto.ReorderLevel,
+                    Status = productDto.Status,
+                    CompanyId = currentService.CompanyId ?? throw new UnauthorizedAccessException("CompanyId not found")
+                };
+
+
+                #endregion
+
+                AddProductToBranch((int)currentService.BranchId!, product, productDto.Stock ?? 0);
+                await _unitOfWork.GetRepository<Product>().AddAsync(product);
+                await _unitOfWork.SaveChangesAsync();
+
+                await transc.CommitAsync();
+                return product.Id;
+            }
+
+            catch {
+                await transc.RollbackAsync();
+                throw;
+            }
+
+            #endregion
+
         }
 
         // Hard coded function
         public async Task<int> UpdateProductAsync(int id, ProductDto productDto) {
 
-            var branchId = 1; 
+            var branchId = 1;
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
             var inventory = await _unitOfWork.GetRepository<Inventory>().GetAsync(i => i.ProductId == id && branchId == 1);
 
@@ -186,6 +231,14 @@ namespace Tanzeem.Services.Products {
 
         public Task<int> CsvUploadAsync(string filePath) {
             throw new NotImplementedException();
+        }
+
+        private void AddProductToBranch(int branchId, Product product, int initialQuantity) {
+            product.Inventories ??= new List<Inventory>();
+            product.Inventories.Add(new Inventory {
+                Quantity = initialQuantity,
+                BranchId = branchId
+            });
         }
 
     }

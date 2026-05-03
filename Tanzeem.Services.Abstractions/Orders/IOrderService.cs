@@ -22,9 +22,10 @@ namespace Tanzeem.Services.Abstractions.Orders
         public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize);
 
         public Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto, int id);
-        public IEnumerable<object> DisplayOrderStatuses();
+        //public IEnumerable<object> DisplayOrderStatuses();
 
-        public int CountPendingOrders();
-        public int CountDeliverdOrders();
+        //public int CountPendingOrders();
+        //public int CountDeliverdOrders();
+        public object Counts();
     }
 }

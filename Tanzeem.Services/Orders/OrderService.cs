@@ -343,25 +343,45 @@ namespace Tanzeem.Services.Orders
             return order.Status.ToString();
         }
 
-        public IEnumerable<object> DisplayOrderStatuses()
-        {
-            return Enum.GetValues<OrderStatus>()
-           .Select(s => new { Id = (int)s, Name = s.ToString() });
-        }
+        //public IEnumerable<object> DisplayOrderStatuses()
+        //{
+        //    return Enum.GetValues<OrderStatus>()
+        //   .Select(s => new { Id = (int)s, Name = s.ToString() });
+        //}
 
-        public int CountPendingOrders()
-        {
-            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Pending);
-        }
+        //public int CountPendingOrders()
+        //{
+        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+        //        .Count(o => o.Status == OrderStatus.Pending);
+        //}
 
-        public int CountDeliverdOrders()
-        {
-            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Deliverd);
-        }
+        //public int CountDeliverdOrders()
+        //{
+        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+        //        .Count(o => o.Status == OrderStatus.Deliverd);
+        //}
     
+        public object Counts()
+        {
+            var pendingCount = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Count(o => o.Status == OrderStatus.Pending);
 
+            var deliveredCount = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Count(o => o.Status == OrderStatus.Deliverd);
+
+            var TotalRevenue = _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
+                .Include(o => o.Order)
+                .Where(oi => oi.Order.Status == OrderStatus.Deliverd)
+                .Sum(oi => oi.Quantity * oi.Price);
+            var roundedRevenue = Math.Round(TotalRevenue);
+            
+            return new
+            {
+                pendingOrdersCount = pendingCount,
+                deliveredOrdersCount = deliveredCount,
+                TotalOrdersRevenue = roundedRevenue
+            };
+        }
 
     }
 }

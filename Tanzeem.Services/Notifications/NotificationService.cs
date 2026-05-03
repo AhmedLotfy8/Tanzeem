@@ -11,6 +11,7 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
@@ -60,7 +61,13 @@ namespace Tanzeem.Services.Notifications
             };
         }
 
-        // it creates out of stock notification else       
+        /// <summary>
+        /// it creates low and out stock after every stock out operation if conditions are met.
+        /// </summary>
+        /// <param name="lowStockItems"></param>
+        /// <param name="inventories"></param>
+        /// <returns>notifications ids</returns>
+        /// <exception cref="Exception"></exception>        
         public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems,List<Inventory> inventories)
         {
 
@@ -114,6 +121,7 @@ namespace Tanzeem.Services.Notifications
             }
             return notifications.Select(x => x.Id).ToList();
         }
+        
         public async Task CreateDeadStockNotification(int branchId)
         {
             var recentlySoldIds = await _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
@@ -215,6 +223,7 @@ namespace Tanzeem.Services.Notifications
             if (affected <= 0)
                 throw new Exception("error at expiry notification add");
         }
+        
         public async Task createOutOfStockNotificationWeekly(int branchId)
         {
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
@@ -242,6 +251,41 @@ namespace Tanzeem.Services.Notifications
             if (affected <= 0)
                 throw new Exception("error at expiry notification add");
         }
+        
+        public async Task CreateOrderDeliveredNotification(int orderId)
+        {
+            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
+                .FirstOrDefault();
+
+            if (order == null)
+            {
+                return;
+            }
+
+            Notification notification = new Notification
+            {
+                Title = "Order Delivered",
+                IsRead = false,
+                BranchId = order.BranchId,
+                CreatedAt = DateTime.UtcNow,
+                Type = NotificationType.OrderUpdate,
+                Message = $"Order ID: {orderId} has been delivered, Check it now."
+            };
+
+            await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            int affected = await _unitOfWork.SaveChangesAsync();
+            if (affected <= 0)
+                throw new Exception("error at dead notification add");
+        }
+
+        /// <summary>
+        /// hangfire uses this method to check
+        /// - low stck
+        /// - out stock
+        /// - dead stock
+        /// - expiry date
+        /// </summary>
+        /// <returns></returns>
         public async Task CreateNotification()
         {
             List<int> branchIds = _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()

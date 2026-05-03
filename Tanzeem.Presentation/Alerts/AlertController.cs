@@ -21,5 +21,12 @@ namespace Tanzeem.Presentation.Alerts
             var result = await _alertService.ShowAlerts(type,page,pageSize);
             return Ok(result);
         }
+
+        [HttpGet("mini_Alert_dashboard")]
+        public async Task<IActionResult> CountsDashboard()
+        {
+            var result = await _alertService.Counts();
+            return Ok(result);
+        }
     }
 }

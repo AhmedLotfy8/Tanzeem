@@ -97,9 +97,9 @@ namespace Tanzeem.Presentation.Orders
         //}
 
         [HttpGet("mini_order_dashboard")]
-        public IActionResult CountsDashboard()
+        public async Task<IActionResult> CountsDashboard()
         {
-            var result = _orderService.Counts();
+            var result = await _orderService.Counts();
             return Ok(result);
         }
 

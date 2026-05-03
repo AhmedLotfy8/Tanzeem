@@ -187,7 +187,61 @@ namespace Tanzeem.Services.Notifications
                 throw new Exception("error at expiry notification add");
         }
 
+        public async Task createLowStockNotificationWeekly(int branchId)
+        {
+            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Include(inv => inv.Product)
+                .Where(inv => inv.BranchId == branchId
+                && inv.Quantity > 0
+                && inv.Quantity < inv.Product.ReorderLevel)
+                .Count();
+            if (inventories ==0 )
+            {
+                return;
+            }
 
+            Notification notification = new Notification()
+            {
+                Title = "Low Stock Alert",
+                IsRead = false,
+                BranchId = branchId,
+                CreatedAt = DateTime.UtcNow,
+                Type = NotificationType.LowStockAlert,
+                Message = $"{inventories} products have reached the reorder level, Check them now."
+            };
+            await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            int affected = await _unitOfWork.SaveChangesAsync();
+            if (affected <= 0)
+                throw new Exception("error at expiry notification add");
+        }
+        public async Task createOutOfStockNotificationWeekly(int branchId)
+        {
+            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Include(inv => inv.Product)
+                .Where(inv => inv.BranchId == branchId
+                && inv.Quantity == 0)
+                .Count();
+            
+            if (inventories == 0)
+            {
+                return;
+            }
+            Notification notification = new Notification()
+            {
+                Title = "Out of stock Alert",
+                IsRead = false,
+                BranchId = branchId,
+                CreatedAt = DateTime.UtcNow,
+                Type = NotificationType.OutOfStock,
+                Message = $"{inventories} products is completely out of stock, Check them now."
+            };
+            await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            int affected = await _unitOfWork.SaveChangesAsync();
+            if (affected <= 0)
+                throw new Exception("error at expiry notification add");
+        }
         public async Task CreateNotification()
         {
             List<int> branchIds = _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()
@@ -198,6 +252,8 @@ namespace Tanzeem.Services.Notifications
             {
                 await CreateDeadStockNotification(branchId);
                 await CreateExpiryNotification(branchId);
+                await createLowStockNotificationWeekly(branchId);
+                await createOutOfStockNotificationWeekly(branchId);
             }
         }
 

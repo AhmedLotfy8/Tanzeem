@@ -72,28 +72,36 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpGet("display_order_statuses")]
+        //[HttpGet("display_order_statuses")]
         //[Authorize(Roles = "")]
-        public IActionResult DisplayOrderStatuses()
+        //public IActionResult DisplayOrderStatuses()
+        //{
+        //    var result = _orderService.DisplayOrderStatuses();
+        //    return Ok(result);
+        //}
+
+        //[HttpGet("Pending_Order_Count")]
+        ////[Authorize(Roles = "")]
+        //public IActionResult CountPendingOrders()
+        //{
+        //    var result = _orderService.CountPendingOrders();
+        //    return Ok(result);
+        //}
+        
+        //[HttpGet("Delivered_Order_Count")]
+        ////[Authorize(Roles = "")]
+        //public IActionResult CountDeliverdOrders()
+        //{
+        //    var result = _orderService.CountDeliverdOrders();
+        //    return Ok(result);
+        //}
+
+        [HttpGet("mini_order_dashboard")]
+        public IActionResult CountsDashboard()
         {
-            var result = _orderService.DisplayOrderStatuses();
+            var result = _orderService.Counts();
             return Ok(result);
         }
 
-        [HttpGet("Pending_Order_Count")]
-        //[Authorize(Roles = "")]
-        public IActionResult CountPendingOrders()
-        {
-            var result = _orderService.CountPendingOrders();
-            return Ok(result);
-        }
-        
-        [HttpGet("Delivered_Order_Count")]
-        //[Authorize(Roles = "")]
-        public IActionResult CountDeliverdOrders()
-        {
-            var result = _orderService.CountDeliverdOrders();
-            return Ok(result);
-        }
     }
 }

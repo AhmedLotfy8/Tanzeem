@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,175 +12,148 @@ using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Alerts;
 using Tanzeem.Services.Notifications;
+using Tanzeem.Shared;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Notifications;
 
 namespace Tanzeem.Services.Alerts
 {
     ///TODO filter by branchid after auth
     public class AlertService(IUnitOfWork _unitOfWork) : IAlertService
-    {       
-        public IEnumerable<AlertDto> ShowAlerts(NotificationType? type)
+    {
+        public async Task<PaginationResponseDto<AlertDto>> ShowAlerts(
+        NotificationType? type, int page, int pageSize)
         {
-            List<AlertDto> alerts = new List<AlertDto>();
+            if (page <= 0) page = 1;
+            if (pageSize > 20) pageSize = 20;
 
             switch (type)
             {
                 case NotificationType.LowStockAlert:
-                    alerts.AddRange(ShowLowStockAlerts());
-                    break;
-                case NotificationType.DeadStockAlert:
-                    alerts.AddRange(ShowDeadStockAlerts());
-                    break;
-                case NotificationType.ExpiryAlert:
-                    alerts.AddRange(ShowExpiryAlerts());
-                    break;
-                case NotificationType.OutOfStock:
-                    alerts.AddRange(ShowOutStockAlerts());
-                    break;
-                default:
-                    alerts.AddRange(ShowLowStockAlerts());
-                    alerts.AddRange(ShowDeadStockAlerts());
-                    alerts.AddRange(ShowExpiryAlerts());
-                    alerts.AddRange(ShowOutStockAlerts());
-                    break;
-            }
+                    return await ShowLowStockAlerts().OrderBy(x => x.Priority)
+                                 .ToPaginatedResponseAsync(page, pageSize);
 
-            return alerts.OrderBy(x => Guid.NewGuid()).ToList();
+                case NotificationType.DeadStockAlert:
+                    return await ShowDeadStockAlerts().OrderBy(x => x.Priority)
+                                 .ToPaginatedResponseAsync(page, pageSize);
+
+                case NotificationType.ExpiryAlert:
+                    return await ShowExpiryAlerts().OrderBy(x => x.Priority)
+                                 .ToPaginatedResponseAsync(page, pageSize);
+
+                case NotificationType.OutOfStock:
+                    return await ShowOutStockAlerts().OrderBy(x => x.Priority)
+                                 .ToPaginatedResponseAsync(page, pageSize);
+
+                default:
+                    var all = ShowLowStockAlerts().AsEnumerable()
+                        .Concat(ShowDeadStockAlerts().AsEnumerable())
+                        .Concat(ShowExpiryAlerts().AsEnumerable())
+                        .Concat(ShowOutStockAlerts().AsEnumerable())
+                        .OrderBy(x => x.Priority);
+
+                    return all.ToPaginatedResponse(page, pageSize);
+            }
         }
 
-        public IEnumerable<AlertDto> ShowDeadStockAlerts()
+
+        public IQueryable<AlertDto> ShowDeadStockAlerts()
         {
-            var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
-                .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3))
-                ///TODO settings
+
+            var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>()
+                .GetAllAsIQueryable()
+                .Where(ti => ti.Transaction.Type == TransactionType.Out
+                          && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3))
                 .Select(ti => ti.ProductId)
-                .Distinct()
-                .ToList();
+                .Distinct();
 
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
-                .Include(p => p.Product)
-                .Include(p => p.Product.TransactionItems)
-                .ThenInclude(ti => ti.Transaction)
-                ///TODO auth
-                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == 1)
-                .ToList();
-            if (!inventories.Any())
-            {
-                return Enumerable.Empty<AlertDto>();
-            }
-            var alerts = inventories.Select(inv =>
-            {
-                var allSalesDates = inv.Product.TransactionItems
-                .Where(ti => ti.Transaction.Type == TransactionType.Out)
-                .Select(ti => ti.Transaction.CreatedAt)
-                .ToList();
-
-                string dateResult;
-
-                if (allSalesDates.Count == 0)
+            var rawQuery = _unitOfWork.GetRepository<Inventory>()
+                .GetAllAsIQueryable()
+                .Where(inv => inv.BranchId == 1 ///TODO Auth
+                           && !recentlySoldIds.Contains(inv.ProductId))
+                .Select(inv => new
                 {
-                    dateResult = "No sales recorded yet";
-                }
-                else
-                {
-                    var lastDate = allSalesDates.Max();
-                    dateResult = NotificationServiceHelper.GenerateSinceDate(lastDate);
-                }
-                return new AlertDto
+                    inv.ProductId,
+                    inv.Product.Name,
+                    inv.Product.SKU,
+                    LastSaleDate = inv.Product.TransactionItems
+                        .Where(ti => ti.Transaction.Type == TransactionType.Out)
+                        .Select(ti => (DateTime?)ti.Transaction.CreatedAt)
+                        .Max() 
+                });
+
+            var alerts = rawQuery
+                .Select(x => new AlertDto
                 {
                     AlertTitle = "Dead Stock Alert",
-                    AlertDescription = $"{inv.Product.Name} has not moved in {dateResult}",
-                    AlertSubTitle = $"{inv.Product.Name}(SKU: {inv.Product.SKU})",
-                    ProductId = inv.ProductId,
-                    Type = NotificationType.DeadStockAlert.ToString(),
+                    AlertDescription = $"{x.Name} has not moved in " +
+                                       (x.LastSaleDate.HasValue
+                                           ? NotificationServiceHelper.GenerateSinceDate(x.LastSaleDate.Value)
+                                           : "No sales recorded yet"),
+                    //AlertDescription = $"{x.Name} has not moved in " + x.LastSaleDate,
+                    AlertSubTitle = $"{x.Name} (SKU: {x.SKU})",
+                    ProductId = x.ProductId,
+                    Type = NotificationType.DeadStockAlert,
                     Priority = AlertPriority.Critical.ToString(),
-                };
-            }).ToList();
+                });
             return alerts;
-
         }
-        public IEnumerable<AlertDto> ShowLowStockAlerts()
+        public IQueryable<AlertDto> ShowLowStockAlerts()
         {
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+            var alerts = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .Include(x => x.Product)
-                .Where(x => x.BranchId == 1) ///TODO auth
-                .ToList();
-
-            List<AlertDto> lowAlerts = new List<AlertDto>();
-            foreach (var inventory in inventories)
-            {
-                if (inventory.Quantity <= inventory.Product.ReorderLevel && inventory.Quantity > 0)
+                .Where(x => x.BranchId == 1 ///TODO auth
+                && x.Quantity > 0
+                && x.Quantity <= x.Product.ReorderLevel)
+                .Select(inventory => new AlertDto
                 {
-                    AlertDto low = new AlertDto
-                    {
-                        AlertTitle = "Low Stock Alert",
-                        AlertDescription = $"{inventory.Product.Name} stock is below minimum threshold",
-                        AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU}), Current Quantity: {inventory.Quantity}",
-                        ProductId = inventory.ProductId,
-                        Type = NotificationType.LowStockAlert.ToString(),
-                        Priority = AlertPriority.Warning.ToString(),
-                    };
-                    lowAlerts.Add(low);
-                }
-            }
-            return lowAlerts;
+                    AlertTitle = "Low Stock Alert",
+                    AlertDescription = $"{inventory.Product.Name} stock is below minimum threshold",
+                    AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU}), Current Quantity: {inventory.Quantity}",
+                    ProductId = inventory.ProductId,
+                    Type = NotificationType.LowStockAlert,
+                    Priority = AlertPriority.Warning.ToString(),
+                });
+            return alerts;         
         }
-
-        public IEnumerable<AlertDto> ShowExpiryAlerts()
+          
+        public IQueryable<AlertDto> ShowExpiryAlerts()
         {
-            var products = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
-                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(3)) ///TODO settings
-                .ToList();
-
-            if (!products.Any())
-            {
-                throw new Exception("No products");
-            }
-            List<AlertDto> alerts = new List<AlertDto>();
-
-            foreach (var product in products)
-            {
-                AlertDto expiry = new AlertDto
+            var alerts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(3))///TODO settings
+                .Select(product => new AlertDto
                 {
                     AlertTitle = "Expiry Warning",
                     AlertDescription = $"{product.Name} will expire in " +
                     $"{NotificationServiceHelper.GenerateSinceDate(product.ExpiryDate)}",
-                    AlertSubTitle =$"{product.Name} (SKU: {product.SKU})",
-                    Priority = AlertPriority.Warning.ToString(),
+                    //AlertDescription = $"{product.Name} will expire in " + product.ExpiryDate,
+                    AlertSubTitle = $"{product.Name} (SKU: {product.SKU})",
                     ProductId = product.Id,
-                    Type = NotificationType.ExpiryAlert.ToString(),
-                };
-                alerts.Add(expiry);
-            }
+                    Type = NotificationType.ExpiryAlert,
+                    Priority = AlertPriority.Warning.ToString(),
+
+                });   
 
             return alerts;
         }
 
-        public IEnumerable<AlertDto> ShowOutStockAlerts()
+        public IQueryable<AlertDto> ShowOutStockAlerts()
         {
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+            var alerts = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .Include(x => x.Product)
-                .Where(x => x.BranchId == 1) ///TODO auth
-                .ToList();
-
-            List<AlertDto> outAlerts = new List<AlertDto>();
-            foreach (var inventory in inventories)
-            {
-                if (inventory.Quantity == 0)
+                .Where(x => x.BranchId == 1
+                && x.Quantity == 0) ///TODO auth
+                .Select(inventory => new AlertDto
                 {
-                    AlertDto low = new AlertDto
-                    {
-                        AlertTitle = "Out Of Stock Alert",
-                        AlertDescription = $"{inventory.Product.Name} is completely out of stock",
-                        AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU})",
-                        ProductId = inventory.ProductId,
-                        Type = NotificationType.OutOfStock.ToString(),
-                        Priority = AlertPriority.Critical.ToString(),
-                    };
-                    outAlerts.Add(low);
-                }
-            }
-            return outAlerts;
+                    AlertTitle = "Out Of Stock Alert",
+                    AlertDescription = $"{inventory.Product.Name} is completely out of stock",
+                    AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU})",
+                    ProductId = inventory.ProductId,
+                    Type = NotificationType.OutOfStock,
+                    Priority = AlertPriority.Critical.ToString(),
+                });
+
+            return alerts;
         }
     }
 }

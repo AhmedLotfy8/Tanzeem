@@ -16,9 +16,9 @@ namespace Tanzeem.Presentation.Alerts
     {
         [HttpGet]
         //[Authorize(Roles = "")]
-        public IActionResult GetAlerts(NotificationType? type)
+        public async Task<IActionResult> GetAlerts(NotificationType? type, [FromQuery(Name = "Page_Size")] int pageSize = 15, [FromQuery(Name = "Page")] int page = 1)
         {
-            var result = _alertService.ShowAlerts(type);
+            var result = await _alertService.ShowAlerts(type,page,pageSize);
             return Ok(result);
         }
     }

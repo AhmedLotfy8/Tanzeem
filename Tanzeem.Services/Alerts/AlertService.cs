@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
@@ -45,11 +46,24 @@ namespace Tanzeem.Services.Alerts
                     return await ShowOutStockAlerts().OrderBy(x => x.Priority)
                                  .ToPaginatedResponseAsync(page, pageSize);
 
+                case NotificationType.OrderUpdate:
+                    return await ShowOrderUpdates()
+                        .ToPaginatedResponseAsync(page, pageSize);
+
                 default:
-                    var all = ShowLowStockAlerts().AsEnumerable()
-                        .Concat(ShowDeadStockAlerts().AsEnumerable())
-                        .Concat(ShowExpiryAlerts().AsEnumerable())
-                        .Concat(ShowOutStockAlerts().AsEnumerable())
+                    var lowTask = ShowLowStockAlerts().ToListAsync();
+                    var deadTask = ShowDeadStockAlerts().ToListAsync();
+                    var expiryTask = ShowExpiryAlerts().ToListAsync();
+                    var outTask = ShowOutStockAlerts().ToListAsync();
+                    var orderTask = ShowOrderUpdates().ToListAsync();
+
+                    await Task.WhenAll(lowTask, deadTask, expiryTask, orderTask);
+
+                    var all = lowTask.Result
+                        .Concat(deadTask.Result)
+                        .Concat(expiryTask.Result)
+                        .Concat(outTask.Result)
+                        .Concat(orderTask.Result)
                         .OrderBy(x => x.Priority);
 
                     return all.ToPaginatedResponse(page, pageSize);
@@ -153,6 +167,26 @@ namespace Tanzeem.Services.Alerts
                     Priority = AlertPriority.Critical.ToString(),
                 });
 
+            return alerts;
+        }
+
+        public IQueryable<AlertDto> ShowOrderUpdates()
+        {
+            var alerts = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+            .Where(x => x.BranchId == 2 && ///TODO auth
+                   (x.Status == OrderStatus.Pending || x.Status == OrderStatus.Deliverd))
+            .Select(order => new AlertDto
+            {
+            AlertTitle = order.Status == OrderStatus.Pending ? "Order Pending" : "Order Delivered",
+
+            AlertDescription = order.Status == OrderStatus.Pending
+                ? $"Order #{order.Id} is waiting for processing"
+                : $"Order #{order.Id} has been successfully delivered",
+
+            AlertSubTitle = order.Status == OrderStatus.Pending ? $"order created at: {order.OrderDate}" : $"order recived at: {order.RecievedDeliveryDate}",
+            Type = NotificationType.OrderUpdate,
+            Priority = AlertPriority.Info.ToString(),
+            });
             return alerts;
         }
     }

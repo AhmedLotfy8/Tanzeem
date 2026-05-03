@@ -6,6 +6,7 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
@@ -13,7 +14,7 @@ using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Orders
 {
-    public class OrderService(IUnitOfWork _unitOfWork) : IOrderService
+    public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService) : IOrderService
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
@@ -267,9 +268,9 @@ namespace Tanzeem.Services.Orders
             if (order == null)
                 throw new Exception("No order with this id");
 
-            if (order.Status != OrderStatus.Deliverd)
+            if (order.Status == OrderStatus.Deliverd)
             {
-                return order.Status.ToString();
+                return "order already deliverd";
             }
 
             ///TODO exception handling
@@ -336,6 +337,8 @@ namespace Tanzeem.Services.Orders
 
             int rowsAffected = await _unitOfWork.SaveChangesAsync();
 
+            await _notificationService.CreateOrderDeliveredNotification(order.Id);
+            
             if (rowsAffected <= 0)
                 throw new Exception("Status not changed");
             ///TODO exception handling

@@ -189,5 +189,48 @@ namespace Tanzeem.Services.Alerts
             });
             return alerts;
         }
+
+        //public async Task<object> Counts()
+        //{
+        //    var deadTask = ShowDeadStockAlerts().CountAsync();
+        //    var outStockTask = ShowOutStockAlerts().CountAsync();
+        //    var expiryTask = ShowExpiryAlerts().CountAsync();
+        //    var lowStockTask = ShowLowStockAlerts().CountAsync();
+        //    var infoTask = ShowOrderUpdates().CountAsync();
+
+        //    await Task.WhenAll(deadTask, outStockTask, expiryTask, lowStockTask, infoTask);
+
+        //    int deadCount = deadTask.Result;
+        //    int outStockCount = outStockTask.Result;
+        //    int expiryCount = expiryTask.Result;
+        //    int lowStockCount = lowStockTask.Result;
+        //    int infoCount = infoTask.Result;
+
+        //    int criticalTotal = deadCount + outStockCount;
+        //    int warningTotal = expiryCount + lowStockCount;
+
+        //    return new
+        //    {
+        //        deadCount = deadCount,
+        //        criticalCount = criticalTotal,
+        //        warningCount = warningTotal,
+        //        infoCount = infoCount
+        //    };
+
+        //}
+        public async Task<object> Counts()
+        {
+            int deadAlerts = await ShowDeadStockAlerts().CountAsync();
+            int criticalAlerts = deadAlerts + await ShowOutStockAlerts().CountAsync();
+            int warningAlert = await ShowExpiryAlerts().CountAsync() + await ShowLowStockAlerts().CountAsync();
+            int infoAlert = await ShowOrderUpdates().CountAsync();
+            return new
+            {
+                deadCount = deadAlerts,
+                criticalCount = criticalAlerts,
+                warningCount = warningAlert,
+                infoCount = infoAlert
+            };
+        }
     }
 }

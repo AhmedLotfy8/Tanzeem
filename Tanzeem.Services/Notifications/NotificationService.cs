@@ -334,5 +334,6 @@ namespace Tanzeem.Services.Notifications
                 await _unitOfWork.SaveChangesAsync();
             }
         }
+
     }
 }

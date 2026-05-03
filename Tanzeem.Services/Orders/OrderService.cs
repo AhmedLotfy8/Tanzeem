@@ -364,18 +364,19 @@ namespace Tanzeem.Services.Orders
         //        .Count(o => o.Status == OrderStatus.Deliverd);
         //}
     
-        public object Counts()
+        public async Task<object> Counts()
         {
-            var pendingCount = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Pending);
+            var pendingCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .CountAsync(o => o.Status == OrderStatus.Pending);
 
-            var deliveredCount = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Deliverd);
+            var deliveredCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .CountAsync(o => o.Status == OrderStatus.Deliverd);
 
-            var TotalRevenue = _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
+            var TotalRevenue = await _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
                 .Include(o => o.Order)
                 .Where(oi => oi.Order.Status == OrderStatus.Deliverd)
-                .Sum(oi => oi.Quantity * oi.Price);
+                .SumAsync(oi => oi.Quantity * oi.Price);
+            
             var roundedRevenue = Math.Round(TotalRevenue);
             
             return new

@@ -12,5 +12,6 @@ namespace Tanzeem.Services.Abstractions.Alerts
     public interface IAlertService
     {
         public Task<PaginationResponseDto<AlertDto>> ShowAlerts(NotificationType? type, int page, int pageSize);
+        public Task<object> Counts();
     }
 }

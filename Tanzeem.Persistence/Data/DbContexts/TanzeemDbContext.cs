@@ -12,6 +12,7 @@ using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Entities.Users;
@@ -36,7 +37,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<OrderItem> OrderItem { get; set; }
         public DbSet<Notification> Notification { get; set; }
         public DbSet<Supplier> Supplier { get; set; }
-
+        public DbSet<Setting> Settings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

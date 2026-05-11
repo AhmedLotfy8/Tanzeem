@@ -37,7 +37,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<OrderItem> OrderItem { get; set; }
         public DbSet<Notification> Notification { get; set; }
         public DbSet<Supplier> Supplier { get; set; }
-        public DbSet<Setting> Settings { get; set; }
+        public DbSet<AlertConfigurations> AlertConfigurations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
@@ -74,6 +74,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
             modelBuilder.Entity<Order>().HasQueryFilter(o => o.BranchId == currentService.BranchId);
             modelBuilder.Entity<Notification>().HasQueryFilter(n => n.BranchId == currentService.BranchId);
             */
+
+            //create for alert configuration
         }
 
     }

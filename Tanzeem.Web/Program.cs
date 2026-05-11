@@ -31,6 +31,9 @@ using Tanzeem.Services.Abstractions.Alerts;
 using Tanzeem.Services.Alerts;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Current;
+using Tanzeem.Services.Abstractions.Settings;
+using Tanzeem.Domain.Entities.Settings;
+using Tanzeem.Services.Settings;
 
 namespace Tanzeem.Web {
     public class Program {
@@ -57,6 +60,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IOrderService,OrderService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IAlertService, AlertService>();
+            builder.Services.AddScoped<IAlertConfigurationsService, AlertConfigurationsService>();
             #endregion
 
             #region Added Authentication

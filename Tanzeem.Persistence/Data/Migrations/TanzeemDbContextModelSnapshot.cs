@@ -371,7 +371,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Settings.Setting", b =>
+            modelBuilder.Entity("Tanzeem.Domain.Entities.Settings.AlertConfigurations", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -382,19 +382,42 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("DaysBeforeExpiry")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("DaysWithoutMovement")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive_DeadAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_EmailNotifiation")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_ExpiryAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_InAppNotifiation")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_LowAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_NewOrderAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_OrderUpdateAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LowStockThreshold")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
+                    b.HasIndex("BranchId")
+                        .IsUnique();
 
-                    b.ToTable("Settings");
+                    b.ToTable("AlertConfigurations");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Subscriptions.Subscription", b =>
@@ -742,11 +765,11 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Company");
                 });
 
-            modelBuilder.Entity("Tanzeem.Domain.Entities.Settings.Setting", b =>
+            modelBuilder.Entity("Tanzeem.Domain.Entities.Settings.AlertConfigurations", b =>
                 {
                     b.HasOne("Tanzeem.Domain.Entities.Branches.Branch", "Branch")
-                        .WithMany("Settings")
-                        .HasForeignKey("BranchId")
+                        .WithOne("AlertConfigurations")
+                        .HasForeignKey("Tanzeem.Domain.Entities.Settings.AlertConfigurations", "BranchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -817,6 +840,9 @@ namespace Tanzeem.Persistence.Data.Migrations
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Branches.Branch", b =>
                 {
+                    b.Navigation("AlertConfigurations")
+                        .IsRequired();
+
                     b.Navigation("BURelations");
 
                     b.Navigation("Inventories");
@@ -824,8 +850,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("Orders");
-
-                    b.Navigation("Settings");
 
                     b.Navigation("Transactions");
                 });

@@ -9,12 +9,12 @@ using Tanzeem.Domain.Entities.Settings;
 
 namespace Tanzeem.Persistence.Data.Configurations.SettingsConfiguration
 {
-    internal class SettingsConfiguration : IEntityTypeConfiguration<Setting>
+    internal class SettingsConfiguration : IEntityTypeConfiguration<AlertConfigurations>
     {
-        public void Configure(EntityTypeBuilder<Setting> builder)
+        public void Configure(EntityTypeBuilder<AlertConfigurations> builder)
         {
             builder.HasKey(x => x.Id);
-            builder.HasOne(x => x.Branch).WithMany(x => x.Settings).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Branch).WithOne(x => x.AlertConfigurations).HasForeignKey<AlertConfigurations>(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

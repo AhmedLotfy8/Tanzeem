@@ -44,8 +44,9 @@ namespace Tanzeem.Domain.Entities.Branches {
 
         public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        public ICollection<Setting> Settings { get; set; } = new List<Setting>();
+        
 
+        public AlertConfigurations AlertConfigurations { get; set; }
     }
 }
 

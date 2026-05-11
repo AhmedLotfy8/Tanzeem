@@ -12,8 +12,8 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    [Migration("20260511161017_AlertConfigurations_settings")]
-    partial class AlertConfigurations_settings
+    [Migration("20260511202800_alertsConfiguration")]
+    partial class alertsConfiguration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -410,6 +410,9 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsActive_OrderUpdateAlert")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive_OutAlert")
                         .HasColumnType("bit");
 
                     b.Property<int>("LowStockThreshold")

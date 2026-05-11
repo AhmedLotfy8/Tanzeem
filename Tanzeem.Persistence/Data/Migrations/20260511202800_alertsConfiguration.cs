@@ -5,7 +5,7 @@
 namespace Tanzeem.Persistence.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AlertConfigurations_settings : Migration
+    public partial class alertsConfiguration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                     IsActive_InAppNotifiation = table.Column<bool>(type: "bit", nullable: false),
                     IsActive_EmailNotifiation = table.Column<bool>(type: "bit", nullable: false),
                     IsActive_LowAlert = table.Column<bool>(type: "bit", nullable: false),
+                    IsActive_OutAlert = table.Column<bool>(type: "bit", nullable: false),
                     IsActive_ExpiryAlert = table.Column<bool>(type: "bit", nullable: false),
                     IsActive_DeadAlert = table.Column<bool>(type: "bit", nullable: false),
                     IsActive_NewOrderAlert = table.Column<bool>(type: "bit", nullable: false),

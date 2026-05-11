@@ -14,6 +14,7 @@ namespace Tanzeem.Shared.Dtos.Settings
         public bool IsActive_InAppNotifiation { get; set; }
         public bool IsActive_EmailNotifiation { get; set; }
         public bool IsActive_LowAlert { get; set; }
+        public bool IsActive_OutAlert { get; set; }
         public bool IsActive_ExpiryAlert { get; set; }
         public bool IsActive_DeadAlert { get; set; }
         public bool IsActive_NewOrderAlert { get; set; }

@@ -22,6 +22,7 @@ namespace Tanzeem.Services.Settings
                 IsActive_LowAlert = true,
                 IsActive_NewOrderAlert = true,
                 IsActive_OrderUpdateAlert = true,
+                IsActive_OutAlert = true,
                 LowStockThreshold = 5,
                 
                 IsActive_InAppNotifiation = true,
@@ -59,6 +60,7 @@ namespace Tanzeem.Services.Settings
                 IsActive_DeadAlert = alert.IsActive_DeadAlert,
                 IsActive_ExpiryAlert = alert.IsActive_ExpiryAlert,
                 IsActive_LowAlert = alert.IsActive_LowAlert,
+                IsActive_OutAlert = alert.IsActive_OutAlert,
                 LowStockThreshold = alert.LowStockThreshold,
                 IsActive_NewOrderAlert = alert.IsActive_NewOrderAlert,
                 IsActive_OrderUpdateAlert = alert.IsActive_OrderUpdateAlert,
@@ -87,6 +89,7 @@ namespace Tanzeem.Services.Settings
             alert.IsActive_DeadAlert = alertConfigurationsDto.IsActive_DeadAlert;
             alert.IsActive_ExpiryAlert = alertConfigurationsDto.IsActive_ExpiryAlert;
             alert.IsActive_LowAlert = alertConfigurationsDto.IsActive_LowAlert;
+            alert.IsActive_OutAlert = alertConfigurationsDto.IsActive_OutAlert;
             alert.IsActive_NewOrderAlert = alertConfigurationsDto.IsActive_NewOrderAlert;
             alert.IsActive_OrderUpdateAlert = alertConfigurationsDto.IsActive_OrderUpdateAlert;
 

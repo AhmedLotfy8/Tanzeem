@@ -409,6 +409,9 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Property<bool>("IsActive_OrderUpdateAlert")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsActive_OutAlert")
+                        .HasColumnType("bit");
+
                     b.Property<int>("LowStockThreshold")
                         .HasColumnType("int");
 

@@ -13,6 +13,7 @@ using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Notifications;
@@ -124,9 +125,17 @@ namespace Tanzeem.Services.Notifications
         
         public async Task CreateDeadStockNotification(int branchId)
         {
+            var deadAlert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+                .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+
+            if (deadAlert is null || deadAlert.IsActive_DeadAlert == false)
+            {
+                return;
+            }
+
             var recentlySoldIds = await _unitOfWork.GetRepository<TransactionItem>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
-                .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3)
+                .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.CreatedAt > DateTime.UtcNow.AddDays(deadAlert.DaysWithoutMovement)
                 && ti.Transaction.BranchId == branchId)
                 ///TODO settings
                 /// TODO auth
@@ -168,9 +177,17 @@ namespace Tanzeem.Services.Notifications
 
         public async Task CreateExpiryNotification(int branchId)
         {
+            var expiryAlert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+            .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+
+            if (expiryAlert is null || expiryAlert.IsActive_ExpiryAlert == false)
+            {
+                return;
+            }
+
             var productsCount = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
                 .IgnoreQueryFilters() 
-                .Where(p =>  p.ExpiryDate <= DateTime.UtcNow.AddMonths(3)
+                .Where(p =>  p.ExpiryDate <= DateTime.UtcNow.AddDays(expiryAlert.DaysBeforeExpiry)
                  && p.Inventories.Any(inv => inv.BranchId == branchId && inv.Quantity > 0))
                 .CountAsync();
 
@@ -197,6 +214,14 @@ namespace Tanzeem.Services.Notifications
 
         public async Task createLowStockNotificationWeekly(int branchId)
         {
+            var Alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+            .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+
+            if (Alert is null || Alert.IsActive_LowAlert == false)
+            {
+                return;
+            }
+
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
                 .Include(inv => inv.Product)
@@ -204,6 +229,7 @@ namespace Tanzeem.Services.Notifications
                 && inv.Quantity > 0
                 && inv.Quantity < inv.Product.ReorderLevel)
                 .Count();
+
             if (inventories ==0 )
             {
                 return;
@@ -226,6 +252,13 @@ namespace Tanzeem.Services.Notifications
         
         public async Task createOutOfStockNotificationWeekly(int branchId)
         {
+            var Alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+            .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+
+            if (Alert is null || Alert.IsActive_OutAlert == false)
+            {
+                return;
+            }
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
                 .Include(inv => inv.Product)
@@ -254,6 +287,13 @@ namespace Tanzeem.Services.Notifications
         
         public async Task CreateOrderDeliveredNotification(int orderId)
         {
+            var Alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+            .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+
+            if (Alert is null || Alert.IsActive_OrderUpdateAlert == false)
+            {
+                return;
+            }
             var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .FirstOrDefault();
 

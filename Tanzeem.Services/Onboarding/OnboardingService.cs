@@ -3,13 +3,15 @@ using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Services.Abstractions.Onboarding;
+using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Shared.Dtos.Onboarding;
 
 namespace Tanzeem.Services.Onboarding {
     public class OnboardingService(IUnitOfWork unitOfWork,
         IAuthService authService,
         ICompanyService companyService,
-        IBranchService branchService) : IOnboardingService {
+        IBranchService branchService,
+        IAlertConfigurationsService alertConfigurationsService) : IOnboardingService {
 
         // Hardcoded values
         public async Task<string> OnboardNewTenantAsync(OnboardingDto onboardingDto) {
@@ -41,6 +43,10 @@ namespace Tanzeem.Services.Onboarding {
 
                 var branchId = await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
 
+                #endregion
+
+                #region create new Alert configuration settings
+                await alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(branchId);
                 #endregion
 
                 await transaction.CommitAsync();

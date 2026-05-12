@@ -260,9 +260,10 @@ namespace Tanzeem.Services.Orders
             return selectedProducts;
         }
 
-        public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto, int id)
+        public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+            int orderId = confirmDto.OrderId;
+            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .Include(o => o.Items).FirstOrDefault();
 
             if (order == null)

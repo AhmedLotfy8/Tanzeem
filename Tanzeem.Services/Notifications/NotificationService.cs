@@ -313,7 +313,9 @@ namespace Tanzeem.Services.Notifications
             };
 
             await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            
             int affected = await _unitOfWork.SaveChangesAsync();
+            
             if (affected <= 0)
                 throw new Exception("error at dead notification add");
         }

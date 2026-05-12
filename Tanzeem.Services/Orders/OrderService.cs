@@ -8,13 +8,15 @@ using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
+using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Orders
 {
-    public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService) : IOrderService
+    public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
+        ,ITransactionService _transactionService) : IOrderService
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
@@ -131,6 +133,7 @@ namespace Tanzeem.Services.Orders
             var orderItems = order.Items.Select(item => new OrderItemResponseDto
             {
                 ProductName = item.Product?.Name ?? "N/A",
+                ProductId = item.Product?.Id ?? 0,
                 Price = item.Price,
                 Quantity = item.Quantity,
                 Total = item.Total,
@@ -311,6 +314,7 @@ namespace Tanzeem.Services.Orders
             order.Status = Domain.Enums.OrderStatus.Deliverd;
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
+            ///TODO edit price section
             foreach (var product in products)
             {
                 var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
@@ -335,11 +339,12 @@ namespace Tanzeem.Services.Orders
                 }
             }
             #endregion
-
+            
             int rowsAffected = await _unitOfWork.SaveChangesAsync();
 
+            await _transactionService.CreateConfirmOrderTransactionAsync(order);
             await _notificationService.CreateOrderDeliveredNotification(order.Id);
-            
+
             if (rowsAffected <= 0)
                 throw new Exception("Status not changed");
             ///TODO exception handling

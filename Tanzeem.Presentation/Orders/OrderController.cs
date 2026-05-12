@@ -56,11 +56,11 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpPut("ConfirmDelivery/{id}")]
+        [HttpPut("ConfirmDelivery")]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> ConfirmDelivery(int id, OrderConfirmDto confirmDto)
+        public async Task<IActionResult> ConfirmDelivery(OrderConfirmDto confirmDto)
         {
-            var result = await _orderService.ChangeOrderToDeliverd(confirmDto, id);
+            var result = await _orderService.ChangeOrderToDeliverd(confirmDto);
             return Ok(result);
         }
 

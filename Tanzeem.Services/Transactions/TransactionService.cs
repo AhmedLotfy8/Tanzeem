@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
@@ -220,6 +221,48 @@ namespace Tanzeem.Services.Transactions {
             return transaction.Id;
         }
 
+        public async Task<int> CreateConfirmOrderTransactionAsync(Order order)
+        {
+            if (order is null)
+            {
+                return 0; ///TODO exceptionhandling
+            }
+
+            var transactionsItems = order.Items.Select(orderItem => new TransactionItem(){    
+                Product = orderItem.Product,
+                QuantityOfTransactedItem = orderItem.Quantity,
+                UnitPrice = orderItem.Price,
+                ProductId = orderItem.ProductId,                
+            }).ToList();
+            
+            Transaction transaction = new Transaction()
+            {
+                BranchId = 1, ///TODO auth
+
+                TransactionId = Guid.NewGuid().ToString(),
+
+                CreatedAt = (DateTime)order?.RecievedDeliveryDate!,
+
+                SourceReason = TransactionSource.Supplier,
+                
+                TransactionItems = transactionsItems,
+
+                TotalTransactedItems = transactionsItems.Sum(item => item.QuantityOfTransactedItem),
+
+                Type = TransactionType.In,
+
+                Value = transactionsItems.Sum(item => item.UnitPrice * item.QuantityOfTransactedItem),
+
+                Notes = order.Notes ?? "Order confirmed",
+
+                ReferenceNumber = "--" ,
+            };
+
+            await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
+            await _unitOfWork.SaveChangesAsync();
+
+            return transaction.Id;
+        }
 
     }
 }

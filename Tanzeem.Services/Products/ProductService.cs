@@ -51,7 +51,12 @@ namespace Tanzeem.Services.Products {
             return result;
         }
 
+        // Branch specific product fetching (Filtering products based on branch inventory)
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId) {
+            //var branchProducts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+            //    .Where(p => p.Inventories.Any(i => i.BranchId == currentService.BranchId));
+
+
             var products = await productHelperService.GetAllProducts(sortId, filterId);
 
             #region Mapping
@@ -74,6 +79,20 @@ namespace Tanzeem.Services.Products {
             });
 
             #endregion
+
+            return result;
+        }
+
+        public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync() {
+
+            var companyProducts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable();
+            
+            var result = await companyProducts.Select(p => new ProductDropdownMenuDto {
+                Id = p.Id,
+                Name = p.Name,
+                SKU = p.SKU,
+                Price = p.SellingPrice
+            }).Take(15).ToListAsync();
 
             return result;
         }

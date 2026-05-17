@@ -6,6 +6,7 @@ using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Transactions;
+using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;
 
@@ -154,10 +155,11 @@ namespace Tanzeem.Services.Transactions {
 
         }
 
+        // Hard coded function (branchId)
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
 
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().Include(x => x.Product).ToList();
-            
+
             #region Mapping
 
             // Mapping TransactionItemDtos to TransactionItems
@@ -196,30 +198,35 @@ namespace Tanzeem.Services.Transactions {
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
             var count = await _unitOfWork.SaveChangesAsync();
 
-            #region low stock alert
-            if (transaction.Type == TransactionType.Out)
-            {
-                var lowStockItems = transactionItems.Where(item =>
-                {
-                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
-                    if (inventory == null)
-                    {
+            LowStockAlert(transaction, transactionItems, inventories); ///TODO hard coded function (branchId)
+
+            return transaction.Id;
+        }
+
+        public async Task<int> DeliveryConfirmedTransaction(OrderConfirmDto orderConfirmDto) {
+            throw new NotImplementedException();
+        }
+
+        // branchId is hard coded here
+        private async void LowStockAlert(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            
+            if (transaction.Type == TransactionType.Out) {
+                var lowStockItems = transactionItems.Where(item => {
+                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1); // branchId is hard coded here
+                    if (inventory == null) {
                         throw new Exception("this inventory not found");
                         ///TODO exception handling
                     }
                     return inventory.Quantity <= inventory.Product.ReorderLevel;
                 }).ToList();
-                
-                if(lowStockItems.Any())
-                {
+
+                if (lowStockItems.Any()) {
                     await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
                 }
+
             }
-            #endregion
 
-            return transaction.Id;
         }
-
 
     }
 }

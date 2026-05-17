@@ -64,13 +64,13 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpGet("Lookup_Products")]
+        //[HttpGet("Lookup_Products")]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> GetProductsLookup(string term)
-        {
-            var result = await _orderService.GetProductsLookupAsync(term);
-            return Ok(result);
-        }
+        //public async Task<IActionResult> GetProductsLookup(string term)
+        //{
+        //    var result = await _orderService.GetProductsLookupAsync(term);
+        //    return Ok(result);
+        //}
 
         [HttpGet("display_order_statuses")]
         //[Authorize(Roles = "")]

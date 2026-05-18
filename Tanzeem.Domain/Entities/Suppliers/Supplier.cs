@@ -25,6 +25,8 @@ namespace Tanzeem.Domain.Entities.Suppliers
         public string? Tax_Id { get; set; }
         public string? Notes { get; set; }
 
+        public SupplierStatus SupplierStatus { get; set; }
+
         #region Navigation Property
         #endregion
         public ICollection<Order> Orders { get; set; } = new List<Order>();

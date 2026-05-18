@@ -20,5 +20,7 @@ namespace Tanzeem.Shared.Dtos.Suppliers
         public string? ContactPersonName { get; set; } //can be null
         public string? Tax_Id { get; set; }
         public string? Notes { get; set; }
+
+        public SupplierStatus SupplierStatus { get; set; }
     }
 }

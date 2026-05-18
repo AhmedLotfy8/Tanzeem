@@ -28,16 +28,16 @@ namespace Tanzeem.Services.Suppliers
             return onTime;
         }
 
-        public static SupplierStatus GetSupplierStatus(IEnumerable<Order> orders)
-        {
-            var status = orders.Any(o => o.RecievedDeliveryDate.HasValue) ?
-                (DateTime.Now - orders.Where(o => o.RecievedDeliveryDate.HasValue).Max(o => o.RecievedDeliveryDate.Value)).TotalDays > 360
-                ? SupplierStatus.InActive
-                : SupplierStatus.Active
-                : SupplierStatus.InActive;
+        //public static SupplierStatus GetSupplierStatus(IEnumerable<Order> orders)
+        //{
+        //    var status = orders.Any(o => o.RecievedDeliveryDate.HasValue) ?
+        //        (DateTime.Now - orders.Where(o => o.RecievedDeliveryDate.HasValue).Max(o => o.RecievedDeliveryDate.Value)).TotalDays > 360
+        //        ? SupplierStatus.InActive
+        //        : SupplierStatus.Active
+        //        : SupplierStatus.InActive;
 
-            return status;
-        }
+        //    return status;
+        //}
 
         public static string GetBadge(IEnumerable<Order> orders)
         {

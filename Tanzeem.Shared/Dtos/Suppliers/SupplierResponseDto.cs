@@ -11,8 +11,7 @@ namespace Tanzeem.Shared.Dtos.Suppliers
     {
         public string SupplierName {  get; set; }
         public decimal onTimePercentage { get; set; }
-        public double LeadTime { get; set; }
-        public string Status { get; set; }       
+        public double LeadTime { get; set; }    
         public string Badge { get; set; }
         public string Email { get; set; }
         public string PhoneNumberOne { get; set; }
@@ -24,5 +23,6 @@ namespace Tanzeem.Shared.Dtos.Suppliers
         public string? ContactPersonName { get; set; } //can be null
         public string? Tax_Id { get; set; }
         public string? Notes { get; set; }
+        public SupplierStatus SupplierStatus { get; set; }
     }
 }

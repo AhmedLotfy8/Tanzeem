@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
-using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Suppliers;
@@ -145,7 +144,7 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(s.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(s.Orders).ToString(),
+                SupplierStatus = s.SupplierStatus,
 
                 Badge = SupplierServiceHelper.GetBadge(s.Orders),
 
@@ -185,7 +184,7 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(supplier.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(supplier.Orders).ToString(),
+                SupplierStatus = supplier.SupplierStatus,
 
                 Badge = SupplierServiceHelper.GetBadge(supplier.Orders),
 
@@ -245,5 +244,23 @@ namespace Tanzeem.Services.Suppliers
             });
             return supplierLookupDtos;
         }
+
+        public async Task<object> Counts()
+        {
+            var suppliers = _unitOfWork.GetRepository<Supplier>()
+                .GetAllAsIQueryable()
+                .Include(s => s.Orders)
+                .Where(s => s.CompanyId == 4); ///TODO auth;
+
+            int activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.Active).CountAsync();
+            int in_activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.InActive).CountAsync();
+           
+            return new
+            {
+                ActiveSuppliersCount = activeSuppliersCount,
+                InActiveSuppliersCount = in_activeSuppliersCount,
+            };
+        }
+
     }
 }

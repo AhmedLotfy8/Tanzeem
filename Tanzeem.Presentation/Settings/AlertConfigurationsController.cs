@@ -13,12 +13,12 @@ namespace Tanzeem.Presentation.Settings
     [Route("api/[controller]")]
     public class AlertConfigurationsController(IAlertConfigurationsService _alertConfigurationsService) : ControllerBase
     {
-        [HttpPost]
-        public async Task<IActionResult> createDefault()
-        {
-            var result = await _alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(1);
-            return Ok(result);
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> createDefault()
+        //{
+        //    var result = await _alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(1);
+        //    return Ok(result);
+        //}
 
         [HttpGet]
         public async Task<IActionResult> ViewSettings()

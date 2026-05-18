@@ -16,11 +16,21 @@ namespace Tanzeem.Presentation.Products {
 
         [HttpGet]
         [Route("Get-Products")]
-        // [Authorize(Roles = "Admin, Manager")]
+         //[Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetAllProducts(int? sortId, int? filterId) {
             var result = await productService.GetAllProductsAsync(sortId, filterId);
             return Ok(result);
         }
+        
+        [HttpGet]
+        [Route("Get-Products-Dropdown-Menu")]
+         //[Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetAllProductsMenu() {
+            var result = await productService.GetAllProductsMenuAsync();
+            return Ok(result);
+        }
+
+
 
         [HttpPost]
         [Route("Create-Product")]

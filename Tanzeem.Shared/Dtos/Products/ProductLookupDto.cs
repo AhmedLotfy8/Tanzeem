@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace Tanzeem.Shared.Dtos.Products
 {
-    public class ProductLookupDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public decimal Price { get; set; }
-    }
+    //public class ProductLookupDto
+    //{
+    //    public int Id { get; set; }
+    //    public string Name { get; set; }
+    //    public decimal Price { get; set; }
+    //}
 }

@@ -77,6 +77,13 @@ namespace Tanzeem.Presentation.Suppliers
             return Ok(result);
         }
 
+        [HttpGet("mini_dashboard")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> getCounts()
+        {
+            var result = await _supplierService.Counts();
+            return Ok(result);
+        }
 
     }
 }

@@ -6,14 +6,17 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
+using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Orders
 {
-    public class OrderService(IUnitOfWork _unitOfWork) : IOrderService
+    public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
+        ,ITransactionService _transactionService) : IOrderService
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
@@ -130,6 +133,7 @@ namespace Tanzeem.Services.Orders
             var orderItems = order.Items.Select(item => new OrderItemResponseDto
             {
                 ProductName = item.Product?.Name ?? "N/A",
+                ProductId = item.Product?.Id ?? 0,
                 Price = item.Price,
                 Quantity = item.Quantity,
                 Total = item.Total,
@@ -264,17 +268,18 @@ namespace Tanzeem.Services.Orders
         #endregion
 
 
-        public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto, int id)
+        public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+            int orderId = confirmDto.OrderId;
+            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .Include(o => o.Items).FirstOrDefault();
 
             if (order == null)
                 throw new Exception("No order with this id");
 
-            if (order.Status != OrderStatus.Deliverd)
+            if (order.Status == OrderStatus.Deliverd)
             {
-                return order.Status.ToString();
+                return "order already deliverd";
             }
 
             ///TODO exception handling
@@ -314,6 +319,7 @@ namespace Tanzeem.Services.Orders
             order.Status = Domain.Enums.OrderStatus.Deliverd;
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
+            ///TODO edit price section
             foreach (var product in products)
             {
                 var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
@@ -338,8 +344,11 @@ namespace Tanzeem.Services.Orders
                 }
             }
             #endregion
-
+            
             int rowsAffected = await _unitOfWork.SaveChangesAsync();
+
+            await _transactionService.CreateConfirmOrderTransactionAsync(order);
+            await _notificationService.CreateOrderDeliveredNotification(order.Id);
 
             if (rowsAffected <= 0)
                 throw new Exception("Status not changed");
@@ -348,25 +357,46 @@ namespace Tanzeem.Services.Orders
             return order.Status.ToString();
         }
 
-        public IEnumerable<object> DisplayOrderStatuses()
-        {
-            return Enum.GetValues<OrderStatus>()
-           .Select(s => new { Id = (int)s, Name = s.ToString() });
-        }
+        //public IEnumerable<object> DisplayOrderStatuses()
+        //{
+        //    return Enum.GetValues<OrderStatus>()
+        //   .Select(s => new { Id = (int)s, Name = s.ToString() });
+        //}
 
-        public int CountPendingOrders()
-        {
-            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Pending);
-        }
+        //public int CountPendingOrders()
+        //{
+        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+        //        .Count(o => o.Status == OrderStatus.Pending);
+        //}
 
-        public int CountDeliverdOrders()
-        {
-            return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .Count(o => o.Status == OrderStatus.Deliverd);
-        }
+        //public int CountDeliverdOrders()
+        //{
+        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+        //        .Count(o => o.Status == OrderStatus.Deliverd);
+        //}
     
+        public async Task<object> Counts()
+        {
+            var pendingCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .CountAsync(o => o.Status == OrderStatus.Pending);
 
+            var deliveredCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .CountAsync(o => o.Status == OrderStatus.Deliverd);
+
+            var TotalRevenue = await _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
+                .Include(o => o.Order)
+                .Where(oi => oi.Order.Status == OrderStatus.Deliverd)
+                .SumAsync(oi => oi.Quantity * oi.Price);
+            
+            var roundedRevenue = Math.Round(TotalRevenue);
+            
+            return new
+            {
+                pendingOrdersCount = pendingCount,
+                deliveredOrdersCount = deliveredCount,
+                TotalOrdersRevenue = roundedRevenue
+            };
+        }
 
     }
 }

@@ -15,10 +15,29 @@ namespace Tanzeem.Presentation.Notifications
     {
         [HttpGet]
         //[Authorize(Roles = "")]
-        public IActionResult GetNotifications()
+        public async Task<IActionResult> GetNotifications([FromQuery(Name = "Page_Size")] int pageSize =20, [FromQuery(Name = "Page")] int page = 1)
         {
-            var result = _notificationService.GetAllNotifications();
+            var result = await _notificationService.GetAllNotifications(page,pageSize);
             return Ok(result);
+        }
+
+        [HttpPatch("mark-as-read/{id}")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var result = await _notificationService.MarkAsReadAsync(id);
+            if (!result) return NotFound("Notification not found.");
+
+            return Ok(new { Message = "Notification marked as read." });
+        }
+
+        [HttpPatch("mark-all-read")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> MarkAllAsRead()
+        { 
+            await _notificationService.MarkAllAsReadAsync();
+
+            return Ok(new { Message = "All notifications marked as read." });
         }
 
     }

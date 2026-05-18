@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Shared.Dtos.Transactions;
 
 namespace Tanzeem.Services.Abstractions.Transactions {
@@ -15,6 +16,8 @@ namespace Tanzeem.Services.Abstractions.Transactions {
 
         // Post
         Task<int> CreateTransactionAsync(TransactionDto transactionDto);
+
+        Task<int> CreateConfirmOrderTransactionAsync(Order order);
 
     }
 }

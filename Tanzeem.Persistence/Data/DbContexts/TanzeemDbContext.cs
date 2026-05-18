@@ -12,6 +12,7 @@ using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Entities.Users;
@@ -32,7 +33,11 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<TransactionItem> TransactionItems { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<User> Users { get; set; }
-
+        public DbSet<Order> Order { get; set; }
+        public DbSet<OrderItem> OrderItem { get; set; }
+        public DbSet<Notification> Notification { get; set; }
+        public DbSet<Supplier> Supplier { get; set; }
+        public DbSet<AlertConfigurations> AlertConfigurations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
@@ -42,30 +47,35 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         }
 
         private void ApplyAllGlobal(ModelBuilder modelBuilder) {
-
+            //
             // Company children
-            modelBuilder.Entity<Product>().HasQueryFilter(
-                p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+            //modelBuilder.Entity<Product>().HasQueryFilter(
+            //    p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
-            modelBuilder.Entity<TransactionItem>().HasQueryFilter(
-                ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
-                   && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //
+            //modelBuilder.Entity<TransactionItem>().HasQueryFilter(
+            //    ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
+            //       && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
-            modelBuilder.Entity<OrderItem>().HasQueryFilter(
-                oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
-                   && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //
+            //modelBuilder.Entity<OrderItem>().HasQueryFilter(
+            //    oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
+            //       && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             //modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.CompanyId == currentService.CompanyId);
 
+            //
             // Branch children
-            modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
-            && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            //modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
+            //&& (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             /*
             modelBuilder.Entity<Transaction>().HasQueryFilter(t => t.BranchId == currentService.BranchId);
             modelBuilder.Entity<Order>().HasQueryFilter(o => o.BranchId == currentService.BranchId);
             modelBuilder.Entity<Notification>().HasQueryFilter(n => n.BranchId == currentService.BranchId);
             */
+
+            //create for alert configuration
         }
 
     }

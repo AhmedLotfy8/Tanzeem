@@ -56,11 +56,11 @@ namespace Tanzeem.Presentation.Orders
             return Ok(result);
         }
 
-        [HttpPut("ConfirmDelivery/{id}")]
+        [HttpPut("ConfirmDelivery")]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> ConfirmDelivery(int id, OrderConfirmDto confirmDto)
+        public async Task<IActionResult> ConfirmDelivery(OrderConfirmDto confirmDto)
         {
-            var result = await _orderService.ChangeOrderToDeliverd(confirmDto, id);
+            var result = await _orderService.ChangeOrderToDeliverd(confirmDto);
             return Ok(result);
         }
 
@@ -72,28 +72,36 @@ namespace Tanzeem.Presentation.Orders
         //    return Ok(result);
         //}
 
-        [HttpGet("display_order_statuses")]
+        //[HttpGet("display_order_statuses")]
         //[Authorize(Roles = "")]
-        public IActionResult DisplayOrderStatuses()
+        //public IActionResult DisplayOrderStatuses()
+        //{
+        //    var result = _orderService.DisplayOrderStatuses();
+        //    return Ok(result);
+        //}
+
+        //[HttpGet("Pending_Order_Count")]
+        ////[Authorize(Roles = "")]
+        //public IActionResult CountPendingOrders()
+        //{
+        //    var result = _orderService.CountPendingOrders();
+        //    return Ok(result);
+        //}
+        
+        //[HttpGet("Delivered_Order_Count")]
+        ////[Authorize(Roles = "")]
+        //public IActionResult CountDeliverdOrders()
+        //{
+        //    var result = _orderService.CountDeliverdOrders();
+        //    return Ok(result);
+        //}
+
+        [HttpGet("mini_order_dashboard")]
+        public async Task<IActionResult> CountsDashboard()
         {
-            var result = _orderService.DisplayOrderStatuses();
+            var result = await _orderService.Counts();
             return Ok(result);
         }
 
-        [HttpGet("Pending_Order_Count")]
-        //[Authorize(Roles = "")]
-        public IActionResult CountPendingOrders()
-        {
-            var result = _orderService.CountPendingOrders();
-            return Ok(result);
-        }
-        
-        [HttpGet("Delivered_Order_Count")]
-        //[Authorize(Roles = "")]
-        public IActionResult CountDeliverdOrders()
-        {
-            var result = _orderService.CountDeliverdOrders();
-            return Ok(result);
-        }
     }
 }

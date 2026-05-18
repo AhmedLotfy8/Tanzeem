@@ -8,6 +8,7 @@ namespace Tanzeem.Shared.Dtos.Orders
 {
     public class OrderConfirmDto
     {
+        public int OrderId { get; set; }
         public DateTime? RecievedDate { get; set; }
         public IEnumerable<OrderItemsConfirmDto> ItemsConfirmDtos { get; set; } = new List<OrderItemsConfirmDto>();
     }

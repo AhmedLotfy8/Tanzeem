@@ -15,8 +15,7 @@ namespace Tanzeem.Shared.Dtos.Orders
     public class OrderItemsConfirmDto
     {
         public int ProductId { get; set; }
-        public decimal CostPrice { get; set; }
-        public decimal SellPrice { get; set; }
+        //unit and cost price edit
         public int DamagedQuantity { get; set; }
     }
 }

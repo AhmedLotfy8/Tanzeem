@@ -216,12 +216,11 @@ namespace Tanzeem.Services.Orders
         {
             if (page <= 0) page = 1;
 
-            const int maxPageSize = 10;
+            const int maxPageSize = 20;
             
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
             var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable().Where(order => order.BranchId == 2);///TODO auth
-            
 
             if (orderFilter.HasValue)
             {
@@ -235,6 +234,29 @@ namespace Tanzeem.Services.Orders
                         break;
                 }
             }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var cleanSearch = searchTerm.Trim().ToLower();
+
+                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
+                bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
+
+                query = query.Where(order =>
+
+                    order.SupplierName.ToLower().Contains(cleanSearch) ||
+                    (order.Notes != null && order.Notes.ToLower().Contains(cleanSearch)) ||
+
+                    (isNumber && (order.Id == searchNumber || order.Total == searchNumber)) ||
+
+                    (isDate && (order.OrderDate.Date == searchDate.Date ||
+                                (order.RecievedDeliveryDate != null && order.RecievedDeliveryDate.Value.Date == searchDate.Date) ||
+                                order.ExpectedDeliveryDate.Date == searchDate.Date))
+                );
+            }
+
+            var totalCount = await query.CountAsync();
+
             if (orderSort.HasValue)
             {
                 switch(orderSort.Value)
@@ -271,28 +293,7 @@ namespace Tanzeem.Services.Orders
                 query = query.OrderByDescending(o => o.OrderDate);
             }
 
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                var cleanSearch = searchTerm.Trim().ToLower();
-
-                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
-                bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
-
-                query = query.Where(order =>
-
-                    order.SupplierName.ToLower().Contains(cleanSearch) ||
-                    (order.Notes != null && order.Notes.ToLower().Contains(cleanSearch)) ||
-
-                    (isNumber && (order.Id == searchNumber || order.Total == searchNumber)) ||
-
-                    (isDate && (order.OrderDate.Date == searchDate.Date ||
-                                (order.RecievedDeliveryDate != null && order.RecievedDeliveryDate.Value.Date == searchDate.Date) ||
-                                order.ExpectedDeliveryDate.Date == searchDate.Date))
-                );
-            }
-
-            var totalCount = await query.CountAsync();
-
+      
             var orders = query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize);
@@ -389,17 +390,16 @@ namespace Tanzeem.Services.Orders
             order.Status = Domain.Enums.OrderStatus.Deliverd;
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
-            ///TODO edit price section
-            foreach (var product in products)
-            {
-                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
+            //foreach (var product in products)
+            //{
+            //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
 
-                if (itemsConfirm != null)
-                {
-                    product.CostPrice = itemsConfirm.CostPrice;
-                    product.SellingPrice = itemsConfirm.SellPrice;
-                }
-            }
+            //    if (itemsConfirm != null)
+            //    {
+            //        product.CostPrice = itemsConfirm.CostPrice;
+            //        product.SellingPrice = itemsConfirm.SellPrice;
+            //    }
+            //}
 
             foreach (var inventory in inventories)
             {

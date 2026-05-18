@@ -38,7 +38,10 @@ namespace Tanzeem.Presentation.Orders
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
         {
             var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);
-            return Ok(result);
+            if (result == -1)
+                return BadRequest("cant edit this order..you can just edit pending orders");
+            else
+                return Ok(result);
         }
 
         [HttpGet("{id}")]

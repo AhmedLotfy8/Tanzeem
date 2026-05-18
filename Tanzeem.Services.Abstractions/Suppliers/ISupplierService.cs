@@ -14,7 +14,7 @@ namespace Tanzeem.Services.Abstractions.Suppliers
     {
         Task<SupplierResponseDto> GetSupplierByIdAsync(int id);
 
-        Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync(int page, int pageSize,SupplierSort? supplierSort = null, string? searchTerm = null);
+        Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync(int page, int pageSize,SupplierFilter? supplierFilter = null , SupplierSort ? supplierSort = null, string? searchTerm = null);
 
         Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto);
        

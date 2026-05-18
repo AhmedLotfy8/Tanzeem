@@ -171,13 +171,17 @@ namespace Tanzeem.Services.Orders
                 throw new Exception($"This order {id} not found");
                 ///TODO exception handling
             }
+            if (order.Status != OrderStatus.Pending)
+            {
+                return -1; ///TODO exception handling
+            }
             #region mapping
             order.OrderDate = orderDto.OrderDate;
             order.ExpectedDeliveryDate = orderDto.ExpectedDeliveryDate;
             order.RecievedDeliveryDate = orderDto.RecievedDeliveryDate;
             order.ShippingCost = orderDto.ShippingCost;
             order.Taxes = orderDto.Taxes;
-            order.Status = orderDto.Status;
+            //order.Status = orderDto.Status;
             order.Notes = orderDto.Notes;
 
 

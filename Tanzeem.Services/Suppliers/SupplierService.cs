@@ -55,7 +55,7 @@ namespace Tanzeem.Services.Suppliers
         }
 
         public async Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync
-            (int page, int pageSize,SupplierSort? supplierSort = null ,string? searchTerm = null)
+            (int page, int pageSize,SupplierFilter? supplierFilter = null,SupplierSort? supplierSort = null ,string? searchTerm = null)
         {
             if (page <= 0) page = 1;
 
@@ -70,7 +70,18 @@ namespace Tanzeem.Services.Suppliers
             {
                 throw new Exception("no data from supplier");///TODO exception handling
             }
-
+            if (supplierFilter.HasValue)
+            {
+                switch (supplierFilter.Value)
+                {
+                    case SupplierFilter.ActiveSuppliers:
+                        query = query.Where(s => s.SupplierStatus == SupplierStatus.Active);
+                        break;
+                    case SupplierFilter.InActiveSuppliers:
+                        query = query.Where(s => s.SupplierStatus == SupplierStatus.InActive);
+                        break;
+                }
+            }
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var cleanSearch = searchTerm.Trim().ToLower();

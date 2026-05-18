@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
@@ -15,6 +16,7 @@ using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Orders
 {
+
     public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
         ,ITransactionService _transactionService) : IOrderService
     {
@@ -209,7 +211,8 @@ namespace Tanzeem.Services.Orders
             return order.Id;
         }
 
-        public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize)
+        public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(
+            int page, int pageSize, OrderFilter? orderFilter = null,OrderSort? orderSort=null, string? searchTerm = null)
         {
             if (page <= 0) page = 1;
 
@@ -217,24 +220,91 @@ namespace Tanzeem.Services.Orders
             
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
-            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
+            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable().Where(order => order.BranchId == 2);///TODO auth
+            
+
+            if (orderFilter.HasValue)
+            {
+                switch (orderFilter.Value)
+                {
+                    case OrderFilter.PendingOrders:
+                        query = query.Where(order => order.Status == OrderStatus.Pending);
+                        break;
+                    case OrderFilter.DeliveredOrders:
+                        query = query.Where(order => order.Status == OrderStatus.Deliverd);
+                        break;
+                }
+            }
+            if (orderSort.HasValue)
+            {
+                switch(orderSort.Value)
+                {
+                    case OrderSort.AZSupplierName:
+                        query = query.OrderBy(query => query.SupplierName);
+                        break;
+                    case OrderSort.ZASupplierName:
+                        query = query.OrderByDescending(query => query.SupplierName);
+                        break;
+                    case OrderSort.NearRecieveDate:
+                        query = query.OrderByDescending(query => query.RecievedDeliveryDate);
+                        break;
+                    case OrderSort.FarRecieveDate:
+                        query = query.OrderBy(query => query.RecievedDeliveryDate);
+                        break;
+                    case OrderSort.NearOrderDate:
+                        query = query.OrderByDescending(query => query.OrderDate);
+                        break;
+                    case OrderSort.FarOrderDate:
+                        query = query.OrderBy(query => query.OrderDate);
+                        break;
+                    case OrderSort.HighTotal:
+                        query = query.OrderByDescending(query => query.Total);
+                        break;
+                    case OrderSort.LowTotal:
+                        query = query.OrderBy(query => query.Total);
+                        break;
+
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(o => o.OrderDate);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var cleanSearch = searchTerm.Trim().ToLower();
+
+                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
+                bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
+
+                query = query.Where(order =>
+
+                    order.SupplierName.ToLower().Contains(cleanSearch) ||
+                    (order.Notes != null && order.Notes.ToLower().Contains(cleanSearch)) ||
+
+                    (isNumber && (order.Id == searchNumber || order.Total == searchNumber)) ||
+
+                    (isDate && (order.OrderDate.Date == searchDate.Date ||
+                                (order.RecievedDeliveryDate != null && order.RecievedDeliveryDate.Value.Date == searchDate.Date) ||
+                                order.ExpectedDeliveryDate.Date == searchDate.Date))
+                );
+            }
 
             var totalCount = await query.CountAsync();
 
-            var orders = await query
-                .OrderByDescending(o => o.OrderDate)
+            var orders = query
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+                .Take(pageSize);
 
-            var mappedData = orders.Select(order => new OrderSummaryResponseDto
+            var mappedData = await orders.Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
                 OrderDate = order.OrderDate,
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Status = order.Status.ToString(),
-            }).ToList();
+            }).ToListAsync();
 
             return new PaginationResponseDto<OrderSummaryResponseDto>
             {
@@ -397,6 +467,8 @@ namespace Tanzeem.Services.Orders
                 TotalOrdersRevenue = roundedRevenue
             };
         }
+
+        
 
     }
 }

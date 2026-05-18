@@ -1,4 +1,5 @@
-﻿using Tanzeem.Shared.Dtos;
+﻿using Tanzeem.Domain.Enums;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Orders;
 using Tanzeem.Shared.Dtos.Products;
 
@@ -21,7 +22,7 @@ namespace Tanzeem.Services.Abstractions.Orders
         //public Task<IEnumerable<ProductLookupDto>> GetProductsLookupAsync(string searchTerm);
         #endregion
 
-        public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize);
+        public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize, OrderFilter? orderFilter = null, OrderSort? orderSort = null, string? searchTerm = null);
 
         public Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto);
         //public IEnumerable<object> DisplayOrderStatuses();

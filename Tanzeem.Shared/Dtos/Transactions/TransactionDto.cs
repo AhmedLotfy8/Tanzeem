@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Shared.Dtos.Transactions {
     public class TransactionDto {
 
         public string Id { get; set; }
 
-        public string Type { get; set; }          // In_Out_Adjustment
+        public TransactionType Type { get; set; }          // In_Out_Adjustment
 
         public DateTime CreatedAt { get; set; }
 
-        public string Status { get; set; }         // Pending_Completed_Failed
+        public TransactionStatus Status { get; set; }         // Pending_Completed_Failed
 
         public decimal Value { get; set; }
 
         public int TotalTransactedItems { get; set; }
 
-        public string SourceReason { get; set; }     // Supplier_Production_etc
+        public TransactionSource SourceReason { get; set; }     // Supplier_Production_etc
 
         public string ReferenceNumber { get; set; }
 

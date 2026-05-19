@@ -9,7 +9,6 @@ using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Transactions {
 
-
     public class Transaction {
 
         public int Id { get; set; }

@@ -24,6 +24,7 @@ namespace Tanzeem.Domain.Enums {
         Recovered = 10,
         FromAnotherBranch = 11,
         Adjustment = 12,
+        Selling = 13,
     }
 
 

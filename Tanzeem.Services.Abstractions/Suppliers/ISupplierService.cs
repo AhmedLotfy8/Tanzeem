@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Enums;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Suppliers;
 
@@ -11,8 +13,8 @@ namespace Tanzeem.Services.Abstractions.Suppliers
     public interface ISupplierService
     {
         Task<SupplierResponseDto> GetSupplierByIdAsync(int id);
-        
-        IEnumerable<SupplierResponseDto> GetAllSuppliersAsync();
+
+        Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync(int page, int pageSize,SupplierFilter? supplierFilter = null , SupplierSort ? supplierSort = null, string? searchTerm = null);
 
         Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto);
        
@@ -23,5 +25,7 @@ namespace Tanzeem.Services.Abstractions.Suppliers
         Task<bool> DeleteSupplierAsync(int id);
 
         Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync();
+
+        public Task<object> Counts();
     }
 }

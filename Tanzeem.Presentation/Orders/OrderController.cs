@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Shared.Dtos.Orders;
 
@@ -37,7 +38,10 @@ namespace Tanzeem.Presentation.Orders
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
         {
             var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);
-            return Ok(result);
+            if (result == -1)
+                return BadRequest("cant edit this order..you can just edit pending orders");
+            else
+                return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -50,9 +54,9 @@ namespace Tanzeem.Presentation.Orders
 
         [HttpGet]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "Page_Size")] int pageSize, [FromQuery(Name = "Page")] int page = 1)
+        public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name = "page")] int page = 1,[FromQuery(Name ="filterId")] OrderFilter? orderFilter = null, [FromQuery(Name = "sortId")] OrderSort? orderSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
         {
-            var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize);
+            var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize,orderFilter,orderSort,searchTerm);
             return Ok(result);
         }
 
@@ -100,6 +104,12 @@ namespace Tanzeem.Presentation.Orders
         public async Task<IActionResult> CountsDashboard()
         {
             var result = await _orderService.Counts();
+            return Ok(result);
+        }
+        [HttpGet("View_Order_Confirm/{id}")]
+        public async Task<IActionResult> ViewConfirmOrder(int id)
+        {
+            var result = await _orderService.ViewConfirm(id);
             return Ok(result);
         }
 

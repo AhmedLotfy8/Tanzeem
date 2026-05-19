@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Suppliers;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Shared.Dtos.Suppliers;
 using static System.Net.Mime.MediaTypeNames;
@@ -42,14 +43,10 @@ namespace Tanzeem.Presentation.Suppliers
 
         [HttpGet]
         //[Authorize(Roles = "")]
-        public IActionResult DisplayAllSuppliers()
+        public async Task<IActionResult> DisplayAllSuppliers([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name ="page")]int page =1,SupplierFilter? supplierFilter = null,[FromQuery(Name = "sortId")] SupplierSort? supplierSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
         {
-            var result = _supplierService.GetAllSuppliersAsync();
-
-            if (result.Any())
-                return Ok(result);
-            else
-                return NoContent();
+            var result = await _supplierService.GetAllSuppliersAsync(page,pageSize,supplierFilter,supplierSort,searchTerm);
+            return Ok(result);
         }
         
         [HttpGet("{id}")]
@@ -80,6 +77,13 @@ namespace Tanzeem.Presentation.Suppliers
             return Ok(result);
         }
 
+        [HttpGet("mini_dashboard")]
+        //[Authorize(Roles = "")]
+        public async Task<IActionResult> getCounts()
+        {
+            var result = await _supplierService.Counts();
+            return Ok(result);
+        }
 
     }
 }

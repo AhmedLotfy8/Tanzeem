@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
@@ -15,6 +16,7 @@ using Tanzeem.Shared.Dtos.Products;
 
 namespace Tanzeem.Services.Orders
 {
+
     public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
         ,ITransactionService _transactionService) : IOrderService
     {
@@ -169,13 +171,17 @@ namespace Tanzeem.Services.Orders
                 throw new Exception($"This order {id} not found");
                 ///TODO exception handling
             }
+            if (order.Status != OrderStatus.Pending)
+            {
+                return -1; ///TODO exception handling
+            }
             #region mapping
             order.OrderDate = orderDto.OrderDate;
             order.ExpectedDeliveryDate = orderDto.ExpectedDeliveryDate;
             order.RecievedDeliveryDate = orderDto.RecievedDeliveryDate;
             order.ShippingCost = orderDto.ShippingCost;
             order.Taxes = orderDto.Taxes;
-            order.Status = orderDto.Status;
+            //order.Status = orderDto.Status;
             order.Notes = orderDto.Notes;
 
 
@@ -209,32 +215,101 @@ namespace Tanzeem.Services.Orders
             return order.Id;
         }
 
-        public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize)
+        public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(
+            int page, int pageSize, OrderFilter? orderFilter = null,OrderSort? orderSort=null, string? searchTerm = null)
         {
             if (page <= 0) page = 1;
 
-            const int maxPageSize = 10;
+            const int maxPageSize = 20;
             
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
-            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
+            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable().Where(order => order.BranchId == 2);///TODO auth
+
+            if (orderFilter.HasValue)
+            {
+                switch (orderFilter.Value)
+                {
+                    case OrderFilter.PendingOrders:
+                        query = query.Where(order => order.Status == OrderStatus.Pending);
+                        break;
+                    case OrderFilter.DeliveredOrders:
+                        query = query.Where(order => order.Status == OrderStatus.Deliverd);
+                        break;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var cleanSearch = searchTerm.Trim().ToLower();
+
+                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
+                bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
+
+                query = query.Where(order =>
+
+                    order.SupplierName.ToLower().Contains(cleanSearch) ||
+                    (order.Notes != null && order.Notes.ToLower().Contains(cleanSearch)) ||
+
+                    (isNumber && (order.Id == searchNumber || order.Total == searchNumber)) ||
+
+                    (isDate && (order.OrderDate.Date == searchDate.Date ||
+                                (order.RecievedDeliveryDate != null && order.RecievedDeliveryDate.Value.Date == searchDate.Date) ||
+                                order.ExpectedDeliveryDate.Date == searchDate.Date))
+                );
+            }
 
             var totalCount = await query.CountAsync();
 
-            var orders = await query
-                .OrderByDescending(o => o.OrderDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            if (orderSort.HasValue)
+            {
+                switch(orderSort.Value)
+                {
+                    case OrderSort.AZSupplierName:
+                        query = query.OrderBy(query => query.SupplierName);
+                        break;
+                    case OrderSort.ZASupplierName:
+                        query = query.OrderByDescending(query => query.SupplierName);
+                        break;
+                    case OrderSort.NearRecieveDate:
+                        query = query.OrderByDescending(query => query.RecievedDeliveryDate);
+                        break;
+                    case OrderSort.FarRecieveDate:
+                        query = query.OrderBy(query => query.RecievedDeliveryDate);
+                        break;
+                    case OrderSort.NearOrderDate:
+                        query = query.OrderByDescending(query => query.OrderDate);
+                        break;
+                    case OrderSort.FarOrderDate:
+                        query = query.OrderBy(query => query.OrderDate);
+                        break;
+                    case OrderSort.HighTotal:
+                        query = query.OrderByDescending(query => query.Total);
+                        break;
+                    case OrderSort.LowTotal:
+                        query = query.OrderBy(query => query.Total);
+                        break;
 
-            var mappedData = orders.Select(order => new OrderSummaryResponseDto
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(o => o.OrderDate);
+            }
+
+      
+            var orders = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize);
+
+            var mappedData = await orders.Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
                 OrderDate = order.OrderDate,
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Status = order.Status.ToString(),
-            }).ToList();
+            }).ToListAsync();
 
             return new PaginationResponseDto<OrderSummaryResponseDto>
             {
@@ -270,9 +345,13 @@ namespace Tanzeem.Services.Orders
 
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
+            if (confirmDto is null)
+                throw new Exception("empty confirmation fields");
+            ///TODO exception handling
+
             int orderId = confirmDto.OrderId;
-            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
-                .Include(o => o.Items).FirstOrDefault();
+            var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
+                .Include(o => o.Items).FirstOrDefaultAsync();
 
             if (order == null)
                 throw new Exception("No order with this id");
@@ -280,6 +359,10 @@ namespace Tanzeem.Services.Orders
             if (order.Status == OrderStatus.Deliverd)
             {
                 return "order already deliverd";
+            }
+            if (order.Status == OrderStatus.Cancelled)
+            {
+                return "this order has been cancelled";
             }
 
             ///TODO exception handling
@@ -304,33 +387,32 @@ namespace Tanzeem.Services.Orders
             }
             ///TODO exception handling
 
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
-                .Where(inv => orderIds.Contains(inv.ProductId)).ToList();
+            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
+                .Where(inv => orderIds.Contains(inv.ProductId)).ToListAsync();
 
             if (!inventories.Any())
             {
-                throw new Exception("No inventories");
+                throw new Exception("No inventories found for these products in this branch");
             }
             ///TODO exception handling
-            if (confirmDto is null)
-                throw new Exception("empty confirmation fields");
+            
 
             #region changes after deliver
             order.Status = Domain.Enums.OrderStatus.Deliverd;
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
-            ///TODO edit price section
-            foreach (var product in products)
-            {
-                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
+            #region price
+            //foreach (var product in products)
+            //{
+            //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
 
-                if (itemsConfirm != null)
-                {
-                    product.CostPrice = itemsConfirm.CostPrice;
-                    product.SellingPrice = itemsConfirm.SellPrice;
-                }
-            }
-
+            //    if (itemsConfirm != null)
+            //    {
+            //        product.CostPrice = itemsConfirm.CostPrice;
+            //        product.SellingPrice = itemsConfirm.SellPrice;
+            //    }
+            //}
+            #endregion
             foreach (var inventory in inventories)
             {
                 var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == 1);
@@ -340,7 +422,14 @@ namespace Tanzeem.Services.Orders
 
                 if (itemsConfirm != null && originalOrderItem != null)
                 {
-                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - itemsConfirm.DamagedQuantity;
+                    int damaged = itemsConfirm.DamagedQuantity ?? 0;
+                    int defective = itemsConfirm.DefectiveQuantity ?? 0;
+                    int missing = itemsConfirm.MissingQuantity ?? 0;
+                    int incorrect = itemsConfirm.IncorrectQuantity ?? 0;
+
+                    int totalIssues = damaged + defective + missing + incorrect;
+                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
+
                 }
             }
             #endregion
@@ -356,7 +445,7 @@ namespace Tanzeem.Services.Orders
             
             return order.Status.ToString();
         }
-
+        
         //public IEnumerable<object> DisplayOrderStatuses()
         //{
         //    return Enum.GetValues<OrderStatus>()
@@ -395,6 +484,33 @@ namespace Tanzeem.Services.Orders
                 pendingOrdersCount = pendingCount,
                 deliveredOrdersCount = deliveredCount,
                 TotalOrdersRevenue = roundedRevenue
+            };
+        }
+
+        public async Task<OrderConfirmResponseDto> ViewConfirm(int id)
+        {
+            var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+                .Include(o => o.Items)
+                .ThenInclude(p => p.Product)
+                .FirstOrDefaultAsync();
+
+            if (order == null || order.Status == OrderStatus.Deliverd || order.Status == OrderStatus.Cancelled)
+            {
+                throw new Exception("no order found or order has been delivered already or cancelled");
+                ///TODO exception handling
+            }
+            var itemsDtos = order.Items.Select(item => new OrderItemConfirmResponseDto
+            {
+                ProductId = item.ProductId,
+                SKU = item.Product.SKU,
+                Price = item.Price,
+                OrderedQuantity = item.Quantity,
+            });
+            return new OrderConfirmResponseDto
+            {
+                OrderId = id,
+                SupplierName = order.SupplierName,
+                ItemsConfirmResponseDtos = itemsDtos
             };
         }
 

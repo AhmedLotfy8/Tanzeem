@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
-using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Suppliers;
+using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Suppliers;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tanzeem.Services.Suppliers
 {
@@ -53,12 +54,90 @@ namespace Tanzeem.Services.Suppliers
             return false;
         }
 
-        public IEnumerable<SupplierResponseDto> GetAllSuppliersAsync()
+        public async Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync
+            (int page, int pageSize,SupplierFilter? supplierFilter = null,SupplierSort? supplierSort = null ,string? searchTerm = null)
         {
-            var suppliers = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable().ToList();
+            if (page <= 0) page = 1;
 
+            const int maxPageSize = 20;
+
+            if (pageSize > maxPageSize) pageSize = maxPageSize;
+
+            var query = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                .Where(supplier => supplier.CompanyId ==4);///TODO auth
+
+            if (query == null)
+            {
+                throw new Exception("no data from supplier");///TODO exception handling
+            }
+            if (supplierFilter.HasValue)
+            {
+                switch (supplierFilter.Value)
+                {
+                    case SupplierFilter.ActiveSuppliers:
+                        query = query.Where(s => s.SupplierStatus == SupplierStatus.Active);
+                        break;
+                    case SupplierFilter.InActiveSuppliers:
+                        query = query.Where(s => s.SupplierStatus == SupplierStatus.InActive);
+                        break;
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var cleanSearch = searchTerm.Trim().ToLower();
+
+                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
+                bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
+
+                query = query.Where(supplier =>
+                    supplier.FullName.ToLower().Contains(cleanSearch) ||
+                    (supplier.Notes != null && supplier.Notes.ToLower().Contains(cleanSearch)) ||
+                    (supplier.City != null && supplier.City.ToLower().Contains(cleanSearch)) ||
+                    (supplier.ContactPersonName != null && supplier.ContactPersonName.ToLower().Contains(cleanSearch)) ||
+                    (supplier.Country != null && supplier.Country.ToLower().Contains(cleanSearch)) ||
+                    (supplier.Email != null && supplier.Email.ToLower().Contains(cleanSearch)) ||
+                    (supplier.WebsiteURL != null && supplier.WebsiteURL.ToLower().Contains(cleanSearch)) ||
+                    (supplier.PhoneNumberOne != null && supplier.PhoneNumberOne.ToLower().Contains(cleanSearch)) ||
+                    (supplier.Tax_Id != null && supplier.Tax_Id.ToLower().Contains(cleanSearch)) ||
+                    (isNumber && (supplier.Id == searchNumber))
+                );
+            }
+
+            var totalCount = await query.CountAsync();
+
+            if (supplierSort.HasValue)
+            {
+                switch (supplierSort.Value)
+                {
+                    case SupplierSort.AZSupplierName:
+                        query = query.OrderBy(s => s.FullName);
+                        break;
+                    case SupplierSort.ZASupplierName:
+                        query = query.OrderByDescending(s => s.FullName);
+                        break;
+                    case SupplierSort.AZCity:
+                        query = query.OrderBy(s => s.City);
+                        break;
+                    case SupplierSort.ZACity:
+                        query = query.OrderByDescending(s => s.City);
+                        break;
+                    case SupplierSort.HighOrdersCount:
+                        query = query.OrderByDescending(s => s.Orders.Count());
+                        break;
+                    case SupplierSort.LowOrdersCount:
+                        query = query.OrderBy(s => s.Orders.Count());
+                        break;
+                }
+
+            }
+            var suppliersFromDb = await query
+            .Include(s => s.Orders)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+            
             #region mapping
-            var supplierDtos = suppliers.Select(s => new SupplierResponseDto
+            var supplierDtos = suppliersFromDb.Select(s => new SupplierResponseDto
             {
                 SupplierName = s.FullName,
                 Email = s.Email,
@@ -76,14 +155,20 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(s.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(s.Orders).ToString(),
+                SupplierStatus = s.SupplierStatus,
 
-                 Badge = SupplierServiceHelper.GetBadge(s.Orders),
+                Badge = SupplierServiceHelper.GetBadge(s.Orders),
 
-            }).ToList();
+            });
 
             #endregion
-            return supplierDtos;
+            return new PaginationResponseDto<SupplierResponseDto>()
+            {
+                Data = supplierDtos,
+                TotalCount = totalCount,
+                CurrentPage= page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<SupplierResponseDto> GetSupplierByIdAsync(int id)
@@ -110,7 +195,7 @@ namespace Tanzeem.Services.Suppliers
 
                 LeadTime = SupplierServiceHelper.GetLeadTime(supplier.Orders),
 
-                Status = SupplierServiceHelper.GetSupplierStatus(supplier.Orders).ToString(),
+                SupplierStatus = supplier.SupplierStatus,
 
                 Badge = SupplierServiceHelper.GetBadge(supplier.Orders),
 
@@ -170,5 +255,23 @@ namespace Tanzeem.Services.Suppliers
             });
             return supplierLookupDtos;
         }
+
+        public async Task<object> Counts()
+        {
+            var suppliers = _unitOfWork.GetRepository<Supplier>()
+                .GetAllAsIQueryable()
+                .Include(s => s.Orders)
+                .Where(s => s.CompanyId == 4); ///TODO auth;
+
+            int activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.Active).CountAsync();
+            int in_activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.InActive).CountAsync();
+           
+            return new
+            {
+                ActiveSuppliersCount = activeSuppliersCount,
+                InActiveSuppliersCount = in_activeSuppliersCount,
+            };
+        }
+
     }
 }

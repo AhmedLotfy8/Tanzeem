@@ -171,13 +171,17 @@ namespace Tanzeem.Services.Orders
                 throw new Exception($"This order {id} not found");
                 ///TODO exception handling
             }
+            if (order.Status != OrderStatus.Pending)
+            {
+                return -1; ///TODO exception handling
+            }
             #region mapping
             order.OrderDate = orderDto.OrderDate;
             order.ExpectedDeliveryDate = orderDto.ExpectedDeliveryDate;
             order.RecievedDeliveryDate = orderDto.RecievedDeliveryDate;
             order.ShippingCost = orderDto.ShippingCost;
             order.Taxes = orderDto.Taxes;
-            order.Status = orderDto.Status;
+            //order.Status = orderDto.Status;
             order.Notes = orderDto.Notes;
 
 
@@ -341,9 +345,13 @@ namespace Tanzeem.Services.Orders
 
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
+            if (confirmDto is null)
+                throw new Exception("empty confirmation fields");
+            ///TODO exception handling
+
             int orderId = confirmDto.OrderId;
-            var order = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
-                .Include(o => o.Items).FirstOrDefault();
+            var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
+                .Include(o => o.Items).FirstOrDefaultAsync();
 
             if (order == null)
                 throw new Exception("No order with this id");
@@ -351,6 +359,10 @@ namespace Tanzeem.Services.Orders
             if (order.Status == OrderStatus.Deliverd)
             {
                 return "order already deliverd";
+            }
+            if (order.Status == OrderStatus.Cancelled)
+            {
+                return "this order has been cancelled";
             }
 
             ///TODO exception handling
@@ -375,21 +387,21 @@ namespace Tanzeem.Services.Orders
             }
             ///TODO exception handling
 
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
-                .Where(inv => orderIds.Contains(inv.ProductId)).ToList();
+            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
+                .Where(inv => orderIds.Contains(inv.ProductId)).ToListAsync();
 
             if (!inventories.Any())
             {
-                throw new Exception("No inventories");
+                throw new Exception("No inventories found for these products in this branch");
             }
             ///TODO exception handling
-            if (confirmDto is null)
-                throw new Exception("empty confirmation fields");
+            
 
             #region changes after deliver
             order.Status = Domain.Enums.OrderStatus.Deliverd;
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
+            #region price
             //foreach (var product in products)
             //{
             //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
@@ -400,7 +412,7 @@ namespace Tanzeem.Services.Orders
             //        product.SellingPrice = itemsConfirm.SellPrice;
             //    }
             //}
-
+            #endregion
             foreach (var inventory in inventories)
             {
                 var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == 1);
@@ -410,7 +422,14 @@ namespace Tanzeem.Services.Orders
 
                 if (itemsConfirm != null && originalOrderItem != null)
                 {
-                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - itemsConfirm.DamagedQuantity;
+                    int damaged = itemsConfirm.DamagedQuantity ?? 0;
+                    int defective = itemsConfirm.DefectiveQuantity ?? 0;
+                    int missing = itemsConfirm.MissingQuantity ?? 0;
+                    int incorrect = itemsConfirm.IncorrectQuantity ?? 0;
+
+                    int totalIssues = damaged + defective + missing + incorrect;
+                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
+
                 }
             }
             #endregion
@@ -426,7 +445,7 @@ namespace Tanzeem.Services.Orders
             
             return order.Status.ToString();
         }
-
+        
         //public IEnumerable<object> DisplayOrderStatuses()
         //{
         //    return Enum.GetValues<OrderStatus>()
@@ -468,7 +487,32 @@ namespace Tanzeem.Services.Orders
             };
         }
 
-        
+        public async Task<OrderConfirmResponseDto> ViewConfirm(int id)
+        {
+            var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+                .Include(o => o.Items)
+                .ThenInclude(p => p.Product)
+                .FirstOrDefaultAsync();
+
+            if (order == null || order.Status == OrderStatus.Deliverd || order.Status == OrderStatus.Cancelled)
+            {
+                throw new Exception("no order found or order has been delivered already or cancelled");
+                ///TODO exception handling
+            }
+            var itemsDtos = order.Items.Select(item => new OrderItemConfirmResponseDto
+            {
+                ProductId = item.ProductId,
+                SKU = item.Product.SKU,
+                Price = item.Price,
+                OrderedQuantity = item.Quantity,
+            });
+            return new OrderConfirmResponseDto
+            {
+                OrderId = id,
+                SupplierName = order.SupplierName,
+                ItemsConfirmResponseDtos = itemsDtos
+            };
+        }
 
     }
 }

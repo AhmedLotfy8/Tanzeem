@@ -43,9 +43,9 @@ namespace Tanzeem.Presentation.Suppliers
 
         [HttpGet]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> DisplayAllSuppliers([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name ="page")]int page =1, [FromQuery(Name = "sortId")] SupplierSort? supplierSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
+        public async Task<IActionResult> DisplayAllSuppliers([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name ="page")]int page =1,SupplierFilter? supplierFilter = null,[FromQuery(Name = "sortId")] SupplierSort? supplierSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
         {
-            var result = await _supplierService.GetAllSuppliersAsync(page,pageSize,supplierSort,searchTerm);
+            var result = await _supplierService.GetAllSuppliersAsync(page,pageSize,supplierFilter,supplierSort,searchTerm);
             return Ok(result);
         }
         

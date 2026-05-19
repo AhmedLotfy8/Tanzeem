@@ -38,7 +38,10 @@ namespace Tanzeem.Presentation.Orders
         public async Task<IActionResult> UpdateOrderDetails(int id, OrderRequestDto orderRequestDto)
         {
             var result = await _orderService.UpdateOrderAsync(id, orderRequestDto);
-            return Ok(result);
+            if (result == -1)
+                return BadRequest("cant edit this order..you can just edit pending orders");
+            else
+                return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -101,6 +104,12 @@ namespace Tanzeem.Presentation.Orders
         public async Task<IActionResult> CountsDashboard()
         {
             var result = await _orderService.Counts();
+            return Ok(result);
+        }
+        [HttpGet("View_Order_Confirm/{id}")]
+        public async Task<IActionResult> ViewConfirmOrder(int id)
+        {
+            var result = await _orderService.ViewConfirm(id);
             return Ok(result);
         }
 

@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace Tanzeem.Domain.Enums
 {
+    public enum SupplierFilter
+    {
+        ActiveSuppliers,
+        InActiveSuppliers
+    }
+    
     public enum SupplierSort
     {
         AZSupplierName,

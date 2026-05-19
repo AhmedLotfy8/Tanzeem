@@ -5,6 +5,7 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Shared.Dtos.Orders;
@@ -12,7 +13,9 @@ using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;
 
 namespace Tanzeem.Services.Transactions {
-    public class TransactionService(IUnitOfWork _unitOfWork, INotificationService _notificationService)
+    public class TransactionService(IUnitOfWork _unitOfWork,
+        ICurrentService currentService,
+        INotificationService _notificationService)
         : ITransactionService {
 
         public async Task<TransactionDto> GetTransactionByIdAsync(int id) {
@@ -64,12 +67,12 @@ namespace Tanzeem.Services.Transactions {
             // Mapping Transaction to TransactionDto
             var result = new TransactionDto {
                 Id = transaction.TransactionId,
-                Type = transaction.Type.ToString(),
+                Type = transaction.Type,
                 CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status.ToString(),
+                Status = transaction.Status,
                 Value = transaction.Value,
                 TotalTransactedItems = transaction.TotalTransactedItems,
-                SourceReason = transaction.SourceReason.ToString(),
+                SourceReason = transaction.SourceReason,
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
@@ -82,6 +85,7 @@ namespace Tanzeem.Services.Transactions {
             return result;
         }
 
+        // Hard coded function (category, stock, performedby, batchnumber)
         public async Task<IEnumerable<TransactionDto>> GetAllTransactions(int? filterId, int? sortId) {
 
             var transactions = await TransactionHelperService.GetAllTransactions(_unitOfWork, sortId, filterId);
@@ -137,12 +141,12 @@ namespace Tanzeem.Services.Transactions {
             // Mapping Transactions to TransactionDtos
             var result = transactions.Select(transaction => new TransactionDto {
                 Id = transaction.TransactionId,
-                Type = transaction.Type.ToString(),
+                Type = transaction.Type,
                 CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status.ToString(),
+                Status = transaction.Status,
                 Value = transaction.Value,
                 TotalTransactedItems = transaction.TotalTransactedItems,
-                SourceReason = transaction.SourceReason.ToString(),
+                SourceReason = transaction.SourceReason,
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
@@ -156,58 +160,125 @@ namespace Tanzeem.Services.Transactions {
 
         }
 
-        // Hard coded function (branchId)
+
+
+
+
+        // Hard coded branchId for now, will be taken from the current service in the future.
+        // Handle Global Exception in Controller/Middleware, not here. This function should just throw and let the caller handle it.
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
+            await using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
+            try {
 
-            var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().Include(x => x.Product).ToList();
+                #region Entities Loading
 
-            #region Mapping
+                // Load inventories for the branch
+                var inventories = _unitOfWork.GetRepository<Inventory>()
+                    .GetAllAsIQueryable()
+                    .AsTracking()
+                    .Include(x => x.Product)
+                    .Where(x => x.BranchId == 1) // currentService.BranchId || hardcoded for now
+                    .ToList();
 
-            // Mapping TransactionItemDtos to TransactionItems
-            var transactionItems = transactionDto.TransactionItemDtos.Select(item =>
+                // Load all needed products in one shot
+                var skus = transactionDto.TransactionItemDtos.Select(x => x.Product.SKU).ToHashSet();
+                var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
+                var productsBySku = products
+                    .Where(p => skus.Contains(p.SKU))
+                    .ToDictionary(p => p.SKU);
 
-            // Mapping TransactionItemDto to TransactionItem
-            new TransactionItem {
-                QuantityOfTransactedItem = item.QuantityOfTransactedItem,
-                UnitPrice = item.UnitPrice,
+                #endregion
 
-                // Retriving product
-                Product = _unitOfWork.GetRepository<Product>().GetAllAsync()
-                            .Result.FirstOrDefault(x => x.SKU == item.Product.SKU)
-                              ?? throw new Exception("Product not found"),
+                #region Mapping
 
-            }).ToList();
+                // Map TransactionItems
+                var transactionItems = transactionDto.TransactionItemDtos.Select(item => {
+                    if (!productsBySku.TryGetValue(item.Product.SKU, out var product))
+                        throw new Exception($"Product with SKU '{item.Product.SKU}' not found.");
+
+                    return new TransactionItem {
+                        QuantityOfTransactedItem = item.QuantityOfTransactedItem,
+                        UnitPrice = item.UnitPrice,
+                        Product = product,
+                    };
+                }).ToList();
+
+                // Map Transaction
+                var transaction = new Transaction {
+                    TransactionId = Guid.NewGuid().ToString(),
+                    Type = transactionDto.Type,
+                    CreatedAt = transactionDto.CreatedAt,
+                    Status = transactionDto.Status,
+                    Value = transactionDto.Value,
+                    TotalTransactedItems = transactionItems.Sum(x => x.QuantityOfTransactedItem),
+                    SourceReason = transactionDto.SourceReason,
+                    ReferenceNumber = transactionDto.ReferenceNumber,
+                    Notes = transactionDto.Notes,
+                    TransactionItems = transactionItems,
+                    BranchId = 1 // currentService.BranchId ?? throw new Exception("Branch not found")  
+                };
+
+                #endregion
+
+                #region Update inventory quantities
+
+                if (transactionDto.Type == TransactionType.In)
+                    InTransaction(transactionItems, inventories);
+                else if (transactionDto.Type == TransactionType.Out)
+                    OutTransaction(transactionItems, inventories);
+
+                #endregion
 
 
-            // Mapping TransactionDto to Transaction
-            var transaction = new Transaction {
-                TransactionId = Guid.NewGuid().ToString(),
-                Type = Enum.Parse<TransactionType>(transactionDto.Type),
-                CreatedAt = transactionDto.CreatedAt,
-                Status = Enum.Parse<TransactionStatus>(transactionDto.Status),
-                Value = transactionDto.Value,
-                TotalTransactedItems = transactionDto.TotalTransactedItems,
-                SourceReason = Enum.Parse<TransactionSource>(transactionDto.SourceReason),
-                ReferenceNumber = transactionDto.ReferenceNumber,
-                Notes = transactionDto.Notes,
-                TransactionItems = transactionItems,
-                BranchId = 1 // dummy value
-            };
+                await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
+                await _unitOfWork.SaveChangesAsync();
 
-            #endregion
+                await dbTransaction.CommitAsync();
 
-            await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
-            var count = await _unitOfWork.SaveChangesAsync();
+                _ = LowStockAlertAsync(transaction, transactionItems, inventories);
 
-            LowStockAlert(transaction, transactionItems, inventories); ///TODO hard coded function (branchId)
+                return transaction.Id;
+            }
+            catch {
+                await dbTransaction.RollbackAsync();
+                throw; // let the caller/middleware handle it
+            }
 
-            return transaction.Id;
         }
 
+        #region In / Out Private Functions
+        private void InTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            foreach (var item in transactionItems) {
+                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id);
+
+                if (inventory == null)
+                    throw new Exception($"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
+
+                inventory.Quantity = (inventory.Quantity ?? 0) + item.QuantityOfTransactedItem;
+            }
+        }
+
+        private void OutTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            foreach (var item in transactionItems) {
+                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id);
+
+                if (inventory == null)
+                    throw new Exception($"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
+
+                if ((inventory.Quantity ?? 0) < item.QuantityOfTransactedItem)
+                    throw new Exception($"Insufficient stock for product '{item.Product.Name}'. Available: {inventory.Quantity}, Requested: {item.QuantityOfTransactedItem}.");
+
+                inventory.Quantity -= item.QuantityOfTransactedItem;
+            }
+        }
+
+        #endregion
 
         // branchId is hard coded here
+        #region Old Low Stock Alert
+        /* 
         private async void LowStockAlert(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
-            
+
             if (transaction.Type == TransactionType.Out) {
                 var lowStockItems = transactionItems.Where(item => {
                     var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1); // branchId is hard coded here
@@ -225,22 +296,41 @@ namespace Tanzeem.Services.Transactions {
             }
 
         }
-        public async Task<int> CreateConfirmOrderTransactionAsync(Order order)
-        {
-            if (order is null)
-            {
+        */
+        #endregion
+        private async Task LowStockAlertAsync(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            try {
+                if (transaction.Type != TransactionType.Out) return;
+
+                var lowStockItems = transactionItems.Where(item =>
+                {
+                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
+                    return inventory != null && inventory.Quantity <= inventory.Product.ReorderLevel;
+                }).ToList();
+
+                if (lowStockItems.Any())
+                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
+            }
+            catch (Exception ex) {
+                // Don't let a failed alert bubble up and affect the transaction
+                // TODO: plug into your logger here → _logger.LogError(ex, "LowStockAlert failed")
+            }
+        }
+        
+
+        public async Task<int> CreateConfirmOrderTransactionAsync(Order order) {
+            if (order is null) {
                 return 0; ///TODO exceptionhandling
             }
 
-            var transactionsItems = order.Items.Select(orderItem => new TransactionItem(){    
+            var transactionsItems = order.Items.Select(orderItem => new TransactionItem() {
                 Product = orderItem.Product,
                 QuantityOfTransactedItem = orderItem.Quantity,
                 UnitPrice = orderItem.Price,
-                ProductId = orderItem.ProductId,                
+                ProductId = orderItem.ProductId,
             }).ToList();
-            
-            Transaction transaction = new Transaction()
-            {
+
+            Transaction transaction = new Transaction() {
                 BranchId = 1, ///TODO auth
 
                 TransactionId = Guid.NewGuid().ToString(),
@@ -248,7 +338,7 @@ namespace Tanzeem.Services.Transactions {
                 CreatedAt = (DateTime)order?.RecievedDeliveryDate!,
 
                 SourceReason = TransactionSource.Supplier,
-                
+
                 TransactionItems = transactionsItems,
 
                 TotalTransactedItems = transactionsItems.Sum(item => item.QuantityOfTransactedItem),
@@ -259,7 +349,7 @@ namespace Tanzeem.Services.Transactions {
 
                 Notes = order.Notes ?? "Order confirmed",
 
-                ReferenceNumber = "--" ,
+                ReferenceNumber = "--",
             };
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);

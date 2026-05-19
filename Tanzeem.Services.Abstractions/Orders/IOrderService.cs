@@ -30,5 +30,7 @@ namespace Tanzeem.Services.Abstractions.Orders
         //public int CountPendingOrders();
         //public int CountDeliverdOrders();
         public Task<object> Counts();
+
+        public Task<OrderConfirmResponseDto> ViewConfirm(int id);
     }
 }

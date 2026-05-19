@@ -106,6 +106,12 @@ namespace Tanzeem.Presentation.Orders
             var result = await _orderService.Counts();
             return Ok(result);
         }
+        [HttpGet("View_Order_Confirm/{id}")]
+        public async Task<IActionResult> ViewConfirmOrder(int id)
+        {
+            var result = await _orderService.ViewConfirm(id);
+            return Ok(result);
+        }
 
     }
 }

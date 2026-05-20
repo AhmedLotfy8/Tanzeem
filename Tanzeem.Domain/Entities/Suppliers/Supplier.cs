@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Enums;
 
@@ -30,6 +31,8 @@ namespace Tanzeem.Domain.Entities.Suppliers
         #region Navigation Property
         #endregion
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+        public ICollection<DeliveryIssue> DeliveryIssues { get; set; } = new List<DeliveryIssue>();
+        
         public Company Company { get; set; }
 
         #region Relations

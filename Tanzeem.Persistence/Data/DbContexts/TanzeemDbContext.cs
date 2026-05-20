@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Notifications;
 using Tanzeem.Domain.Entities.Orders;
@@ -38,6 +39,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<Notification> Notification { get; set; }
         public DbSet<Supplier> Supplier { get; set; }
         public DbSet<AlertConfigurations> AlertConfigurations { get; set; }
+        public DbSet<DeliveryIssue> DeliveryIssues { get; set; }
+        public DbSet<DeliveryIssueItem> DeliveryIssueItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

@@ -258,19 +258,20 @@ namespace Tanzeem.Services.Suppliers
             return supplierLookupDtos;
         }
 
-        public async Task<object> Counts()
+        public async Task<SupplierCountsDto> Counts()
         {
-            var suppliers = _unitOfWork.GetRepository<Supplier>()
+            var baseQuery = _unitOfWork.GetRepository<Supplier>()
                 .GetAllAsIQueryable()
                 .Where(s => s.CompanyId == 4); ///TODO auth;
 
-            int activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.Active).CountAsync();
-            int in_activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.InActive).CountAsync();
-           
-            return new
+            int activeCount = await baseQuery.CountAsync(s => s.SupplierStatus == SupplierStatus.Active);
+            int inactiveCount = await baseQuery.CountAsync(s => s.SupplierStatus == SupplierStatus.InActive);
+
+
+            return new SupplierCountsDto
             {
-                ActiveSuppliersCount = activeSuppliersCount,
-                InActiveSuppliersCount = in_activeSuppliersCount,
+                ActiveSuppliersCount = activeCount,
+                InActiveSuppliersCount = inactiveCount
             };
         }
 

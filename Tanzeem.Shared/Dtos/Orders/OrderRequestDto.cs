@@ -6,7 +6,7 @@ namespace Tanzeem.Shared.Dtos.Orders
     {
         public int SupplierId { get; set; }
         public DateTime OrderDate { get; set; }
-        public OrderStatus Status { get; set; } //enum
+        //public OrderStatus Status { get; set; } //enum
         public DateTime ExpectedDeliveryDate { get; set; }
         public DateTime? RecievedDeliveryDate { get; set; } // can be null until recieving order
         public string? Notes { get; set; }

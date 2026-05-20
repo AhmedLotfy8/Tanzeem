@@ -9,6 +9,7 @@ namespace Tanzeem.Shared.Dtos.Suppliers
 {
     public class SupplierResponseDto
     {
+        public int Id { get; set; }
         public string SupplierName {  get; set; }
         public decimal onTimePercentage { get; set; }
         public double LeadTime { get; set; }    

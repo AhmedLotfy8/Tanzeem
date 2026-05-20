@@ -26,6 +26,6 @@ namespace Tanzeem.Domain.Entities.DeliveryIssues
         public Order Order { get; set; }
         public Supplier Supplier { get; set; }
         public Branch Branch { get; set; }
-        public ICollection<DeliveryIssueItem> DeliveryIssueItem { get; set; } = new List<DeliveryIssueItem>();
+        public ICollection<DeliveryIssueItem> DeliveryIssueItem { get; set; } = new List<DeliveryIssueItem>(); //items
     }
 }

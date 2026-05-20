@@ -20,6 +20,7 @@ namespace Tanzeem.Services.Abstractions.Notifications
         public Task CreateOrderDeliveredNotification(int orderId);
         public Task MarkAllAsReadAsync();
         public Task CreateNotification();
+        public Task CreateNewOrderNotification(Order order);
 
     }
 }

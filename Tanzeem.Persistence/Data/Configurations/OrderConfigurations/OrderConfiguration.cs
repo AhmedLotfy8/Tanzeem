@@ -26,7 +26,7 @@ namespace Tanzeem.Persistence.Data.Configurations.OrderConfigurations
             
 
 
-            builder.Property(x => x.Notes).HasMaxLength(40);
+            //builder.Property(x => x.Notes).HasMaxLength(40);
 
             builder.HasOne(x => x.Supplier).WithMany(x => x.Orders).HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
             builder.HasOne(x => x.Branch).WithMany(x => x.Orders).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Orders;
@@ -173,12 +174,12 @@ namespace Tanzeem.Services.Transactions {
                 #region Entities Loading
 
                 // Load inventories for the branch
-                var inventories = _unitOfWork.GetRepository<Inventory>()
+                var inventories = await _unitOfWork.GetRepository<Inventory>()
                     .GetAllAsIQueryable()
                     .AsTracking()
                     .Include(x => x.Product)
                     .Where(x => x.BranchId == 1) // currentService.BranchId || hardcoded for now
-                    .ToList();
+                    .ToListAsync();
 
                 // Load all needed products in one shot
                 var skus = transactionDto.TransactionItemDtos.Select(x => x.Product.SKU).ToHashSet();
@@ -235,7 +236,7 @@ namespace Tanzeem.Services.Transactions {
 
                 await dbTransaction.CommitAsync();
 
-                _ = LowStockAlertAsync(transaction, transactionItems, inventories);
+                await LowStockAlertAsync(transaction, transactionItems, inventories);
 
                 return transaction.Id;
             }
@@ -304,7 +305,7 @@ namespace Tanzeem.Services.Transactions {
 
                 var lowStockItems = transactionItems.Where(item =>
                 {
-                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1);
+                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.Product.Id && x.BranchId == 1);
                     return inventory != null && inventory.Quantity <= inventory.Product.ReorderLevel;
                 }).ToList();
 

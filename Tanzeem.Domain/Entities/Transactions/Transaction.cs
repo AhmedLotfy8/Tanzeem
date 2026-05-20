@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Transactions {
@@ -13,7 +14,7 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         public int Id { get; set; }
 
-        public string TransactionId { get; set; }
+        public string TransactionId { get; set; }         // Frontend Id
 
         public TransactionType Type { get; set; }          // In_Out_Adjustment
 
@@ -31,23 +32,19 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         public string Notes { get; set; }
 
-        #region Later
-
-        #endregion
-        //public User PreformedBy { get; set; }
-        // public String BatchNumber { get; set; }
 
 
 
         #region Relationships
         #endregion
         public int BranchId { get; set; }
-
+        public int PerformedByUserId { get; set; }
 
         #region Navigation
         #endregion
         public Branch Branch { get; set; } = default!;
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
+        public User PreformedByUser { get; set; }
 
     }
-}
+}   

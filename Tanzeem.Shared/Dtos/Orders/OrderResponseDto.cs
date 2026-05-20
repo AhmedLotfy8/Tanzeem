@@ -3,6 +3,7 @@
     public class OrderResponseDto
     {
         public int Id { get; set; }
+        public string StringId { get; set; }
         public string SupplierName { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal Total { get; set; } // calculated from order items

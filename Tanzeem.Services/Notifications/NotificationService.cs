@@ -320,6 +320,20 @@ namespace Tanzeem.Services.Notifications
                 throw new Exception("error at dead notification add");
         }
 
+        public async Task CreateNewOrderNotification(Order order)
+        {
+            Notification notification = new Notification
+            {
+                BranchId = order.BranchId,
+                IsRead= false,
+                Title = "New Order is created",
+                Type = NotificationType.OrderUpdate,
+                CreatedAt= DateTime.UtcNow,
+                Message = $"New order (order Id:{order.Id} )has been created, check it now!"
+            };
+            await _unitOfWork.GetRepository<Notification>().AddAsync(notification);
+            await _unitOfWork.SaveChangesAsync();
+        }
         /// <summary>
         /// hangfire uses this method to check
         /// - low stck

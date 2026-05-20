@@ -139,6 +139,7 @@ namespace Tanzeem.Services.Suppliers
             #region mapping
             var supplierDtos = suppliersFromDb.Select(s => new SupplierResponseDto
             {
+                Id = s.Id,
                 SupplierName = s.FullName,
                 Email = s.Email,
                 PhoneNumberOne = s.PhoneNumberOne,
@@ -179,6 +180,7 @@ namespace Tanzeem.Services.Suppliers
 
             var supplierDto = new SupplierResponseDto
             {
+                Id = supplier.Id,
                 SupplierName = supplier.FullName,
                 Email = supplier.Email,
                 PhoneNumberOne = supplier.PhoneNumberOne,

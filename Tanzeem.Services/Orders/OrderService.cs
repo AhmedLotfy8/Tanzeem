@@ -7,6 +7,7 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.DeliveryIssues;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Transactions;
@@ -18,7 +19,7 @@ namespace Tanzeem.Services.Orders
 {
 
     public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
-        ,ITransactionService _transactionService) : IOrderService
+        ,ITransactionService _transactionService, IDeliveryIssuesService _deliveryIssue) : IOrderService
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
@@ -62,7 +63,7 @@ namespace Tanzeem.Services.Orders
                 Notes = orderDto.Notes,
                 SupplierName = supplier.FullName,
                 Items = OrderItems,
-                Status = orderDto.Status,
+                Status = OrderStatus.Pending,
                 ///TODO change branch after auth
                 BranchId = 2,
             };
@@ -71,6 +72,8 @@ namespace Tanzeem.Services.Orders
             await _unitOfWork.GetRepository<Order>().AddAsync(order);
 
             int affectedRows = await _unitOfWork.SaveChangesAsync();
+
+            await _notificationService.CreateNewOrderNotification(order);
 
             if (affectedRows <= 0) throw new Exception("Failed to create order");
             ///TODO after exceptionHandling
@@ -351,7 +354,8 @@ namespace Tanzeem.Services.Orders
 
             int orderId = confirmDto.OrderId;
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
-                .Include(o => o.Items).FirstOrDefaultAsync();
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync();
 
             if (order == null)
                 throw new Exception("No order with this id");
@@ -376,19 +380,10 @@ namespace Tanzeem.Services.Orders
                 throw new Exception("there are some items deleted");
             }
 
-            var orderIds = order.Items.Select(i => i.ProductId);
-
-            var products = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable().AsTracking()
-                .Where(product => orderIds.Contains(product.Id)).ToList();
-
-            if (!products.Any())
-            {
-                throw new Exception("No products");
-            }
-            ///TODO exception handling
+            var productIds = order.Items.Select(i => i.ProductId);
 
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
-                .Where(inv => orderIds.Contains(inv.ProductId)).ToListAsync();
+                .Where(inv => productIds.Contains(inv.ProductId)).ToListAsync();
 
             if (!inventories.Any())
             {
@@ -402,6 +397,15 @@ namespace Tanzeem.Services.Orders
             order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
 
             #region price
+            //var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable().AsTracking()
+            //    .Where(product => productIds.Contains(product.Id)).ToListAsync();
+
+            //if (!products.Any())
+            //{
+            //    throw new Exception("No products");
+            //}
+            ///TODO exception handling
+
             //foreach (var product in products)
             //{
             //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
@@ -413,6 +417,7 @@ namespace Tanzeem.Services.Orders
             //    }
             //}
             #endregion
+            int totalIssues = 0;
             foreach (var inventory in inventories)
             {
                 var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == 1);
@@ -422,14 +427,20 @@ namespace Tanzeem.Services.Orders
 
                 if (itemsConfirm != null && originalOrderItem != null)
                 {
-                    int damaged = itemsConfirm.DamagedQuantity ?? 0;
-                    int defective = itemsConfirm.DefectiveQuantity ?? 0;
-                    int missing = itemsConfirm.MissingQuantity ?? 0;
-                    int incorrect = itemsConfirm.IncorrectQuantity ?? 0;
+                    #region old issues
+                    //int damaged = itemsConfirm.DamagedQuantity ?? 0;
+                    //int defective = itemsConfirm.DefectiveQuantity ?? 0;
+                    //int missing = itemsConfirm.MissingQuantity ?? 0;
+                    //int incorrect = itemsConfirm.IncorrectQuantity ?? 0;
 
-                    int totalIssues = damaged + defective + missing + incorrect;
+                    //int totalIssues = damaged + defective + missing + incorrect;
+                    //inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
+                    #endregion
+                    foreach (var issue in itemsConfirm.ItemsIssueDtos)
+                    {
+                        totalIssues += issue.Quantity;
+                    }
                     inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
-
                 }
             }
             #endregion
@@ -438,6 +449,7 @@ namespace Tanzeem.Services.Orders
 
             await _transactionService.CreateConfirmOrderTransactionAsync(order);
             await _notificationService.CreateOrderDeliveredNotification(order.Id);
+            await _deliveryIssue.CreateDeliveryIssue(confirmDto);
 
             if (rowsAffected <= 0)
                 throw new Exception("Status not changed");

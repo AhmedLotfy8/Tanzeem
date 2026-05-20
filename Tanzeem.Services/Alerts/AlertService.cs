@@ -218,18 +218,22 @@ namespace Tanzeem.Services.Alerts
         //    };
 
         //}
-        public async Task<object> Counts()
+        public async Task<AlertCountsDto> Counts()
         {
             int deadAlerts = await ShowDeadStockAlerts().CountAsync();
-            int criticalAlerts = deadAlerts + await ShowOutStockAlerts().CountAsync();
-            int warningAlert = await ShowExpiryAlerts().CountAsync() + await ShowLowStockAlerts().CountAsync();
-            int infoAlert = await ShowOrderUpdates().CountAsync();
-            return new
+            int outOfStockAlerts = await ShowOutStockAlerts().CountAsync();
+
+            int expiryAlerts = await ShowExpiryAlerts().CountAsync();
+            int lowStockAlerts = await ShowLowStockAlerts().CountAsync();
+
+            int infoAlerts = await ShowOrderUpdates().CountAsync();
+
+            return new AlertCountsDto
             {
-                deadCount = deadAlerts,
-                criticalCount = criticalAlerts,
-                warningCount = warningAlert,
-                infoCount = infoAlert
+                DeadCount = deadAlerts,
+                CriticalCount = deadAlerts + outOfStockAlerts,
+                WarningCount = expiryAlerts + lowStockAlerts,
+                InfoCount = infoAlerts
             };
         }
     }

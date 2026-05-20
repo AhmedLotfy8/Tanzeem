@@ -26,6 +26,6 @@ namespace Tanzeem.Services.Abstractions.Suppliers
 
         Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync();
 
-        public Task<object> Counts();
+        public Task<SupplierCountsDto> Counts();
     }
 }

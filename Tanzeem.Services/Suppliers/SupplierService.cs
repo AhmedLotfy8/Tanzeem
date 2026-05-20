@@ -262,7 +262,6 @@ namespace Tanzeem.Services.Suppliers
         {
             var suppliers = _unitOfWork.GetRepository<Supplier>()
                 .GetAllAsIQueryable()
-                .Include(s => s.Orders)
                 .Where(s => s.CompanyId == 4); ///TODO auth;
 
             int activeSuppliersCount = await suppliers.Where(s => s.SupplierStatus == SupplierStatus.Active).CountAsync();

@@ -485,7 +485,6 @@ namespace Tanzeem.Services.Orders
                 .CountAsync(o => o.Status == OrderStatus.Deliverd);
 
             var TotalRevenue = await _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
-                .Include(o => o.Order)
                 .Where(oi => oi.Order.Status == OrderStatus.Deliverd)
                 .SumAsync(oi => oi.Quantity * oi.Price);
             

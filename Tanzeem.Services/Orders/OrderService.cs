@@ -2,6 +2,7 @@
 using System.Linq;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
@@ -148,6 +149,7 @@ namespace Tanzeem.Services.Orders
             OrderResponseDto orderDto = new OrderResponseDto
             {
                 Id = order.Id,
+                StringId = $"ORD-{order.Id:D4}",
                 OrderDate = order.OrderDate,
                 ExpectedDeliveryDate = order.ExpectedDeliveryDate,
                 RecievedDeliveryDate = order.RecievedDeliveryDate ?? null,
@@ -308,6 +310,7 @@ namespace Tanzeem.Services.Orders
             var mappedData = await orders.Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
+                StringId = $"ORD-{order.Id:D4}",
                 OrderDate = order.OrderDate,
                 SupplierName = order.SupplierName,
                 Total = order.Total,
@@ -520,6 +523,7 @@ namespace Tanzeem.Services.Orders
             return new OrderConfirmResponseDto
             {
                 OrderId = id,
+                OrderStringId = $"ORD-{id:D4}",
                 SupplierName = order.SupplierName,
                 ItemsConfirmResponseDtos = itemsDtos
             };

@@ -1,4 +1,5 @@
-﻿using Tanzeem.Domain.Entities.Products;
+﻿using Tanzeem.Domain.Entities.DeliveryIssues;
+using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Orders
 {
@@ -18,6 +19,8 @@ namespace Tanzeem.Domain.Entities.Orders
         #endregion
         public int OrderId { get; set; }
         public int ProductId { get; set; }
+
+        public ICollection<DeliveryIssueItem> DeliveryIssueItems { get; set; } = new List<DeliveryIssueItem>();
 
     }
 }

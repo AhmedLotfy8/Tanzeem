@@ -41,6 +41,10 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
                 .HasForeignKey(ti => ti.TransactionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasOne(t => t.PreformedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.PerformedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
 

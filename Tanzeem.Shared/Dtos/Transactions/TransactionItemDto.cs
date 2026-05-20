@@ -12,6 +12,8 @@ namespace Tanzeem.Shared.Dtos.Transactions {
 
         public decimal UnitPrice { get; set; }
 
+        public string BatchNumber { get; set; }
+
         public ProductDto Product { get; set; } = default!;
 
     }

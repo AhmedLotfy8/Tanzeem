@@ -9,16 +9,17 @@ using Tanzeem.Domain.Entities.Transactions;
 
 namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
     public class TransactionItemsConfiguration : IEntityTypeConfiguration<TransactionItem> {
-        
+
         public void Configure(EntityTypeBuilder<TransactionItem> builder) {
-        
+
             builder.Property(x => x.QuantityOfTransactedItem)
                 .HasColumnType("int");
 
             builder.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
-
+            builder.Property(ti => ti.BatchNumber)
+                .HasMaxLength(100);
             
             builder.HasOne(ti => ti.Transaction)
                 .WithMany(t => t.TransactionItems)

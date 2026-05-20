@@ -165,7 +165,7 @@ namespace Tanzeem.Services.Transactions {
 
 
 
-        // Hard coded branchId for now, will be taken from the current service in the future.
+        // Hard coded branchId / UserId for now, will be taken from the current service in the future.
         // Handle Global Exception in Controller/Middleware, not here. This function should just throw and let the caller handle it.
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
             await using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
@@ -200,6 +200,7 @@ namespace Tanzeem.Services.Transactions {
                     return new TransactionItem {
                         QuantityOfTransactedItem = item.QuantityOfTransactedItem,
                         UnitPrice = item.UnitPrice,
+                        BatchNumber = item.BatchNumber,
                         Product = product,
                     };
                 }).ToList();
@@ -210,13 +211,14 @@ namespace Tanzeem.Services.Transactions {
                     Type = transactionDto.Type,
                     CreatedAt = transactionDto.CreatedAt,
                     Status = transactionDto.Status,
-                    Value = transactionDto.Value,
+                    Value = transactionItems.Sum(x => x.UnitPrice * x.QuantityOfTransactedItem),
                     TotalTransactedItems = transactionItems.Sum(x => x.QuantityOfTransactedItem),
                     SourceReason = transactionDto.SourceReason,
                     ReferenceNumber = transactionDto.ReferenceNumber,
                     Notes = transactionDto.Notes,
                     TransactionItems = transactionItems,
-                    BranchId = 1 // currentService.BranchId ?? throw new Exception("Branch not found")  
+                    BranchId = 1, // currentService.BranchId ?? throw new Exception("Branch not found")  
+                    PerformedByUserId =  3 // hard coded User Id
                 };
 
                 #endregion
@@ -303,8 +305,7 @@ namespace Tanzeem.Services.Transactions {
             try {
                 if (transaction.Type != TransactionType.Out) return;
 
-                var lowStockItems = transactionItems.Where(item =>
-                {
+                var lowStockItems = transactionItems.Where(item => {
                     var inventory = inventories.FirstOrDefault(x => x.ProductId == item.Product.Id && x.BranchId == 1);
                     return inventory != null && inventory.Quantity <= inventory.Product.ReorderLevel;
                 }).ToList();
@@ -317,7 +318,7 @@ namespace Tanzeem.Services.Transactions {
                 // TODO: plug into your logger here → _logger.LogError(ex, "LowStockAlert failed")
             }
         }
-        
+
 
         public async Task<int> CreateConfirmOrderTransactionAsync(Order order) {
             if (order is null) {

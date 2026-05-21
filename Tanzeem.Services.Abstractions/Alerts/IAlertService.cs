@@ -13,5 +13,9 @@ namespace Tanzeem.Services.Abstractions.Alerts
     {
         public Task<PaginationResponseDto<AlertDto>> ShowAlerts(NotificationType? type, int page, int pageSize);
         public Task<AlertCountsDto> Counts();
+
+        public IQueryable<AlertDto> ShowDeadStockAlerts();
+        public IQueryable<AlertDto> ShowLowStockAlerts();
+        public IQueryable<AlertDto> ShowExpiryAlerts();
     }
 }

@@ -51,22 +51,21 @@ namespace Tanzeem.Services.Alerts
                         .ToPaginatedResponseAsync(page, pageSize);
 
                 default:
-                    var lowTask = ShowLowStockAlerts().ToListAsync();
-                    var deadTask = ShowDeadStockAlerts().ToListAsync();
-                    var expiryTask = ShowExpiryAlerts().ToListAsync();
-                    var outTask = ShowOutStockAlerts().ToListAsync();
-                    var orderTask = ShowOrderUpdates().ToListAsync();
+                    var lowAlerts = await ShowLowStockAlerts().ToListAsync();
+                    var deadAlerts = await ShowDeadStockAlerts().ToListAsync();
+                    var expiryAlerts = await ShowExpiryAlerts().ToListAsync();
+                    var outAlerts = await ShowOutStockAlerts().ToListAsync();
+                    var orderAlerts = await ShowOrderUpdates().ToListAsync();
 
-                    await Task.WhenAll(lowTask, deadTask, expiryTask, orderTask);
+                    var allAlerts = lowAlerts
+                        .Concat(deadAlerts)
+                        .Concat(expiryAlerts)
+                        .Concat(outAlerts)
+                        .Concat(orderAlerts)
+                        .OrderBy(x => x.Priority)
+                        .ToList();
 
-                    var all = lowTask.Result
-                        .Concat(deadTask.Result)
-                        .Concat(expiryTask.Result)
-                        .Concat(outTask.Result)
-                        .Concat(orderTask.Result)
-                        .OrderBy(x => x.Priority);
-
-                    return all.ToPaginatedResponse(page, pageSize);
+                    return allAlerts.ToPaginatedResponse(page, pageSize);
             }
         }
 

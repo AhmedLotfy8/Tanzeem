@@ -37,6 +37,8 @@ using Tanzeem.Services.Settings;
 using Tanzeem.Services.Abstractions.DeliveryIssues;
 using Tanzeem.Persistence.Data.Migrations;
 using Tanzeem.Services.DeliveryIssues;
+using Tanzeem.Services.Abstractions.Dashboard;
+using Tanzeem.Services.Dashboard;
 
 namespace Tanzeem.Web {
     public class Program {
@@ -65,6 +67,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IAlertService, AlertService>();
             builder.Services.AddScoped<IAlertConfigurationsService, AlertConfigurationsService>();
             builder.Services.AddScoped<IDeliveryIssuesService, DeliveryIssuesService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
             #endregion
 
             #region Added Authentication

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.DeliveryIssues;
@@ -41,6 +42,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<AlertConfigurations> AlertConfigurations { get; set; }
         public DbSet<DeliveryIssue> DeliveryIssues { get; set; }
         public DbSet<DeliveryIssueItem> DeliveryIssueItems { get; set; }
+        public DbSet<DemandForecast> DemandForecasts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

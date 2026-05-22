@@ -18,22 +18,31 @@ namespace Tanzeem.Presentation.Dashboard
             var result = await _dashboardService.GetDashboardSummary();
             return Ok(result);
         }
+
         [HttpGet("get_top_moving_items")]
         public async Task<IActionResult> GetTopMovingItems()
         {
             var result = await _dashboardService.GetTopMovingItemsAsync();
             return Ok(result);
         }
+
         [HttpGet("get_category_distribution")]
         public async Task<IActionResult> GetCategoryDistribution()
         {
             var result = await _dashboardService.GetCategoryDistribution();
             return Ok(result);
         }
+
         [HttpGet("get_bar_chart_IN-OUT")]
         public async Task<IActionResult> GetBarChartInOutStock()
         {
             var result = await _dashboardService.GetMonthlyStockMovementAsync();
+            return Ok(result);
+        }
+        [HttpGet("get_line_chart_stock_value")]
+        public async Task<IActionResult> GetLineChartStockValue()
+        {
+            var result = await _dashboardService.GetStockValueTrendAsync();
             return Ok(result);
         }
     }

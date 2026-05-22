@@ -154,5 +154,39 @@ namespace Tanzeem.Services.Dashboard
 
             return result;
         }
+
+        public async Task<List<StockValueDto>> GetStockValueTrendAsync()
+        {
+            var branchId = 1; ///TODO Auth
+
+            var last12Months = Enumerable.Range(0, 12)
+                .Select(i => DateTime.UtcNow.AddMonths(-11 + i))
+                .ToList();
+
+            var result = new List<StockValueDto>();
+
+            foreach (var monthDate in last12Months)
+            {
+                var daysInMonth = DateTime.DaysInMonth(monthDate.Year, monthDate.Month);
+                var endOfMonth = new DateTime(monthDate.Year, monthDate.Month, daysInMonth, 23, 59, 59);
+
+                var monthlyTotalValue = await _unitOfWork.GetRepository<TransactionItem>()
+                    .GetAllAsIQueryable()
+                    .Where(ti => ti.Transaction.BranchId == branchId
+                              && ti.Transaction.CreatedAt <= endOfMonth)
+                    .SumAsync(ti =>
+                        (ti.Transaction.Type == TransactionType.In ? ti.QuantityOfTransactedItem : -ti.QuantityOfTransactedItem)
+                        * ti.Product.CostPrice
+                    );
+
+                result.Add(new StockValueDto
+                {
+                    Month = monthDate.ToString("MMM"),
+                    TotalValue = monthlyTotalValue
+                });
+            }
+
+            return result;
+        }
     }
 }

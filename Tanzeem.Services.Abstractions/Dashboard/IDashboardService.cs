@@ -14,5 +14,7 @@ namespace Tanzeem.Services.Abstractions.Dashboard
         public Task<List<CategoryDistributionDto>> GetCategoryDistribution();
 
         public Task<List<MonthlyMovementDto>> GetMonthlyStockMovementAsync();
+
+        public Task<List<StockValueDto>> GetStockValueTrendAsync();
     }
 }

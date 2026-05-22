@@ -28,8 +28,6 @@ namespace Tanzeem.Shared.Dtos.Transactions {
 
         public string PreformedBy { get; set; }
 
-        public string BatchNumber { get; set; }
-
         public List<TransactionItemDto> TransactionItemDtos { get; set; } = new List<TransactionItemDto>();
 
     }

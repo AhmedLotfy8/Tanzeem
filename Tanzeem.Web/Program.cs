@@ -95,6 +95,20 @@ namespace Tanzeem.Web {
             builder.Services.AddHangfireServer();
             #endregion
 
+            #region Add CORS
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.AllowAnyOrigin() // WithOrigins("http://tanzeem.runasp.net/", "https://front.com") if you want to allow specific origins
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+            #endregion
+
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -132,6 +146,8 @@ namespace Tanzeem.Web {
 
             app.UseHangfireDashboard("/hangfire");
             app.UseHttpsRedirection();
+
+            app.UseCors("AllowFrontend");
 
             app.UseAuthentication();
             app.UseAuthorization();

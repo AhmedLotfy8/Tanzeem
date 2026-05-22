@@ -45,6 +45,7 @@ namespace Tanzeem.Services.Transactions {
 
                     QuantityOfTransactedItem = item.QuantityOfTransactedItem,
                     UnitPrice = item.UnitPrice,
+                    BatchNumber = item.BatchNumber ?? "Null",
 
                     // Mapping Product to ProductDto
                     Product = new ProductDto {
@@ -77,8 +78,7 @@ namespace Tanzeem.Services.Transactions {
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
-                PreformedBy = "User", // dummy value
-                BatchNumber = "BatchNumber" // dummy value
+                PreformedBy = "", // dummy value
             };
 
             #endregion
@@ -152,7 +152,6 @@ namespace Tanzeem.Services.Transactions {
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
                 PreformedBy = "User", // dummy value
-                BatchNumber = "BatchNumber" // dummy value
             });
 
             #endregion

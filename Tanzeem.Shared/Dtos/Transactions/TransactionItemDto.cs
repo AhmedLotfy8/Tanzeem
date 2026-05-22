@@ -12,7 +12,7 @@ namespace Tanzeem.Shared.Dtos.Transactions {
 
         public decimal UnitPrice { get; set; }
 
-        public string BatchNumber { get; set; }
+        public string BatchNumber { get; set; } = string.Empty;
 
         public ProductDto Product { get; set; } = default!;
 

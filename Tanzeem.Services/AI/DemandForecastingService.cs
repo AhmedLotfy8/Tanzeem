@@ -135,7 +135,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
     {
         try
         {
-            string apiUrl = "https://yasminesherbeny-forecast-api.hf.space/";
+            string apiUrl = "https://yasminesherbeny-forecast-api.hf.space/api/predict-from-raw";
 
             var response = await _httpClient.PostAsJsonAsync(apiUrl, requestItem);
 

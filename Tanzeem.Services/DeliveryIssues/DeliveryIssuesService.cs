@@ -218,7 +218,7 @@ namespace Tanzeem.Services.DeliveryIssues
 
             if (deliveryIssue == null)
             {
-                throw new Exception("No delivery issue found with this id");
+                throw new KeyNotFoundException("No delivery issue found with this id");
             }
 
             var deliveryItemsIssues = deliveryIssue.DeliveryIssueItem

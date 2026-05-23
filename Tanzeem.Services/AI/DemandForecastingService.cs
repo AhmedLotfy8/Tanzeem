@@ -3,21 +3,26 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.AIDemand;
+using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.AI;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.DemandForecast;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 
-public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpClient) : IDemandForecastingService
+public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpClient,
+    ICurrentService _currentService) : IDemandForecastingService
 {       
     
     public async Task<PaginationResponseDto<AIDemandForecastResponseDto>> GetAllPredictionsAsync(int page, int pageSize)
     {
         int branchId = 1; ///TODO auth 
+        
+        //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
 
         if (page <= 0) page = 1;
 
@@ -65,55 +70,61 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
     /// </summary>
     public async Task UpdateAllForecastsAsync()
     {
-        var branchId = 1; ///TODO Auth
+        // 1. هنجيب كل الـ IDs بتاعة الفروع اللي في السيستم
+        var allBranchIds = await _unitOfWork.GetRepository<Branch>()
+            .GetAllAsIQueryable()
+            .Select(b => b.Id)
+            .ToListAsync();
+
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30).Date;
 
-        // أ. سحب داتا المبيعات والمخزون الحالية
-        var rawSales = await _unitOfWork.GetRepository<TransactionItem>()
-            .GetAllAsIQueryable()
-            .Where(ti => ti.Transaction.BranchId == branchId
-                      && ti.Transaction.Type == TransactionType.Out
-                      //&& ti.Transaction.SourceReason == TransactionSource.selling
-                      && ti.Transaction.CreatedAt >= thirtyDaysAgo)
-            .Select(ti => new ProductSaleData
-            {
-                ProductId = ti.ProductId,
-                Date = ti.Transaction.CreatedAt.Date,
-                Quantity = ti.QuantityOfTransactedItem
-            })
-            .ToListAsync();
-
-        var inventories = await _unitOfWork.GetRepository<Inventory>()
-            .GetAllAsIQueryable()
-            .Include(i => i.Product)
-            .Where(i => i.BranchId == branchId)
-            .ToListAsync();
-
-        double overallStoreAvg = rawSales.Any() ? rawSales.Average(x => x.Quantity) : 0;
-
-        // ب. بناء الـ JSON للـ AI (الـ Batch)
-        var requestBatch = BuildFlaskRequests(inventories, rawSales, branchId, overallStoreAvg);
-
-        var existingForecasts = await _unitOfWork.GetRepository<DemandForecast>()
-            .GetAllAsIQueryable()
-            .Where(f => f.BranchId == branchId)
-            .ToDictionaryAsync(f => f.ProductId);
-
-        foreach (var requestItem in requestBatch)
+        // 2. هنلف على فرع فرع نحدث التوقعات بتاعته
+        foreach (var branchId in allBranchIds)
         {
-            var aiPrediction = await CallFlaskApiAsync(requestItem);
+            // أ. سحب داتا المبيعات والمخزون الحالية (للفـرع ده)
+            var rawSales = await _unitOfWork.GetRepository<TransactionItem>()
+                .GetAllAsIQueryable()
+                .Where(ti => ti.Transaction.BranchId == branchId
+                          && ti.Transaction.Type == TransactionType.Out
+                          && ti.Transaction.CreatedAt >= thirtyDaysAgo)
+                .Select(ti => new ProductSaleData
+                {
+                    ProductId = ti.ProductId,
+                    Date = ti.Transaction.CreatedAt.Date,
+                    Quantity = ti.QuantityOfTransactedItem
+                })
+                .ToListAsync();
 
-            if (aiPrediction != null)
+            var inventories = await _unitOfWork.GetRepository<Inventory>()
+                .GetAllAsIQueryable()
+                .Include(i => i.Product)
+                .Where(i => i.BranchId == branchId)
+                .ToListAsync();
+
+            double overallStoreAvg = rawSales.Any() ? rawSales.Average(x => x.Quantity) : 0;
+
+            // ب. بناء الـ JSON للـ AI 
+            var requestBatch = BuildFlaskRequests(inventories, rawSales, branchId, overallStoreAvg);
+
+            var existingForecasts = await _unitOfWork.GetRepository<DemandForecast>()
+                .GetAllAsIQueryable()
+                .Where(f => f.BranchId == branchId)
+                .ToDictionaryAsync(f => f.ProductId);
+
+            // جـ. نكلم الـ API
+            foreach (var requestItem in requestBatch)
             {
-                // بنشيل حرف الـ P_ عشان نرجع الـ ID لرقم صحيح تاني
-                int actualProductId = int.Parse(requestItem.ProductId.Replace("P_", ""));
+                var aiPrediction = await CallFlaskApiAsync(requestItem);
 
-                // 💾 نداء الميثود الثانية (بتجهز التحديث أو الإضافة في الداتابيز)
-                await ApplyUpsertToDatabase(actualProductId, branchId, aiPrediction, existingForecasts);
+                if (aiPrediction != null)
+                {
+                    int actualProductId = int.Parse(requestItem.ProductId.Replace("P_", ""));
+                    await ApplyUpsertToDatabase(actualProductId, branchId, aiPrediction, existingForecasts);
+                }
             }
         }
 
-        // هـ. حفظ كل التغييرات في قاعدة البيانات دفعة واحدة (عشان الـ Performance)
+        // هـ. حفظ كل التغييرات في قاعدة البيانات دفعة واحدة بعد ما نخلص كل الفروع
         await _unitOfWork.SaveChangesAsync();
     }
 

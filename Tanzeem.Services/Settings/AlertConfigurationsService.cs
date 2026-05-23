@@ -12,7 +12,7 @@ namespace Tanzeem.Services.Settings
         {
             AlertConfigurations alertConfigurations = new AlertConfigurations()
             {
-                BranchId = 1,///TODO auth
+                BranchId = branchId,
 
                 DaysBeforeExpiry = 90,
                 DaysWithoutMovement = 90,

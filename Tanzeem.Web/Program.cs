@@ -115,6 +115,7 @@ namespace Tanzeem.Web {
 
 
             var app = builder.Build();
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             #region background services
             using (var scope = app.Services.CreateScope())
@@ -141,7 +142,7 @@ namespace Tanzeem.Web {
                 options.RoutePrefix = string.Empty;
             });
 
-            app.UseHangfireDashboard("/hangfire");
+            app.UseHangfireDashboard("/hangfire"); // move it after auth middlewares -- at production phase
             app.UseHttpsRedirection();
 
             app.UseAuthentication();

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.CustomExceptions;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Inventories;
@@ -8,6 +9,8 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.Exceptions;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.DeliveryIssues;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Orders;
@@ -20,7 +23,8 @@ namespace Tanzeem.Services.Orders
 {
 
     public class OrderService(IUnitOfWork _unitOfWork, INotificationService _notificationService
-        ,ITransactionService _transactionService, IDeliveryIssuesService _deliveryIssue) : IOrderService
+        ,ITransactionService _transactionService, IDeliveryIssuesService _deliveryIssue,
+        ICurrentService _currentService) : IOrderService
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
@@ -132,8 +136,8 @@ namespace Tanzeem.Services.Orders
 
             if (order is null)
             {
-                throw new Exception($"This order {id} not found");
-                ///TODO exception handling
+                throw new KeyNotFoundException($"This order #ORD-{id:D4} not found");
+                
             }
 
             var orderItems = order.Items.Select(item => new OrderItemResponseDto
@@ -351,48 +355,88 @@ namespace Tanzeem.Services.Orders
 
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            if (confirmDto is null)
-                throw new Exception("empty confirmation fields");
-            ///TODO exception handling
+            // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
+            int branchId = 1;///TODO auth
+            #region data validation
+            var errors = new List<string>();
 
-            int orderId = confirmDto.OrderId;
+            if (confirmDto.OrderId < 0)
+            {
+                errors.Add("There is no Id less than zero");
+            }
+            else if (confirmDto.OrderId == 0) {
+                errors.Add("Order Id is required");
+            }
+            if (confirmDto is null)
+                errors.Add("empty confirmation fields");
+            
+            if (errors.Any())
+            {
+                throw new ValidationException(errors);
+            }
+            errors.Clear();
+            #endregion
+
+            int orderId = confirmDto!.OrderId;
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync();
 
+
+            #region data validation 2
             if (order == null)
-                throw new Exception("No order with this id");
+                throw new KeyNotFoundException("No order with this id");
 
             if (order.Status == OrderStatus.Deliverd)
             {
-                return "order already deliverd";
+                throw new BusinessRuleException("This order has been already delivered");
             }
-            if (order.Status == OrderStatus.Cancelled)
+            else if (order.Status == OrderStatus.Cancelled)
             {
-                return "this order has been cancelled";
+                throw new BusinessRuleException("this order has been cancelled");
             }
 
-            ///TODO exception handling
+            
             if (order.Items == null || !order.Items.Any())
             {
-                throw new Exception("you cannot receive empty order");
+                errors.Add("you cannot receive empty order");
+                foreach(var orderItemConfirm in confirmDto.ItemsConfirmDtos)
+                {
+                    if (orderItemConfirm != null)
+                    {
+                        if(orderItemConfirm.ProductId == 0)
+                        {
+                            errors.Add("Product id is required");
+                        }
+                    }
+                }
             }
 
-            if (confirmDto.ItemsConfirmDtos.Count() != order.Items.Count)
+            if (confirmDto.ItemsConfirmDtos.Count() != order!.Items!.Count)
             {
-                throw new Exception("there are some items deleted");
+                errors.Add("There are some items in the order have been deleted,check the order");
+            }
+            if(confirmDto.RecievedDate == null)
+            {
+                errors.Add("Recived date is required, please write it");
             }
 
+            if (errors.Any())
+            {
+                throw new ValidationException(errors);
+            }
+            errors.Clear();
+            #endregion
             var productIds = order.Items.Select(i => i.ProductId);
 
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
-                .Where(inv => productIds.Contains(inv.ProductId)).ToListAsync();
+                .Where(inv => productIds.Contains(inv.ProductId) && inv.BranchId == branchId).ToListAsync();
 
             if (!inventories.Any())
             {
-                throw new Exception("No inventories found for these products in this branch");
+                throw new BusinessRuleException("No inventories found for these products in this branch");
             }
-            ///TODO exception handling
+
             
 
             #region changes after deliver
@@ -423,22 +467,14 @@ namespace Tanzeem.Services.Orders
             int totalIssues = 0;
             foreach (var inventory in inventories)
             {
-                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == 1);
-                ///TODO change after authorization
+                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == branchId);
+                
 
                 var originalOrderItem = order.Items.FirstOrDefault(i => i.ProductId == inventory.ProductId);
 
                 if (itemsConfirm != null && originalOrderItem != null)
                 {
-                    #region old issues
-                    //int damaged = itemsConfirm.DamagedQuantity ?? 0;
-                    //int defective = itemsConfirm.DefectiveQuantity ?? 0;
-                    //int missing = itemsConfirm.MissingQuantity ?? 0;
-                    //int incorrect = itemsConfirm.IncorrectQuantity ?? 0;
-
-                    //int totalIssues = damaged + defective + missing + incorrect;
-                    //inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
-                    #endregion
+                   
                     foreach (var issue in itemsConfirm.ItemsIssueDtos)
                     {
                         totalIssues += issue.Quantity;
@@ -455,9 +491,12 @@ namespace Tanzeem.Services.Orders
             await _deliveryIssue.CreateDeliveryIssue(confirmDto);
 
             if (rowsAffected <= 0)
-                throw new Exception("Status not changed");
-            ///TODO exception handling
+                throw new DbUpdateFailedException("Status not changed");
             
+            if (errors.Any())
+            {
+                throw new ValidationException(errors);
+            }
             return order.Status.ToString();
         }
         
@@ -508,10 +547,18 @@ namespace Tanzeem.Services.Orders
                 .ThenInclude(p => p.Product)
                 .FirstOrDefaultAsync();
 
-            if (order == null || order.Status == OrderStatus.Deliverd || order.Status == OrderStatus.Cancelled)
+            if (order == null)
             {
-                throw new Exception("no order found or order has been delivered already or cancelled");
-                ///TODO exception handling
+                throw new KeyNotFoundException("no order found with this id");
+                
+            }
+            else if (order.Status == OrderStatus.Deliverd)
+            {
+                throw new BusinessRuleException("This order has been delivered already");
+            }
+            else if (order.Status == OrderStatus.Cancelled)
+            {
+                throw new BusinessRuleException("This order has been cancelled");
             }
             var itemsDtos = order.Items.Select(item => new OrderItemConfirmResponseDto
             {

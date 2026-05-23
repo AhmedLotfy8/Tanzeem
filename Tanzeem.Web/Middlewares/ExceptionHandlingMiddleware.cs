@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Tanzeem.Domain.CustomExceptions;
+using Tanzeem.Domain.Exceptions;
 
 public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<ExceptionHandlingMiddleware> _logger)
 {
@@ -25,6 +27,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<Exceptio
         int statusCode = (int)HttpStatusCode.InternalServerError;
         string message = "Un-Expected Error occur, please try again later";
         string title = "Internal Server Error";
+        IEnumerable<string> validationErrors = null;
 
         switch (exception)
         {
@@ -39,19 +42,48 @@ public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<Exceptio
                 title = "Not Found";
                 message =exception.Message;
                 break;
+            case BusinessRuleException:
+                statusCode = (int)HttpStatusCode.BadRequest;
+                title = "Bad Request";
+                message = exception.Message;
+                break;
+            case ValidationException valEx:
+                statusCode = (int)HttpStatusCode.BadRequest; // 400
+                title = "Validation Error";
+                message = valEx.Message;
+                validationErrors = valEx.Errors;
+                break;
+            case DbUpdateFailedException:
+                statusCode = (int)HttpStatusCode.Conflict; // 409
+                title = "Db Update Failed";
+                message = exception.Message;
+                break;
 
-                // تقدري تضيفي أي Exceptions تانية هنا
         }
 
         context.Response.StatusCode = statusCode;
 
-        var errorResponse = new
+        object errorResponse;
+
+        if (validationErrors != null && validationErrors.Any())
         {
-            Title = title,
-            StatusCode = statusCode,
-            Message = message,
-            // Detailed = exception.Message 
-        };
+            errorResponse = new
+            {
+                Title = title,
+                StatusCode = statusCode,
+                Message = message,
+                Errors = validationErrors
+            };
+        }
+        else
+        {
+            errorResponse = new
+            {
+                Title = title,
+                StatusCode = statusCode,
+                Message = message
+            };
+        }
 
         var result = JsonSerializer.Serialize(errorResponse);
         return context.Response.WriteAsync(result);

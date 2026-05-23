@@ -227,6 +227,7 @@ namespace Tanzeem.Services.Suppliers
             supplierToUpdate.Notes = supplierDto.Notes;
             supplierToUpdate.Tax_Id = supplierDto.Tax_Id;
             supplierToUpdate.ContactPersonName = supplierDto.ContactPersonName;
+            supplierToUpdate.SupplierStatus = supplierDto.SupplierStatus;
             supplierToUpdate.CompanyId = 4; ///TODO change CompanyId after auth
 
             #endregion

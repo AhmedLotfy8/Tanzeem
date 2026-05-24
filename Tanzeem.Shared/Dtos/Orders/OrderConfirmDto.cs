@@ -31,6 +31,7 @@ namespace Tanzeem.Shared.Dtos.Orders
     {
         public int OrderId { get; set; }
         public string OrderStringId { get; set; }
+        public int SupplierId { get; set; }
         public string SupplierName { get; set; }
         public IEnumerable<OrderItemConfirmResponseDto> ItemsConfirmResponseDtos { get; set; } = new List<OrderItemConfirmResponseDto>();
     }

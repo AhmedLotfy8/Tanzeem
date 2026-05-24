@@ -11,6 +11,7 @@ namespace Tanzeem.Domain.Enums
         DamagedQuantity,
         DefectiveQuantity,
         MissingQuantity,
-        IncorrectQuantity
+        IncorrectQuantity,
+        Other
     }
 }

@@ -15,7 +15,19 @@ namespace Tanzeem.Presentation.AI
         [HttpGet]
         public async Task<IActionResult> GetPredictions([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name = "page")] int page = 1)
         {
-            var result = await _demandForecastingService.GetAllPredictionsAsync(pageSize, page);
+            var result = await _demandForecastingService.GetAllPredictionsAsync(page, pageSize);
+            return Ok(result);
+        }
+        [HttpGet("Get_Top_Categories_By_Forecast")]
+        public async Task<IActionResult> GetTopCategoriesByForecast()
+        {
+            var result = await _demandForecastingService.GetTopCategoriesByForecast();
+            return Ok(result);
+        }
+        [HttpGet("Get_mini_dashboard")]
+        public async Task<IActionResult> GetMiniDashboard()
+        {
+            var result = await _demandForecastingService.GetCounts();
             return Ok(result);
         }
     }

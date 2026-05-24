@@ -11,7 +11,8 @@ namespace Tanzeem.Services.Onboarding {
         IAuthService authService,
         ICompanyService companyService,
         IBranchService branchService,
-        IAlertConfigurationsService alertConfigurationsService) : IOnboardingService {
+        IAlertConfigurationsService alertConfigurationsService,
+        IAIConfigService aIConfigService) : IOnboardingService {
 
         // Hardcoded values
         public async Task<string> OnboardNewTenantAsync(OnboardingDto onboardingDto) {
@@ -47,6 +48,10 @@ namespace Tanzeem.Services.Onboarding {
 
                 #region create new Alert configuration settings
                 await alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(branchId);
+                #endregion
+
+                #region create new ai settings
+                await aIConfigService.CreateAIConfigurations(branchId);
                 #endregion
 
                 await transaction.CommitAsync();

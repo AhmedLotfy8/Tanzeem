@@ -12,6 +12,7 @@ namespace Tanzeem.Shared.Dtos.Delivery_Issue
         public int Id { get; set; }
         public string StringId { get; set; }
         public int OrderId { get; set; }
+        public string OrderDisplayId => $"ORD-{Id:D4}";
         public DateTime RecievedDate { get; set; }
         public int SupplierId { get; set; }
         public string SupplierName { get; set; }

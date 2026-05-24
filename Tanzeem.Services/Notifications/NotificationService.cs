@@ -322,6 +322,14 @@ namespace Tanzeem.Services.Notifications
 
         public async Task CreateNewOrderNotification(Order order)
         {
+            var Alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+            .FirstOrDefaultAsync(x => x.BranchId == 1); ///TODO auth
+            
+            if (Alert is null || Alert.IsActive_NewOrderAlert == false)
+            {
+                return;
+            }
+
             Notification notification = new Notification
             {
                 BranchId = order.BranchId,

@@ -4,39 +4,43 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.AIDemand;
+using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Persistence;
 using Tanzeem.Persistence.Data.DbContexts;
+using Tanzeem.Persistence.Data.Migrations;
+using Tanzeem.Services.Abstractions.AI;
+using Tanzeem.Services.Abstractions.Alerts;
 using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
-using Tanzeem.Services.Abstractions.Onboarding;
+using Tanzeem.Services.Abstractions.Current;
+using Tanzeem.Services.Abstractions.Dashboard;
+using Tanzeem.Services.Abstractions.DeliveryIssues;
 using Tanzeem.Services.Abstractions.Notifications;
+using Tanzeem.Services.Abstractions.Onboarding;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Services.Abstractions.Products;
+using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Services.Abstractions.Transactions;
+using Tanzeem.Services.Alerts;
 using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
-using Tanzeem.Services.Onboarding;
+using Tanzeem.Services.Current;
+using Tanzeem.Services.Dashboard;
+using Tanzeem.Services.DeliveryIssues;
 using Tanzeem.Services.Notifications;
+using Tanzeem.Services.Onboarding;
 using Tanzeem.Services.Orders;
 using Tanzeem.Services.Products;
+using Tanzeem.Services.Settings;
 using Tanzeem.Services.Suppliers;
 using Tanzeem.Services.Transactions;
 using Tanzeem.Shared;
-using Tanzeem.Services.Abstractions.Alerts;
-using Tanzeem.Services.Alerts;
-using Tanzeem.Services.Abstractions.Current;
-using Tanzeem.Services.Current;
-using Tanzeem.Services.Abstractions.Settings;
-using Tanzeem.Domain.Entities.Settings;
-using Tanzeem.Services.Settings;
-using Tanzeem.Services.Abstractions.DeliveryIssues;
-using Tanzeem.Persistence.Data.Migrations;
-using Tanzeem.Services.DeliveryIssues;
 
 namespace Tanzeem.Web {
     public class Program {
@@ -65,6 +69,9 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IAlertService, AlertService>();
             builder.Services.AddScoped<IAlertConfigurationsService, AlertConfigurationsService>();
             builder.Services.AddScoped<IDeliveryIssuesService, DeliveryIssuesService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddHttpClient();
+            builder.Services.AddScoped<IDemandForecastingService, DemandForecastingService>();
             #endregion
 
             #region Added Authentication
@@ -122,6 +129,7 @@ namespace Tanzeem.Web {
 
 
             var app = builder.Build();
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             #region background services
             using (var scope = app.Services.CreateScope())
@@ -134,6 +142,10 @@ namespace Tanzeem.Web {
                     () => notificationService.CreateNotification(),
                     Cron.Weekly(DayOfWeek.Saturday, 1)
                 );
+                recurringJobManager.AddOrUpdate<DemandForecastingService>(
+                        "update-ai-demand-forecast-daily",
+                service => service.UpdateAllForecastsAsync(),
+                Cron.Daily(23, 0));
             }
             #endregion
             // Configure the HTTP request pipeline.
@@ -144,7 +156,7 @@ namespace Tanzeem.Web {
                 options.RoutePrefix = string.Empty;
             });
 
-            app.UseHangfireDashboard("/hangfire");
+            app.UseHangfireDashboard("/hangfire"); // move it after auth middlewares -- at production phase
             app.UseHttpsRedirection();
 
             app.UseCors("AllowFrontend");

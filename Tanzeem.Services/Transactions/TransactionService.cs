@@ -329,6 +329,7 @@ namespace Tanzeem.Services.Transactions {
                 QuantityOfTransactedItem = orderItem.Quantity,
                 UnitPrice = orderItem.Price,
                 ProductId = orderItem.ProductId,
+                BatchNumber = " "
             }).ToList();
 
             Transaction transaction = new Transaction() {
@@ -351,6 +352,10 @@ namespace Tanzeem.Services.Transactions {
                 Notes = order.Notes ?? "Order confirmed",
 
                 ReferenceNumber = "--",
+
+                PerformedByUserId = 3, ///TODO auth
+
+
             };
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);

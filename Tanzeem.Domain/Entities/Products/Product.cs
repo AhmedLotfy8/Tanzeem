@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Transactions;
@@ -43,6 +44,7 @@ namespace Tanzeem.Domain.Entities.Products {
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
         public Category Category { get; set; }
+        public DemandForecast DemandForecast { get; set; }
 
     }
 }

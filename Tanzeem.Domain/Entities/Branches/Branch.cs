@@ -49,6 +49,7 @@ namespace Tanzeem.Domain.Entities.Branches {
         
 
         public AlertConfigurations AlertConfigurations { get; set; }
+        public AIConfigurations AIConfiguration { get; set; }
         public ICollection<DeliveryIssue> DeliveryIssues { get; set; } = new List<DeliveryIssue>();
         public ICollection<DemandForecast> DemandForecasts { get; set; } = new List<DemandForecast>();
     }

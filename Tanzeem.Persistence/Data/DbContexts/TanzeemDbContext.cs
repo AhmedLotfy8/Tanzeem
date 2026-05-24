@@ -43,6 +43,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<DeliveryIssue> DeliveryIssues { get; set; }
         public DbSet<DeliveryIssueItem> DeliveryIssueItems { get; set; }
         public DbSet<DemandForecast> DemandForecasts { get; set; }
+        public DbSet<AIConfigurations> AIConfigurations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

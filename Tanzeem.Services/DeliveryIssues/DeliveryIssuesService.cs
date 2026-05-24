@@ -9,6 +9,7 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.DeliveryIssues;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Delivery_Issue;
@@ -206,9 +207,10 @@ namespace Tanzeem.Services.DeliveryIssues
         
         public async Task<DeliveryIssueDto> GetDeliveryIssueById(int id)
         {
+            int branchId = 2;
             var deliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>()
                 .GetByIdAsQueryable(id)
-                .Where(x => x.BranchId == 2) ///TODO auth
+                .Where(x => x.BranchId == branchId) ///TODO auth
                 .Include(x => x.Supplier)
                     .Include(x => x.Order)
                     .Include(x => x.DeliveryIssueItem)//items
@@ -264,6 +266,7 @@ namespace Tanzeem.Services.DeliveryIssues
 
 
         }
+        
 
     }
 }

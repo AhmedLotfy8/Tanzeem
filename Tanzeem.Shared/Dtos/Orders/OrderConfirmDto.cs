@@ -13,11 +13,6 @@ namespace Tanzeem.Shared.Dtos.Orders
     public class OrderItemsConfirmDto
     {
         public int ProductId { get; set; }
-        //unit and cost price edit
-        //public int? DamagedQuantity { get; set; }
-        //public int? DefectiveQuantity { get; set; }
-        //public int? MissingQuantity { get; set; }
-        //public int? IncorrectQuantity { get; set; }
         public string? Notes { get; set; }
         public IEnumerable<ConfirmItemIssuesDto> ItemsIssueDtos { get; set; } = new List<ConfirmItemIssuesDto>();
     }
@@ -27,6 +22,9 @@ namespace Tanzeem.Shared.Dtos.Orders
         public IssueType IssueType { get; set; }
         public int Quantity { get; set; }
     }
+
+
+
     public class OrderConfirmResponseDto
     {
         public int OrderId { get; set; }

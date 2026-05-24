@@ -45,6 +45,7 @@ namespace Tanzeem.Services.Onboarding {
 
                 #endregion
 
+
                 #region create new Alert configuration settings
                 await alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(branchId);
                 #endregion

@@ -13,12 +13,21 @@ namespace Tanzeem.Presentation.Authentication {
     [Route("api/[controller]")]
     public class AuthController(IAuthService authService) : ControllerBase {
 
+        [HttpGet]
+        [Route("Get-Profile")]
+        public async Task<IActionResult> GetProfile() {
+            var profile = await authService.GetUserProfileAsync();
+            return Ok(profile);
+        }
+
         [HttpPost]
         [Route("Login")]
         public async Task<IActionResult> Login(UserLoginDto userLoginDto) {
             var token = await authService.Login(userLoginDto);
             return Ok(token);
         }
+
+
 
     }
 }

@@ -6,17 +6,19 @@ using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Authentication;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared;
 using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
+        ICurrentService currentService,
         IOptions<JwtOptions> options) : IAuthService {
 
         public async Task<int> CreateAdminAsync(AdminSignUpDto userDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userDto.Email);
-            
+
             if (user is not null) {
                 throw new Exception("Email is already Registered!");
             }
@@ -60,15 +62,21 @@ namespace Tanzeem.Services.Authentication {
             return token;
         }
 
+        public async Task<UserProfileDto> GetUserProfileAsync() {
+            var user = await unitOfWork.GetRepository<User>()
+                .GetAsync(u => u.Id == currentService.UserId);
+            if (user is null) {
+                throw new Exception("User not found");
+            }
+            var userProfile = new UserProfileDto() {
+                Name = user.Name,
+                Email = user.Email,
+                Role = user.Role
+            };
+            return userProfile;
+
+        }
+    
     }
 
 }
-
-
-#region Temp -> delete if current code works
-//var users = await unitOfWork.GetRepository<User>().GetAllAsync();
-//var userCheck = users.FirstOrDefault(u => u.Email == userDto.Email);
-
-//var users = await unitOfWork.GetRepository<User>().GetAllAsync(u => u.BURelations);
-//var user = users.FirstOrDefault(u => u.Email == userLoginDto.Email);
-#endregion

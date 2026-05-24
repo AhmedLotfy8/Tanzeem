@@ -10,6 +10,7 @@ namespace Tanzeem.Services.Abstractions.Authentication {
     public interface IAuthService {
         Task<int> CreateAdminAsync(AdminSignUpDto userDto);
         Task<string?> Login(UserLoginDto userLoginDto);
+        Task<UserProfileDto> GetUserProfileAsync();
 
     }
 }

@@ -45,6 +45,7 @@ namespace Tanzeem.Services.Transactions {
 
                     QuantityOfTransactedItem = item.QuantityOfTransactedItem,
                     UnitPrice = item.UnitPrice,
+                    BatchNumber = item.BatchNumber ?? "Null",
 
                     // Mapping Product to ProductDto
                     Product = new ProductDto {
@@ -77,8 +78,7 @@ namespace Tanzeem.Services.Transactions {
                 ReferenceNumber = transaction.ReferenceNumber,
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
-                PreformedBy = "User", // dummy value
-                BatchNumber = "BatchNumber" // dummy value
+                PreformedBy = "", // dummy value
             };
 
             #endregion
@@ -87,6 +87,7 @@ namespace Tanzeem.Services.Transactions {
         }
 
         // Hard coded function (category, stock, performedby, batchnumber)
+        // Refactor Code
         public async Task<IEnumerable<TransactionDto>> GetAllTransactions(int? filterId, int? sortId) {
 
             var transactions = await TransactionHelperService.GetAllTransactions(_unitOfWork, sortId, filterId);
@@ -152,7 +153,6 @@ namespace Tanzeem.Services.Transactions {
                 Notes = transaction.Notes,
                 TransactionItemDtos = transactionItemDtosList,
                 PreformedBy = "User", // dummy value
-                BatchNumber = "BatchNumber" // dummy value
             });
 
             #endregion
@@ -160,9 +160,6 @@ namespace Tanzeem.Services.Transactions {
             return result;
 
         }
-
-
-
 
 
         // Hard coded branchId / UserId for now, will be taken from the current service in the future.
@@ -248,7 +245,6 @@ namespace Tanzeem.Services.Transactions {
             }
 
         }
-
         #region In / Out Private Functions
         private void InTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
             foreach (var item in transactionItems) {
@@ -278,29 +274,6 @@ namespace Tanzeem.Services.Transactions {
         #endregion
 
         // branchId is hard coded here
-        #region Old Low Stock Alert
-        /* 
-        private async void LowStockAlert(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
-
-            if (transaction.Type == TransactionType.Out) {
-                var lowStockItems = transactionItems.Where(item => {
-                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1); // branchId is hard coded here
-                    if (inventory == null) {
-                        throw new Exception("this inventory not found");
-                        ///TODO exception handling
-                    }
-                    return inventory.Quantity <= inventory.Product.ReorderLevel;
-                }).ToList();
-
-                if (lowStockItems.Any()) {
-                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
-                }
-
-            }
-
-        }
-        */
-        #endregion
         private async Task LowStockAlertAsync(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
             try {
                 if (transaction.Type != TransactionType.Out) return;
@@ -367,3 +340,27 @@ namespace Tanzeem.Services.Transactions {
 
     }
 }
+        
+#region Old Low Stock Alert
+        /* 
+        private async void LowStockAlert(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
+
+            if (transaction.Type == TransactionType.Out) {
+                var lowStockItems = transactionItems.Where(item => {
+                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1); // branchId is hard coded here
+                    if (inventory == null) {
+                        throw new Exception("this inventory not found");
+                        ///TODO exception handling
+                    }
+                    return inventory.Quantity <= inventory.Product.ReorderLevel;
+                }).ToList();
+
+                if (lowStockItems.Any()) {
+                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
+                }
+
+            }
+
+        }
+        */
+        #endregion

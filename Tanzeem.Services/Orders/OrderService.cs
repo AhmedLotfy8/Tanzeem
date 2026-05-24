@@ -413,11 +413,15 @@ namespace Tanzeem.Services.Orders
                 }
             }
 
-            if (confirmDto.ItemsConfirmDtos.Count() != order!.Items!.Count)
+            var orderProductIds = order.Items.Select(i => i.ProductId).ToList();
+            var incomingProductIds = confirmDto.ItemsConfirmDtos.Select(i => i.ProductId).ToList();
+            var invalidItems = incomingProductIds.Except(orderProductIds).ToList();
+
+            if (invalidItems.Any())
             {
-                errors.Add("There are some items in the order have been deleted,check the order");
+                errors.Add("Some items in the request do not belong to this order!");
             }
-            if(confirmDto.RecievedDate == null)
+            if (confirmDto.RecievedDate == null)
             {
                 errors.Add("Recived date is required, please write it");
             }
@@ -465,10 +469,11 @@ namespace Tanzeem.Services.Orders
             //    }
             //}
             #endregion
-            int totalIssues = 0;
+
             foreach (var inventory in inventories)
             {
-                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == inventory.ProductId && inventory.BranchId == branchId);
+                int totalIssues = 0;
+                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(dtoitems => dtoitems.ProductId == inventory.ProductId && inventory.BranchId == branchId);
                 
 
                 var originalOrderItem = order.Items.FirstOrDefault(i => i.ProductId == inventory.ProductId);
@@ -577,6 +582,8 @@ namespace Tanzeem.Services.Orders
                 ItemsConfirmResponseDtos = itemsDtos
             };
         }
+
+       
 
     }
 }

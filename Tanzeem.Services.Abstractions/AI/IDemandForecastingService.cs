@@ -14,5 +14,6 @@ namespace Tanzeem.Services.Abstractions.AI
         public Task<PaginationResponseDto<AIDemandForecastResponseDto>> GetAllPredictionsAsync(int page, int pageSize);
         public Task<IEnumerable<TopCategoriesByForecastDto>> GetTopCategoriesByForecast();
         public Task<DemandDashboardDto> GetCounts();
+        public Task UpdateForecastForBranchAsync(int branchId);
     }
 }

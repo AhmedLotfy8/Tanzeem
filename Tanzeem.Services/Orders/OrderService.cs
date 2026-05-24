@@ -316,6 +316,7 @@ namespace Tanzeem.Services.Orders
                 Id = order.Id,
                 StringId = $"ORD-{order.Id:D4}",
                 OrderDate = order.OrderDate,
+                SupplierId = order.SupplierId ?? 0,
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Status = order.Status.ToString(),
@@ -571,6 +572,7 @@ namespace Tanzeem.Services.Orders
             {
                 OrderId = id,
                 OrderStringId = $"ORD-{id:D4}",
+                SupplierId = order.SupplierId ?? 0,
                 SupplierName = order.SupplierName,
                 ItemsConfirmResponseDtos = itemsDtos
             };

@@ -19,6 +19,7 @@ namespace Tanzeem.Services.Products {
         ProductHelperService productHelperService,
         ICurrentService currentService) : IProductService {
 
+        // Refactor code (inventory / categoryName) retrival
         public async Task<ProductDto> GetProductByIdAsync(int id) {
 
             var product = await _unitOfWork.GetRepository<Product>().GetByIdAsync(id);
@@ -51,7 +52,8 @@ namespace Tanzeem.Services.Products {
             return result;
         }
 
-        // Branch specific product fetching (Filtering products based on branch inventory)
+        // Branch specific product fetching (Filtering products based on branch / company inventory)
+        // Refactor code (stock -> inventory retrival  // categoryName)
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId) {
             //var branchProducts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
             //    .Where(p => p.Inventories.Any(i => i.BranchId == currentService.BranchId));
@@ -83,6 +85,7 @@ namespace Tanzeem.Services.Products {
             return result;
         }
 
+        // Works with all products found in the entire company
         public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync() {
 
             var companyProducts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable();

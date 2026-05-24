@@ -108,7 +108,7 @@ namespace Tanzeem.Web {
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.AllowAnyOrigin() // WithOrigins("http://tanzeem.runasp.net/", "https://front.com") if you want to allow specific origins
+                    policy.WithOrigins("https://tanzeem.runasp.net/", "https://tanzeem-self.vercel.app/")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });

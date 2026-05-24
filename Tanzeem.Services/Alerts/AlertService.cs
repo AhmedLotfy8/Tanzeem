@@ -31,23 +31,23 @@ namespace Tanzeem.Services.Alerts
             switch (type)
             {
                 case NotificationType.LowStockAlert:
-                    return await ShowLowStockAlerts().OrderBy(x => x.Priority)
+                    return await ShowLowStockAlerts().OrderBy(x => x.ProductId)
                                  .ToPaginatedResponseAsync(page, pageSize);
 
                 case NotificationType.DeadStockAlert:
-                    return await ShowDeadStockAlerts().OrderBy(x => x.Priority)
+                    return await ShowDeadStockAlerts().OrderBy(x => x.ProductId)
                                  .ToPaginatedResponseAsync(page, pageSize);
 
                 case NotificationType.ExpiryAlert:
-                    return await ShowExpiryAlerts().OrderBy(x => x.Priority)
+                    return await ShowExpiryAlerts().OrderBy(x => x.ProductId)
                                  .ToPaginatedResponseAsync(page, pageSize);
 
                 case NotificationType.OutOfStock:
-                    return await ShowOutStockAlerts().OrderBy(x => x.Priority)
+                    return await ShowOutStockAlerts().OrderBy(x => x.ProductId)
                                  .ToPaginatedResponseAsync(page, pageSize);
 
                 case NotificationType.OrderUpdate:
-                    return await ShowOrderUpdates()
+                    return await ShowOrderUpdates().OrderBy(x => x.ProductId)
                         .ToPaginatedResponseAsync(page, pageSize);
 
                 default:
@@ -62,7 +62,7 @@ namespace Tanzeem.Services.Alerts
                         .Concat(expiryAlerts)
                         .Concat(outAlerts)
                         .Concat(orderAlerts)
-                        .OrderBy(x => x.Priority)
+                        .OrderBy(x => x.ProductId)
                         .ToList();
 
                     return allAlerts.ToPaginatedResponse(page, pageSize);

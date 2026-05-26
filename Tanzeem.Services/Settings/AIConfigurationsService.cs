@@ -5,12 +5,13 @@ using Tanzeem.Domain.CustomExceptions;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Exceptions;
+using Tanzeem.Services.Abstractions.AI;
 using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Shared.Dtos.Settings;
 
 namespace Tanzeem.Services.Settings
 {
-    public class AIConfigurationsService(IUnitOfWork _unitOfWork) : IAIConfigService
+    public class AIConfigurationsService(IUnitOfWork _unitOfWork, IDemandForecastingService _demandForecasting) : IAIConfigService
     {
         public async Task<AIConfigurationsDto> CreateAIConfigurations(int branchId)
         {
@@ -75,6 +76,8 @@ namespace Tanzeem.Services.Settings
                 throw new ValidationException("Fill the fields,please");
             }
 
+            bool pastOption = aIConfigurations.DemandForecasting;
+
             aIConfigurations.AutoCategorization = aIConfigurationsDto.AutoCategorization;
             aIConfigurations.DemandForecasting = aIConfigurationsDto.DemandForecasting;
 
@@ -85,6 +88,11 @@ namespace Tanzeem.Services.Settings
             if (affectedRows <= 0)
             {
                 throw new DbUpdateFailedException("No update happened at Ai configuration - settings");
+            }
+
+            if (pastOption == false && aIConfigurationsDto.DemandForecasting == true)
+            {
+                Hangfire.BackgroundJob.Enqueue(() => _demandForecasting.UpdateForecastForBranchAsync(branchId));
             }
 
             return aIConfigurationsDto;

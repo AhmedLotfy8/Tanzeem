@@ -9,6 +9,7 @@ using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Orders;
+using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.AI;
@@ -117,18 +118,25 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
 
     public async Task UpdateAllForecastsAsync()
     {
-        var allBranchIds = await _unitOfWork.GetRepository<Branch>()
-            .GetAllAsIQueryable()
-            .Select(b => b.Id)
-            .ToListAsync();
+        var settings = await _unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()
+        .ToDictionaryAsync(s => s.BranchId, s => s.DemandForecasting);
 
-        // التعديل هنا: سحب الهيستوري لـ 30 يوم بس
+        var allBranchIds = await _unitOfWork.GetRepository<Branch>()
+        .GetAllAsIQueryable()
+        .Select(b => b.Id)
+        .ToListAsync();
+
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30).Date;
         var todayDate = DateTime.UtcNow.Date;
 
         foreach (var branchId in allBranchIds)
         {
-            // 1. سحب المبيعات لآخر 30 يوم
+            bool isForecastingEnabled = settings.TryGetValue(branchId, out bool isEnabled) && isEnabled;
+            
+            if(!isForecastingEnabled)
+            {
+                continue;
+            }
             var rawSales = await _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.BranchId == branchId
@@ -187,6 +195,83 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
             }
         }
 
+        await _unitOfWork.SaveChangesAsync();
+    }
+    public async Task UpdateForecastForBranchAsync(int branchId)
+    {
+        // 1. نتأكد إن الخاصية متفعلة للفرع ده (أمان إضافي لو اتنادت من أي مكان تاني)
+        var aiConfig = await _unitOfWork.GetRepository<AIConfigurations>()
+            .GetAllAsIQueryable()
+            .FirstOrDefaultAsync(c => c.BranchId == branchId);
+
+        if (aiConfig == null || !aiConfig.DemandForecasting)
+        {
+            return; // لو الإعدادات مش موجودة أو مقفولة، اقفل التاسك فوراً
+        }
+
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30).Date;
+        var todayDate = DateTime.UtcNow.Date;
+
+        // 2. سحب المبيعات لآخر 30 يوم للفرع ده بس
+        var rawSales = await _unitOfWork.GetRepository<TransactionItem>()
+            .GetAllAsIQueryable()
+            .Where(ti => ti.Transaction.BranchId == branchId
+                      && ti.Transaction.Type == TransactionType.Out
+                      && ti.Transaction.CreatedAt >= thirtyDaysAgo)
+            .Select(ti => new ProductSaleData
+            {
+                ProductId = ti.ProductId,
+                Date = ti.Transaction.CreatedAt.Date,
+                Quantity = ti.QuantityOfTransactedItem
+            })
+            .ToListAsync();
+
+        // 3. سحب كميات الأوردرات الخاصة بـ "اليوم فقط" للفرع ده وتجميعها
+        var todayOrdersRaw = await _unitOfWork.GetRepository<OrderItem>()
+            .GetAllAsIQueryable()
+            .Where(oi => oi.Order.BranchId == branchId && oi.Order.OrderDate.Date == todayDate)
+            .Select(oi => new
+            {
+                ProductId = oi.ProductId,
+                Quantity = oi.Quantity
+            })
+            .ToListAsync();
+
+        Dictionary<int, int> ordersTodayByProduct = todayOrdersRaw
+            .GroupBy(x => x.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+        // 4. سحب المخزون الخاص بالفرع ده
+        var inventories = await _unitOfWork.GetRepository<Inventory>()
+            .GetAllAsIQueryable()
+            .Include(i => i.Product)
+            .Where(i => i.BranchId == branchId)
+            .ToListAsync();
+
+        double overallStoreAvg = rawSales.Any() ? rawSales.Average(x => x.Quantity) : 0;
+
+        // 5. بناء الـ Payload للموديل
+        var requestBatch = BuildFlaskRequests(inventories, rawSales, ordersTodayByProduct, branchId, overallStoreAvg, thirtyDaysAgo);
+
+        // 6. سحب التوقعات القديمة للفرع ده عشان نعملها Update
+        var existingForecasts = await _unitOfWork.GetRepository<DemandForecast>()
+            .GetAllAsIQueryable()
+            .Where(f => f.BranchId == branchId)
+            .ToDictionaryAsync(f => f.ProductId);
+
+        // 7. الاتصال بالـ AI API وحفظ النتيجة
+        foreach (var requestItem in requestBatch)
+        {
+            var aiPrediction = await CallFlaskApiAsync(requestItem);
+
+            if (aiPrediction != null)
+            {
+                int actualProductId = int.Parse(requestItem.ProductId.Replace("P_", ""));
+                await ApplyUpsertToDatabase(actualProductId, branchId, aiPrediction, existingForecasts);
+            }
+        }
+
+        // 8. حفظ التغييرات للفرع ده في خبطة واحدة
         await _unitOfWork.SaveChangesAsync();
     }
 

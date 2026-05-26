@@ -245,6 +245,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
             existingForecast.Confidence = (decimal)prediction.Confidence;
             existingForecast.ForecastDate = targetForecastDate;
             existingForecast.LastUpdated = DateTime.UtcNow;
+            _unitOfWork.GetRepository<DemandForecast>().UpdateAsync(existingForecast);
         }
         else
         {

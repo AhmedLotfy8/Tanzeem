@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Tanzeem.Domain.Constants;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Orders;
 using Tanzeem.Shared.Dtos.Orders;
@@ -8,10 +9,10 @@ namespace Tanzeem.Presentation.Orders
 {
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class OrderController(IOrderService _orderService) : ControllerBase
     {
         [HttpPost]
-        //[Authorize(Roles = "")]
         public async Task<IActionResult> CreateOrder(OrderRequestDto orderDto)
         {
             var result = await _orderService.CreateOrderAsync(orderDto);
@@ -25,13 +26,6 @@ namespace Tanzeem.Presentation.Orders
             var result = await _orderService.DeleteOrderAsync(id);
             return Ok(result);
         }
-
-        //[HttpGet]
-        //public async Task<IActionResult> ViewOrders()
-        //{
-        //    var result = await _orderService.GetAllOrdersAsync();
-        //    return Ok(result);
-        //}
 
         [HttpPut("{id}")]
         //[Authorize(Roles = "")]

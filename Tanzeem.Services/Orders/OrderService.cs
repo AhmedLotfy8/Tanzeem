@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire.Server;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.CustomExceptions;
@@ -28,15 +29,35 @@ namespace Tanzeem.Services.Orders
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            int branchId = 2;
 
+            #region validations dto
+            if (orderDto == null || orderDto.Items == null || !orderDto.Items.Any())
+                throw new ValidationException("Order data is missing or order has no items.");
 
+            if (orderDto.Items.Any(i => i.Price < 0 || i.Quantity <= 0))
+                throw new ValidationException("Price and Quantity must be greater than zero.");
+            
+            if (orderDto.ExpectedDeliveryDate < orderDto.OrderDate)
+                throw new BusinessRuleException("Expected delivery date cannot be before the order date.");
+
+            var duplicateProducts = orderDto.Items
+            .GroupBy(i => i.ProductId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+            if (duplicateProducts.Any())
+            {
+                throw new ValidationException($"You cannot send the same product multiple times. Please merge quantities for Product IDs: {string.Join(", ", duplicateProducts)}");
+            }
+
+            #endregion 
             var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(orderDto.SupplierId);
-
             if (supplier == null)
-                throw new Exception("This supplier not found");
-            ///TODO change it after exception handling
-
-            //check on orderTotal >0
+                throw new KeyNotFoundException("This supplier id not found");
+            
             var productIds = orderDto.Items.Select(i => i.ProductId).Distinct().ToList();
 
             var existingProducts = await _unitOfWork.GetRepository<Product>()
@@ -45,8 +66,8 @@ namespace Tanzeem.Services.Orders
                     .ToListAsync();
 
             if (existingProducts.Count != productIds.Count)
-                throw new Exception("One or more products were not found!");
-            ///TODO after exceptionHandling
+                throw new BusinessRuleException("One or more products may be deleted from system!");
+            
         
             #region mapping
             var OrderItems = orderDto.Items.Select(item => new OrderItem
@@ -55,9 +76,9 @@ namespace Tanzeem.Services.Orders
                 Price = item.Price,
                 Quantity = item.Quantity,
                 Total = item.Price * item.Quantity,
-            }).ToList();
-            
-            Order order = new Order //status must be default as pending
+            }).ToList();           
+
+            Order order = new Order
             {
                 OrderDate = orderDto.OrderDate,
                 Total = OrderServiceHelper.calculateTotalOfOrder(OrderItems, orderDto.Taxes, orderDto.ShippingCost),
@@ -69,8 +90,7 @@ namespace Tanzeem.Services.Orders
                 SupplierName = supplier.FullName,
                 Items = OrderItems,
                 Status = OrderStatus.Pending,
-                ///TODO change branch after auth
-                BranchId = 2,
+                BranchId = branchId,
             };
             #endregion
 
@@ -78,63 +98,52 @@ namespace Tanzeem.Services.Orders
 
             int affectedRows = await _unitOfWork.SaveChangesAsync();
 
-            await _notificationService.CreateNewOrderNotification(order);
+            if(affectedRows <= 0)
+            {
+                throw new DbUpdateFailedException("There is a problem happend when creating order at our database, please try again later");
+            }
 
-            if (affectedRows <= 0) throw new Exception("Failed to create order");
-            ///TODO after exceptionHandling
+            await _notificationService.CreateNewOrderNotification(order);
 
             return order.Id;
         }
 
         public async Task<bool> DeleteOrderAsync(int id)
         {
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
             var orderToDelete = await _unitOfWork.GetRepository<Order>().GetByIdAsync(id);
 
-            if (orderToDelete is null)
-                throw new Exception("No order to delete");
+            if (orderToDelete is null || orderToDelete.BranchId != branchId)
+                throw new KeyNotFoundException("No order with this id");
+
+            if (orderToDelete.Status == OrderStatus.Deliverd)
+            {
+                throw new BusinessRuleException("You cannot delete an order that is already processed or completed. Only pending or cancelled orders can be deleted.");
+            }
 
             _unitOfWork.GetRepository<Order>().DeleteAsync(orderToDelete);
 
             int affectedRows = await _unitOfWork.SaveChangesAsync();
 
             if (affectedRows <= 0)
-                throw new Exception("No rows affected");
-            ///TODO exception handling
-
+                throw new DbUpdateFailedException("No rows affected");
             return true;
         }
 
-        //public async Task<IEnumerable<OrderSummaryResponseDto>> GetAllOrdersAsync()
-        //{
-        //    var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable();
-
-        //    if (!query.Any())
-        //        throw new Exception("No orders");
-        //    ///TODO exception handling
-
-        //    var orderDtos = await query
-        //    .Select(order => new OrderSummaryResponseDto
-        //    {
-        //        Id = order.Id,
-        //        OrderDate = order.OrderDate,
-        //        SupplierName = order.SupplierName,
-        //        Total = order.Total,
-        //        Status = order.Status.ToString(),
-        //    }
-        //    ).ToListAsync();
-
-        //    return orderDtos;
-        //}
-
         public async Task<OrderResponseDto> GetOrderByIdAsync(int id)
         {
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            
             var query = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id);
-
+            
             var orderQuery = query.Include(o => o.Items).ThenInclude(p => p.Product);
 
             var order = await orderQuery.FirstOrDefaultAsync();
 
-            if (order is null)
+            if (order is null || order.BranchId != branchId)
             {
                 throw new KeyNotFoundException($"This order #ORD-{id:D4} not found");
                 
@@ -144,6 +153,7 @@ namespace Tanzeem.Services.Orders
             {
                 ProductName = item.Product?.Name ?? "N/A",
                 ProductId = item.Product?.Id ?? 0,
+                SKU = item.Product?.SKU ?? "",
                 Price = item.Price,
                 Quantity = item.Quantity,
                 Total = item.Total,
@@ -157,6 +167,8 @@ namespace Tanzeem.Services.Orders
                 OrderDate = order.OrderDate,
                 ExpectedDeliveryDate = order.ExpectedDeliveryDate,
                 RecievedDeliveryDate = order.RecievedDeliveryDate ?? null,
+                SupplierId = order.SupplierId ?? 0,
+                StringSupplierId = order.SupplierId.HasValue ? $"Sup-{order.SupplierId:D4}" : "Deleted Supplier",
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Taxes = order.Taxes,
@@ -172,18 +184,55 @@ namespace Tanzeem.Services.Orders
 
         public async Task<int> UpdateOrderAsync(int id, OrderRequestDto orderDto)
         {
-            var orderToUpdate = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id);
-            var order = await orderToUpdate.Include(i => i.Items).FirstOrDefaultAsync();
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            int branchId = 2;
 
-            if (order == null)
+            #region validations dto
+            if (orderDto == null || orderDto.Items == null || !orderDto.Items.Any())
+                throw new ValidationException("Order data is missing or order has no items.");
+
+            if (orderDto.Items.Any(i => i.Price < 0 || i.Quantity <= 0))
+                throw new ValidationException("Price and Quantity must be greater than zero.");
+
+            if (orderDto.ExpectedDeliveryDate < orderDto.OrderDate)
+                throw new BusinessRuleException("Expected delivery date cannot be before the order date.");
+
+            var productIds = orderDto.Items.Select(i => i.ProductId).Distinct().ToList();
+            var existingProductsCount = await _unitOfWork.GetRepository<Product>()
+                .GetAllAsIQueryable()
+                .CountAsync(p => productIds.Contains(p.Id));
+
+            if (existingProductsCount != productIds.Count)
+                throw new BusinessRuleException("One or more products in the update request do not exist in the system.");
+
+            var duplicateProducts = orderDto.Items
+            .GroupBy(i => i.ProductId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+            if (duplicateProducts.Any())
             {
-                throw new Exception($"This order {id} not found");
-                ///TODO exception handling
+                throw new ValidationException($"You cannot send the same product multiple times. Please merge quantities for Product IDs: {string.Join(", ", duplicateProducts)}");
             }
+
+            #endregion 
+
+            var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+                .Include(i => i.Items).FirstOrDefaultAsync();
+
+            #region validation order
+            if (order == null || order.BranchId != branchId)
+            {
+                throw new KeyNotFoundException($"This order ORD-{id:D4} not found");
+            }
+
             if (order.Status != OrderStatus.Pending)
             {
-                return -1; ///TODO exception handling
+                throw new BusinessRuleException("you cannot update deliverd or cancelled orders");
             }
+            #endregion
+
             #region mapping
             order.OrderDate = orderDto.OrderDate;
             order.ExpectedDeliveryDate = orderDto.ExpectedDeliveryDate;
@@ -217,23 +266,22 @@ namespace Tanzeem.Services.Orders
 
             int rowsAffected = await _unitOfWork.SaveChangesAsync();
 
-            if (rowsAffected <= 0)
-                throw new Exception("No update happened");
-            ///TODO exception handling
-
             return order.Id;
         }
 
         public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(
             int page, int pageSize, OrderFilter? orderFilter = null,OrderSort? orderSort=null, string? searchTerm = null)
         {
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            
             if (page <= 0) page = 1;
 
             const int maxPageSize = 20;
             
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
-            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable().Where(order => order.BranchId == 2);///TODO auth
+            var query = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable().Where(order => order.BranchId == branchId);
 
             if (orderFilter.HasValue)
             {
@@ -252,7 +300,9 @@ namespace Tanzeem.Services.Orders
             {
                 var cleanSearch = searchTerm.Trim().ToLower();
 
-                bool isNumber = int.TryParse(cleanSearch, out int searchNumber);
+                var searchNumberText = cleanSearch.Replace("ord-", "");
+
+                bool isNumber = int.TryParse(searchNumberText, out int searchNumber);
                 bool isDate = DateTime.TryParse(searchTerm, out DateTime searchDate);
 
                 query = query.Where(order =>
@@ -307,11 +357,11 @@ namespace Tanzeem.Services.Orders
             }
 
       
-            var orders = query
+            var orders = await query
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                .Take(pageSize).ToListAsync();
 
-            var mappedData = await orders.Select(order => new OrderSummaryResponseDto
+            var mappedData = orders.Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
                 StringId = $"ORD-{order.Id:D4}",
@@ -320,7 +370,7 @@ namespace Tanzeem.Services.Orders
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Status = order.Status.ToString(),
-            }).ToListAsync();
+            }).ToList();
 
             return new PaginationResponseDto<OrderSummaryResponseDto>
             {
@@ -357,35 +407,35 @@ namespace Tanzeem.Services.Orders
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
             // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
-            int branchId = 1;///TODO auth
-            #region data validation
-            var errors = new List<string>();
+            int branchId = 1;
 
-            if (confirmDto.OrderId < 0)
-            {
-                errors.Add("There is no Id less than zero");
-            }
-            else if (confirmDto.OrderId == 0) {
-                errors.Add("Order Id is required");
-            }
-            if (confirmDto is null)
-                errors.Add("empty confirmation fields");
-            
+            #region data validation
+            if (confirmDto == null)
+                throw new ValidationException("empty confirmation fields");
+
+            var errors = new List<string>();
+            if (confirmDto.OrderId <= 0)
+                errors.Add("Order Id is required and must be greater than zero");
+
+            if (confirmDto.ItemsConfirmDtos == null || !confirmDto.ItemsConfirmDtos.Any())
+                errors.Add("You must confirm the items at the order.");
+
+            if (confirmDto.RecievedDate == null)
+                errors.Add("Recieved date is required");
+
             if (errors.Any())
-            {
                 throw new ValidationException(errors);
-            }
             errors.Clear();
             #endregion
 
-            int orderId = confirmDto!.OrderId;
+            int orderId = confirmDto.OrderId;
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync();
 
 
             #region data validation 2
-            if (order == null)
+            if (order == null || order.BranchId != branchId)
                 throw new KeyNotFoundException("No order with this id");
 
             if (order.Status == OrderStatus.Deliverd)
@@ -401,7 +451,7 @@ namespace Tanzeem.Services.Orders
             if (order.Items == null || !order.Items.Any())
             {
                 errors.Add("you cannot receive empty order");
-                foreach(var orderItemConfirm in confirmDto.ItemsConfirmDtos)
+                foreach(var orderItemConfirm in confirmDto.ItemsConfirmDtos!)
                 {
                     if (orderItemConfirm != null)
                     {
@@ -432,17 +482,11 @@ namespace Tanzeem.Services.Orders
             }
             errors.Clear();
             #endregion
+            
             var productIds = order.Items.Select(i => i.ProductId);
 
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
                 .Where(inv => productIds.Contains(inv.ProductId) && inv.BranchId == branchId).ToListAsync();
-
-            if (!inventories.Any())
-            {
-                throw new BusinessRuleException("No inventories found for these products in this branch");
-            }
-
-            
 
             #region changes after deliver
             order.Status = Domain.Enums.OrderStatus.Deliverd;
@@ -470,73 +514,65 @@ namespace Tanzeem.Services.Orders
             //}
             #endregion
 
-            foreach (var inventory in inventories)
+            foreach (var orderItem in order.Items)
             {
-                int totalIssues = 0;
-                var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(dtoitems => dtoitems.ProductId == inventory.ProductId && inventory.BranchId == branchId);
-                
+                var itemsConfirm = confirmDto.ItemsConfirmDtos.FirstOrDefault(c => c.ProductId == orderItem.ProductId);
 
-                var originalOrderItem = order.Items.FirstOrDefault(i => i.ProductId == inventory.ProductId);
-
-                if (itemsConfirm != null && originalOrderItem != null)
+                if (itemsConfirm != null)
                 {
-                   
-                    foreach (var issue in itemsConfirm.ItemsIssueDtos)
+                    int totalIssues = itemsConfirm.ItemsIssueDtos?.Sum(issue => issue.Quantity) ?? 0;
+                    int netQuantityToAdd = orderItem.Quantity - totalIssues;
+
+                    var existingInventory = inventories.FirstOrDefault(inv => inv.ProductId == orderItem.ProductId);
+
+                    if (existingInventory != null)
                     {
-                        totalIssues += issue.Quantity;
+                        existingInventory.Quantity += netQuantityToAdd;
                     }
-                    inventory.Quantity = inventory.Quantity + originalOrderItem.Quantity - totalIssues;
+                    else
+                    {
+                        var newInventory = new Inventory
+                        {
+                            ProductId = orderItem.ProductId,
+                            BranchId = branchId,
+                            Quantity = netQuantityToAdd
+                        };
+
+                        await _unitOfWork.GetRepository<Inventory>().AddAsync(newInventory);
+                    }
                 }
             }
             #endregion
-            
+
             int rowsAffected = await _unitOfWork.SaveChangesAsync();
+
+            if (rowsAffected <= 0)
+                throw new DbUpdateFailedException("Status not changed");
 
             await _transactionService.CreateConfirmOrderTransactionAsync(order);
             await _notificationService.CreateOrderDeliveredNotification(order.Id);
             await _deliveryIssue.CreateDeliveryIssue(confirmDto);
 
-            if (rowsAffected <= 0)
-                throw new DbUpdateFailedException("Status not changed");
-            
-            if (errors.Any())
-            {
-                throw new ValidationException(errors);
-            }
             return order.Status.ToString();
         }
         
-        //public IEnumerable<object> DisplayOrderStatuses()
-        //{
-        //    return Enum.GetValues<OrderStatus>()
-        //   .Select(s => new { Id = (int)s, Name = s.ToString() });
-        //}
-
-        //public int CountPendingOrders()
-        //{
-        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-        //        .Count(o => o.Status == OrderStatus.Pending);
-        //}
-
-        //public int CountDeliverdOrders()
-        //{
-        //    return _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-        //        .Count(o => o.Status == OrderStatus.Deliverd);
-        //}
     
         public async Task<OrderCountsDto> Counts()
         {
+            // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
+            int branchId = 2;
+
             var pendingCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .CountAsync(o => o.Status == OrderStatus.Pending);
+                .CountAsync(o => o.BranchId == branchId && o.Status == OrderStatus.Pending);
 
             var deliveredCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-                .CountAsync(o => o.Status == OrderStatus.Deliverd);
+                .CountAsync(o => o.BranchId == branchId && o.Status == OrderStatus.Deliverd);
 
-            var TotalRevenue = await _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
-                .Where(oi => oi.Order.Status == OrderStatus.Deliverd)
-                .SumAsync(oi => oi.Quantity * oi.Price);
-            
-            var roundedRevenue = Math.Round(TotalRevenue);
+            var totalRevenue = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Where(o => o.BranchId == branchId && o.Status == OrderStatus.Deliverd)
+                .SumAsync(o => (decimal?)o.Total) ?? 0;
+
+            var roundedRevenue = Math.Round(totalRevenue);
             
             return new OrderCountsDto
             {
@@ -548,12 +584,15 @@ namespace Tanzeem.Services.Orders
 
         public async Task<OrderConfirmResponseDto> ViewConfirm(int id)
         {
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
                 .Include(o => o.Items)
                 .ThenInclude(p => p.Product)
                 .FirstOrDefaultAsync();
 
-            if (order == null)
+            if (order == null || order.BranchId != branchId)
             {
                 throw new KeyNotFoundException("no order found with this id");
                 
@@ -569,10 +608,11 @@ namespace Tanzeem.Services.Orders
             var itemsDtos = order.Items.Select(item => new OrderItemConfirmResponseDto
             {
                 ProductId = item.ProductId,
-                SKU = item.Product.SKU,
+                SKU = item.Product?.SKU ?? "N/A",
                 Price = item.Price,
                 OrderedQuantity = item.Quantity,
-            });
+            }).ToList();
+
             return new OrderConfirmResponseDto
             {
                 OrderId = id,

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,8 +12,12 @@ namespace Tanzeem.Shared.Dtos.Suppliers
     {
         public string SupplierName { get; set; }
         public string Email { get; set; }
+
+        [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only digits.")]
         public string PhoneNumberOne { get; set; }
+        [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only digits.")]
         public string? PhoneNumberTwo { get; set; }
+
         public string Street { get; set; }
         public string City { get; set; }
         public string Country { get; set; }

@@ -24,7 +24,7 @@ namespace Tanzeem.Services.Abstractions.Suppliers
 
         Task<bool> DeleteSupplierAsync(int id);
 
-        Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync();
+        Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync(string? searchTerm = null);
 
         public Task<SupplierCountsDto> Counts();
     }

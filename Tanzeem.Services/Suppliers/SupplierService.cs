@@ -1,12 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.CustomExceptions;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.Exceptions;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Suppliers;
@@ -14,49 +18,85 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tanzeem.Services.Suppliers
 {
-    public class SupplierService(IUnitOfWork _unitOfWork) : ISupplierService
+    public class SupplierService(IUnitOfWork _unitOfWork,ICurrentService _currentService): ISupplierService
     {
-  
+        
         public async Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto)
         {
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
+            #region validation dto 
+            if (supplierDto is null)
+                throw new ValidationException("Empty fields");
+            
+            if (string.IsNullOrWhiteSpace(supplierDto.SupplierName))
+                throw new ValidationException("Supplier name is required.");
+
+            var isDuplicate = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                    .AnyAsync(s => s.CompanyId == companyId &&
+                      (s.Email == supplierDto.Email.Trim() ||
+                      (!string.IsNullOrEmpty(supplierDto.Tax_Id) && s.Tax_Id == supplierDto.Tax_Id.Trim())));
+
+            if (isDuplicate)
+                throw new BusinessRuleException("A supplier with the same email or tax ID already exists in this company.");
+            #endregion
+
             #region mapping
             Supplier supplier = new Supplier
             {
-                FullName = supplierDto.SupplierName,
-                Email = supplierDto.Email,
-                PhoneNumberOne = supplierDto.PhoneNumberOne,
-                PhoneNumberTwo = supplierDto.PhoneNumberTwo,
+                FullName = supplierDto.SupplierName.Trim(), 
+                Email = supplierDto.Email.Trim(),
+                PhoneNumberOne = supplierDto.PhoneNumberOne.Trim(),
+                PhoneNumberTwo = supplierDto.PhoneNumberTwo?.Trim(),
                 City = supplierDto.City,
                 Country = supplierDto.Country,
                 Street = supplierDto.Street,
-                WebsiteURL = supplierDto.WebsiteURL,
+                WebsiteURL = supplierDto.WebsiteURL?.Trim(),
                 Notes = supplierDto.Notes,
-                Tax_Id = supplierDto.Tax_Id,
-                ContactPersonName = supplierDto.ContactPersonName,
-                CompanyId = 4 ///TODO change CompanyId after auth
+                Tax_Id = supplierDto.Tax_Id?.Trim(),
+                ContactPersonName = supplierDto.ContactPersonName?.Trim(),
+                CompanyId = companyId
             };
             #endregion
             await _unitOfWork.GetRepository<Supplier>().AddAsync(supplier);
-            await _unitOfWork.SaveChangesAsync();
+            int rowsAffected = await _unitOfWork.SaveChangesAsync();
+
+            if (rowsAffected <= 0)
+                throw new DbUpdateFailedException("Failed to save the new supplier. Please try again.");
 
             return supplier.Id;
         }
 
         public async Task<bool> DeleteSupplierAsync(int id)
         {
-           var supplierToDelete = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
-            if (supplierToDelete != null)
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
+            var supplierToDelete = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
+
+            if (supplierToDelete == null || supplierToDelete.CompanyId != companyId)
             {
-                _unitOfWork.GetRepository<Supplier>().DeleteAsync(supplierToDelete);
-                await _unitOfWork.SaveChangesAsync();
-                return true;
+                throw new KeyNotFoundException("this supplier not found");
             }
-            return false;
+
+            _unitOfWork.GetRepository<Supplier>().DeleteAsync(supplierToDelete);               
+
+            int affectedRows = await _unitOfWork.SaveChangesAsync();
+            
+            if (affectedRows <= 0)
+            {
+                throw new DbUpdateFailedException("No delete happened, please try again later.");
+            }
+            return true;
         }
 
         public async Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync
             (int page, int pageSize,SupplierFilter? supplierFilter = null,SupplierSort? supplierSort = null ,string? searchTerm = null)
         {
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
             if (page <= 0) page = 1;
 
             const int maxPageSize = 20;
@@ -64,12 +104,8 @@ namespace Tanzeem.Services.Suppliers
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
             var query = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
-                .Where(supplier => supplier.CompanyId ==4);///TODO auth
+                .Where(supplier => supplier.CompanyId ==companyId);
 
-            if (query == null)
-            {
-                throw new Exception("no data from supplier");///TODO exception handling
-            }
             if (supplierFilter.HasValue)
             {
                 switch (supplierFilter.Value)
@@ -130,6 +166,11 @@ namespace Tanzeem.Services.Suppliers
                 }
 
             }
+            else
+            {
+                query = query.OrderByDescending(s => s.Id);
+            }
+
             var suppliersFromDb = await query
             .Include(s => s.Orders)
             .Skip((page - 1) * pageSize)
@@ -160,7 +201,7 @@ namespace Tanzeem.Services.Suppliers
 
                 Badge = SupplierServiceHelper.GetBadge(s.Orders),
 
-            });
+            }).ToList();
 
             #endregion
             return new PaginationResponseDto<SupplierResponseDto>()
@@ -174,9 +215,17 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<SupplierResponseDto> GetSupplierByIdAsync(int id)
         {
-            var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
-            if (supplier == null) { return null!; }
+            var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsQueryable(id)
+                .Include(s => s.Orders)
+                .FirstOrDefaultAsync();
+
+            if (supplier == null || supplier.CompanyId != companyId)
+            {
+                throw new KeyNotFoundException("No supplier with this id");
+            }
 
             var supplierDto = new SupplierResponseDto
             {
@@ -207,28 +256,49 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<int> UpdateSupplierAsync(int id, SupplierRequestDto supplierDto)
         {
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
+            if (supplierDto is null)
+                throw new ValidationException("Empty fields");
+
+            if (string.IsNullOrWhiteSpace(supplierDto.SupplierName))
+                throw new ValidationException("Supplier name is required.");
+            
+            var emailToCheck = supplierDto.Email?.Trim();
+            var taxIdToCheck = supplierDto.Tax_Id?.Trim();
+
+            var isDuplicate = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                        .AnyAsync(s => s.CompanyId == companyId &&
+                       s.Id != id &&
+                       ((!string.IsNullOrEmpty(emailToCheck) && s.Email == emailToCheck) ||
+                        (!string.IsNullOrEmpty(taxIdToCheck) && s.Tax_Id == taxIdToCheck)));
+
+            if (isDuplicate)
+                throw new BusinessRuleException("A supplier with the same email or tax ID already exists in this company.");
+
+
             var supplierToUpdate = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
 
-            if (supplierToUpdate == null)
+            if (supplierToUpdate == null || supplierToUpdate.CompanyId != companyId)
             {
-                throw new Exception("this supplier not found"); ///TODO exception handling
+                throw new KeyNotFoundException("this supplier not found");
             }
 
             #region mapping
 
-            supplierToUpdate.FullName = supplierDto.SupplierName;
-            supplierToUpdate.Email = supplierDto.Email;
-            supplierToUpdate.PhoneNumberOne = supplierDto.PhoneNumberOne;
-            supplierToUpdate.PhoneNumberTwo = supplierDto.PhoneNumberTwo;
+            supplierToUpdate.FullName = supplierDto.SupplierName.Trim();
+            supplierToUpdate.Email = emailToCheck!;
+            supplierToUpdate.PhoneNumberOne = supplierDto.PhoneNumberOne?.Trim()!;
+            supplierToUpdate.PhoneNumberTwo = supplierDto.PhoneNumberTwo?.Trim();
             supplierToUpdate.City = supplierDto.City;
             supplierToUpdate.Country = supplierDto.Country;
             supplierToUpdate.Street = supplierDto.Street;
-            supplierToUpdate.WebsiteURL = supplierDto.WebsiteURL;
+            supplierToUpdate.WebsiteURL = supplierDto.WebsiteURL?.Trim();
             supplierToUpdate.Notes = supplierDto.Notes;
-            supplierToUpdate.Tax_Id = supplierDto.Tax_Id;
-            supplierToUpdate.ContactPersonName = supplierDto.ContactPersonName;
+            supplierToUpdate.Tax_Id = taxIdToCheck;
+            supplierToUpdate.ContactPersonName = supplierDto.ContactPersonName?.Trim();
             supplierToUpdate.SupplierStatus = supplierDto.SupplierStatus;
-            supplierToUpdate.CompanyId = 4; ///TODO change CompanyId after auth
 
             #endregion
 
@@ -242,28 +312,41 @@ namespace Tanzeem.Services.Suppliers
         /// it used for field supplier name when you create new order
         /// </summary>
         /// <returns>supliers names</returns>
-        public async Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync()
+        
+        public async Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync(string? searchTerm = null)
         {
-            var suppliers = await _unitOfWork.GetRepository<Supplier>().GetAllAsync();
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
-            if (suppliers is null)
+            var query = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                .Where(x => x.CompanyId == companyId && x.SupplierStatus == SupplierStatus.Active);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                throw new Exception("no suppliers");
+                var cleanSearch = searchTerm.Trim();
+                query = query.Where(x => x.FullName.Contains(cleanSearch));
             }
-            
-            var supplierLookupDtos = suppliers.Select(s => new SupplierLookupDto
-            {
-                Id = s.Id,
-                Name = s.FullName
-            });
-            return supplierLookupDtos;
+
+            var suppliers = await query.OrderBy(x => x.FullName)
+                .Select(s => new SupplierLookupDto
+                {
+                    Id = s.Id,
+                    Name = s.FullName
+                })
+                .Take(50)
+                .ToListAsync();
+
+            return suppliers;
         }
 
         public async Task<SupplierCountsDto> Counts()
         {
+            int companyId = 4;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
             var baseQuery = _unitOfWork.GetRepository<Supplier>()
                 .GetAllAsIQueryable()
-                .Where(s => s.CompanyId == 4); ///TODO auth;
+                .Where(s => s.CompanyId == companyId);
 
             int activeCount = await baseQuery.CountAsync(s => s.SupplierStatus == SupplierStatus.Active);
             int inactiveCount = await baseQuery.CountAsync(s => s.SupplierStatus == SupplierStatus.InActive);

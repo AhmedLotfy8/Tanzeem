@@ -16,6 +16,7 @@ namespace Tanzeem.Presentation.Suppliers
 
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class SupplierController(ISupplierService _supplierService) : ControllerBase
     {
         [HttpPost]
@@ -71,9 +72,9 @@ namespace Tanzeem.Presentation.Suppliers
 
         [HttpGet("lookup")]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> getSupplierNames()
+        public async Task<IActionResult> getSupplierNames(string? searchTerm = null)
         {
-            var result = await _supplierService.GetSuppliersLookupAsync();
+            var result = await _supplierService.GetSuppliersLookupAsync(searchTerm);
             return Ok(result);
         }
 

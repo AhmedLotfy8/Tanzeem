@@ -9,12 +9,10 @@ public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<Exceptio
     {
         try
         {
-            // بنقول للريكويست يكمل طريقه عادي للـ Controllers والـ Services
             await _next(context);
         }
         catch (Exception ex)
         {
-            // لو أي كود ضرب Exception في أي مكان، هيقع هنا
             _logger.LogError(ex, "Un-Expected Error occur!");
             await HandleExceptionAsync(context, ex);
         }
@@ -58,6 +56,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<Exceptio
                 title = "Db Update Failed";
                 message = exception.Message;
                 break;
+
 
         }
 

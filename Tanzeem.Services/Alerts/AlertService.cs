@@ -12,6 +12,7 @@ using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Alerts;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Notifications;
 using Tanzeem.Shared;
 using Tanzeem.Shared.Dtos;
@@ -19,11 +20,12 @@ using Tanzeem.Shared.Dtos.Notifications;
 
 namespace Tanzeem.Services.Alerts
 {
-    ///TODO filter by branchid after auth
-    public class AlertService(IUnitOfWork _unitOfWork) : IAlertService
+    
+    public class AlertService(IUnitOfWork _unitOfWork,ICurrentService _currentService) : IAlertService
     {
         public async Task<PaginationResponseDto<AlertDto>> ShowAlerts(
-        NotificationType? type, int page, int pageSize)
+        NotificationType? type, int page, int pageSize, int ExpiryFilterByMonths = 3
+            , int DeadStockFilterByMonths = 3)
         {
             if (page <= 0) page = 1;
             if (pageSize > 20) pageSize = 20;
@@ -31,31 +33,31 @@ namespace Tanzeem.Services.Alerts
             switch (type)
             {
                 case NotificationType.LowStockAlert:
-                    return await ShowLowStockAlerts().OrderBy(x => x.ProductId)
-                                 .ToPaginatedResponseAsync(page, pageSize);
+                    var lowData = await ShowLowStockAlerts();
+                    return lowData.ToPaginatedResponse(page, pageSize);
 
                 case NotificationType.DeadStockAlert:
-                    return await ShowDeadStockAlerts().OrderBy(x => x.ProductId)
-                                 .ToPaginatedResponseAsync(page, pageSize);
+                    var deadStockData = await ShowDeadStockAlerts(DeadStockFilterByMonths);
+                    return deadStockData.ToPaginatedResponse(page, pageSize);
 
                 case NotificationType.ExpiryAlert:
-                    return await ShowExpiryAlerts().OrderBy(x => x.ProductId)
-                                 .ToPaginatedResponseAsync(page, pageSize);
+                    var expiryData = await ShowExpiryAlerts(ExpiryFilterByMonths);
+                    return expiryData.ToPaginatedResponse(page, pageSize);
 
                 case NotificationType.OutOfStock:
-                    return await ShowOutStockAlerts().OrderBy(x => x.ProductId)
-                                 .ToPaginatedResponseAsync(page, pageSize);
+                    var outData = await ShowOutStockAlerts();
+                    return outData.ToPaginatedResponse(page, pageSize);
 
                 case NotificationType.OrderUpdate:
-                    return await ShowOrderUpdates().OrderBy(x => x.ProductId)
-                        .ToPaginatedResponseAsync(page, pageSize);
+                    var orderData = await ShowOrderUpdates();
+                     return orderData.ToPaginatedResponse(page, pageSize);
 
                 default:
-                    var lowAlerts = await ShowLowStockAlerts().ToListAsync();
-                    var deadAlerts = await ShowDeadStockAlerts().ToListAsync();
-                    var expiryAlerts = await ShowExpiryAlerts().ToListAsync();
-                    var outAlerts = await ShowOutStockAlerts().ToListAsync();
-                    var orderAlerts = await ShowOrderUpdates().ToListAsync();
+                    var lowAlerts = await ShowLowStockAlerts();
+                    var deadAlerts = await ShowDeadStockAlerts(DeadStockFilterByMonths);
+                    var expiryAlerts = await ShowExpiryAlerts(ExpiryFilterByMonths);
+                    var outAlerts = await ShowOutStockAlerts();
+                    var orderAlerts = await ShowOrderUpdates();
 
                     var allAlerts = lowAlerts
                         .Concat(deadAlerts)
@@ -70,19 +72,24 @@ namespace Tanzeem.Services.Alerts
         }
 
 
-        public IQueryable<AlertDto> ShowDeadStockAlerts()
+        public async Task<IEnumerable<AlertDto>> ShowDeadStockAlerts(int DeadStockFilterByMonths =3)
         {
+
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.Type == TransactionType.Out
-                          && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(-3))
+                          && ti.Transaction.CreatedAt > DateTime.UtcNow.AddMonths(- DeadStockFilterByMonths)
+                          && ti.Transaction.BranchId == branchId)
                 .Select(ti => ti.ProductId)
                 .Distinct();
 
-            var rawQuery = _unitOfWork.GetRepository<Inventory>()
+            var rawQuery = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.BranchId == 1 ///TODO Auth
+                .Where(inv => inv.BranchId == branchId
+                           && inv.Quantity > 0
                            && !recentlySoldIds.Contains(inv.ProductId))
                 .Select(inv => new
                 {
@@ -90,10 +97,10 @@ namespace Tanzeem.Services.Alerts
                     inv.Product.Name,
                     inv.Product.SKU,
                     LastSaleDate = inv.Product.TransactionItems
-                        .Where(ti => ti.Transaction.Type == TransactionType.Out)
+                        .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.BranchId == branchId)
                         .Select(ti => (DateTime?)ti.Transaction.CreatedAt)
                         .Max() 
-                });
+                }).ToListAsync();
 
             var alerts = rawQuery
                 .Select(x => new AlertDto
@@ -108,16 +115,19 @@ namespace Tanzeem.Services.Alerts
                     ProductId = x.ProductId,
                     Type = NotificationType.DeadStockAlert,
                     Priority = AlertPriority.Critical.ToString(),
-                });
+                }).OrderBy(x => x.ProductId);
             return alerts;
         }
-        public IQueryable<AlertDto> ShowLowStockAlerts()
+        public async Task<IEnumerable<AlertDto>> ShowLowStockAlerts()
         {
-            var alerts = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
-                .Include(x => x.Product)
-                .Where(x => x.BranchId == 1 ///TODO auth
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
+            var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .Where(x => x.BranchId == branchId
                 && x.Quantity > 0
                 && x.Quantity <= x.Product.ReorderLevel)
+                .OrderBy(x => x.ProductId)
                 .Select(inventory => new AlertDto
                 {
                     AlertTitle = "Low Stock Alert",
@@ -126,36 +136,56 @@ namespace Tanzeem.Services.Alerts
                     ProductId = inventory.ProductId,
                     Type = NotificationType.LowStockAlert,
                     Priority = AlertPriority.Warning.ToString(),
-                });
+                }).ToListAsync();
             return alerts;         
         }
           
-        public IQueryable<AlertDto> ShowExpiryAlerts()
+        public async Task<IEnumerable<AlertDto>> ShowExpiryAlerts(int ExpiryFilterByMonths = 3)
         {
-            var alerts = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
-                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(3))///TODO settings
-                .Select(product => new AlertDto
+            int companyId = 14;
+            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+
+            var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(ExpiryFilterByMonths)
+                && p.CompanyId == companyId
+                && p.Inventories.Any(i => i.Quantity > 0))
+                .Select(p => new
                 {
-                    AlertTitle = "Expiry Warning",
-                    AlertDescription = $"{product.Name} will expire in " +
-                    $"{NotificationServiceHelper.GenerateSinceDate(product.ExpiryDate)}",
-                    //AlertDescription = $"{product.Name} will expire in " + product.ExpiryDate,
+                    p.Id,
+                    p.Name,
+                    p.SKU,
+                    p.ExpiryDate
+                })
+                .ToListAsync();
+
+            var alerts = products.Select(product =>
+            {
+                bool isExpired = product.ExpiryDate <= DateTime.UtcNow;
+
+                return new AlertDto
+                {
+                    AlertTitle = isExpired ? "Expired Product" : "Expiry Warning",
+                    AlertDescription = isExpired
+                        ? $"{product.Name} has already expired!"
+                        : $"{product.Name} will expire in {NotificationServiceHelper.GenerateSinceDate(product.ExpiryDate)}",
                     AlertSubTitle = $"{product.Name} (SKU: {product.SKU})",
                     ProductId = product.Id,
                     Type = NotificationType.ExpiryAlert,
-                    Priority = AlertPriority.Warning.ToString(),
-
-                });   
+                    Priority = isExpired ? nameof(AlertPriority.Critical) : nameof(AlertPriority.Warning),
+                };
+            }).OrderBy(p => p.ProductId);
 
             return alerts;
         }
 
-        public IQueryable<AlertDto> ShowOutStockAlerts()
+        public async Task<IEnumerable<AlertDto>> ShowOutStockAlerts()
         {
-            var alerts = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
-                .Include(x => x.Product)
-                .Where(x => x.BranchId == 1
-                && x.Quantity == 0) ///TODO auth
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .Where(x => x.BranchId == branchId
+                && x.Quantity == 0)
+                .OrderBy(x => x.ProductId)
                 .Select(inventory => new AlertDto
                 {
                     AlertTitle = "Out Of Stock Alert",
@@ -164,16 +194,22 @@ namespace Tanzeem.Services.Alerts
                     ProductId = inventory.ProductId,
                     Type = NotificationType.OutOfStock,
                     Priority = AlertPriority.Critical.ToString(),
-                });
+                }).ToListAsync();
 
             return alerts;
         }
 
-        public IQueryable<AlertDto> ShowOrderUpdates()
+        public async Task<IEnumerable<AlertDto>> ShowOrderUpdates()
         {
-            var alerts = _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
-            .Where(x => x.BranchId == 2 && ///TODO auth
-                   (x.Status == OrderStatus.Pending || x.Status == OrderStatus.Deliverd))
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
+            var recentDate = DateTime.UtcNow.AddDays(-2);
+
+            var alerts = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+            .Where(x => x.BranchId == branchId && 
+                   (x.Status == OrderStatus.Pending || x.Status == OrderStatus.Deliverd && x.RecievedDeliveryDate >= recentDate))
+            .OrderByDescending(a => a.OrderDate)
             .Select(order => new AlertDto
             {
             AlertTitle = order.Status == OrderStatus.Pending ? "Order Pending" : "Order Delivered",
@@ -185,7 +221,7 @@ namespace Tanzeem.Services.Alerts
             AlertSubTitle = order.Status == OrderStatus.Pending ? $"order created at: {order.OrderDate}" : $"order recived at: {order.RecievedDeliveryDate}",
             Type = NotificationType.OrderUpdate,
             Priority = AlertPriority.Info.ToString(),
-            });
+            }).ToListAsync();
             return alerts;
         }
 
@@ -219,20 +255,27 @@ namespace Tanzeem.Services.Alerts
         //}
         public async Task<AlertCountsDto> Counts()
         {
-            int deadAlerts = await ShowDeadStockAlerts().CountAsync();
-            int outOfStockAlerts = await ShowOutStockAlerts().CountAsync();
+            var deadAlerts = await ShowDeadStockAlerts();
+            int deadCount = deadAlerts.Count();
 
-            int expiryAlerts = await ShowExpiryAlerts().CountAsync();
-            int lowStockAlerts = await ShowLowStockAlerts().CountAsync();
+            var outOfStockAlerts = await ShowOutStockAlerts();
+            int outCount = outOfStockAlerts.Count();
 
-            int infoAlerts = await ShowOrderUpdates().CountAsync();
+            var expiryAlerts = await ShowExpiryAlerts();
+            int expiryCount = expiryAlerts.Count();
+
+            var lowStockAlerts = await ShowLowStockAlerts();
+            int lowCount = lowStockAlerts.Count();
+
+            var infoAlerts = await ShowOrderUpdates();
+            int infoCount = infoAlerts.Count();
 
             return new AlertCountsDto
             {
-                DeadCount = deadAlerts,
-                CriticalCount = deadAlerts + outOfStockAlerts,
-                WarningCount = expiryAlerts + lowStockAlerts,
-                InfoCount = infoAlerts
+                DeadCount = deadCount,
+                CriticalCount = deadCount + outCount,
+                WarningCount = expiryCount + lowCount,
+                InfoCount = infoCount
             };
         }
     }

@@ -11,6 +11,7 @@ namespace Tanzeem.Presentation.Notifications
 {
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class NotificationController(INotificationService _notificationService) : ControllerBase
     {
         [HttpGet]

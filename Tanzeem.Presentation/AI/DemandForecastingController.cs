@@ -10,6 +10,7 @@ namespace Tanzeem.Presentation.AI
 {
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class DemandForecastingController (IDemandForecastingService _demandForecastingService): ControllerBase
     {
         [HttpGet]

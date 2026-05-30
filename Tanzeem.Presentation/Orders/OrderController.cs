@@ -48,7 +48,7 @@ namespace Tanzeem.Presentation.Orders
 
         [HttpGet]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "page_size")] int pageSize, [FromQuery(Name = "page")] int page = 1,[FromQuery(Name ="filterId")] OrderFilter? orderFilter = null, [FromQuery(Name = "sortId")] OrderSort? orderSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
+        public async Task<IActionResult> ViewOrdersWithPagination([FromQuery(Name = "page_size")] int pageSize=10, [FromQuery(Name = "page")] int page = 1,[FromQuery(Name ="filterId")] OrderFilter? orderFilter = null, [FromQuery(Name = "sortId")] OrderSort? orderSort = null, [FromQuery(Name = "searchTerm")] string? searchTerm = null)
         {
             var result = await _orderService.GetOrdersWithPaginationAsync(page,pageSize,orderFilter,orderSort,searchTerm);
             return Ok(result);

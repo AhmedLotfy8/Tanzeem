@@ -12,13 +12,14 @@ namespace Tanzeem.Presentation.Alerts
 {
     [ApiController]
     [Route ("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class AlertController(IAlertService _alertService) : ControllerBase
     {
         [HttpGet]
         //[Authorize(Roles = "")]
-        public async Task<IActionResult> GetAlerts(NotificationType? type, [FromQuery(Name = "Page_Size")] int pageSize = 15, [FromQuery(Name = "Page")] int page = 1)
+        public async Task<IActionResult> GetAlerts(NotificationType? type, [FromQuery(Name = "Page_Size")] int pageSize = 15, [FromQuery(Name = "Page")] int page = 1, int DeadStockFilterByMonths = 3, int ExpiryFilterByMonth =3)
         {
-            var result = await _alertService.ShowAlerts(type,page,pageSize);
+            var result = await _alertService.ShowAlerts(type,page,pageSize,ExpiryFilterByMonth,DeadStockFilterByMonths);
             return Ok(result);
         }
 

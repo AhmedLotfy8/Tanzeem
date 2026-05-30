@@ -11,6 +11,7 @@ namespace Tanzeem.Presentation.Settings
 {
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class AIConfigurationsController (IAIConfigService _aIConfigService) : ControllerBase
     {
         [HttpGet]

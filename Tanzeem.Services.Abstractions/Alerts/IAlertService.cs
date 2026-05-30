@@ -11,11 +11,12 @@ namespace Tanzeem.Services.Abstractions.Alerts
 {
     public interface IAlertService
     {
-        public Task<PaginationResponseDto<AlertDto>> ShowAlerts(NotificationType? type, int page, int pageSize);
+        public Task<PaginationResponseDto<AlertDto>> ShowAlerts(NotificationType? type, int page, 
+            int pageSize, int ExpiryFilterByMonths = 3, int DeadStockFilterByMonths = 3);
         public Task<AlertCountsDto> Counts();
 
-        public IQueryable<AlertDto> ShowDeadStockAlerts();
-        public IQueryable<AlertDto> ShowLowStockAlerts();
-        public IQueryable<AlertDto> ShowExpiryAlerts();
+        public Task<IEnumerable<AlertDto>> ShowDeadStockAlerts(int DeadStockFilterByMonths = 3);
+        public Task<IEnumerable<AlertDto>> ShowLowStockAlerts();
+        public Task<IEnumerable<AlertDto>> ShowExpiryAlerts(int ExpiryFilterByMonths = 3);
     }
 }

@@ -28,11 +28,19 @@ namespace Tanzeem.Services.Dashboard
         }
         public async Task<DashboardBoxesDto> GetDashboardSummary()
         {
+            var deadAlerts = await _alertService.ShowDeadStockAlerts();
+            int deadCount = deadAlerts.Count();
+
+            var lowStockAlerts = await _alertService.ShowLowStockAlerts();
+            int lowCount = lowStockAlerts.Count();
+
+            var expiryAlerts = await _alertService.ShowExpiryAlerts();
+            int expiryCount = expiryAlerts.Count();
             return new DashboardBoxesDto()
             {
-                LowStockCount = await _alertService.ShowLowStockAlerts().CountAsync(),
-                DeadStockCount = await _alertService.ShowDeadStockAlerts().CountAsync(),
-                NearExpiryCount = await _alertService.ShowExpiryAlerts().CountAsync(),
+                LowStockCount = lowCount,
+                DeadStockCount = deadCount,
+                NearExpiryCount = expiryCount,
                 TotalStockValue = await CalculateTotalStockValue()
             };
         }

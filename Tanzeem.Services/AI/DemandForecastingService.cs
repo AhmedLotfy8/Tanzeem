@@ -39,7 +39,8 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
         var totalCount = await predictions.CountAsync();
 
         var mappedData = await predictions
-        .OrderBy(x => x.Id)
+        .OrderByDescending(x => x.PredictedUnits)
+        .ThenBy(x => x.Id)
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .Select(p => new AIDemandForecastResponseDto
@@ -73,7 +74,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
             .Select(g => new TopCategoriesByForecastDto
             {
                 CategoryId = g.Key.CategoryId,
-                CategoryName = g.Key.CategoryName,
+                CategoryName = g.Key.CategoryName ?? "Uncategorized",
                 CategoryCount = (int)g.Sum(x => x.PredictedUnits)
             })
             .OrderByDescending(c => c.CategoryCount)

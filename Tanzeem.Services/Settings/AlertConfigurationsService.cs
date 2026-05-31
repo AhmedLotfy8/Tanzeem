@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.CustomExceptions;
 using Tanzeem.Domain.Entities.Settings;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Shared.Dtos.Settings;
 
 namespace Tanzeem.Services.Settings
 {
-    public class AlertConfigurationsService(IUnitOfWork _unitOfWork) : IAlertConfigurationsService
+    public class AlertConfigurationsService(IUnitOfWork _unitOfWork,ICurrentService _currentService) : IAlertConfigurationsService
     {
         public async Task<int> CreateDefaultAlertsConfigurationsAsync(int branchId)
         {
@@ -35,21 +37,22 @@ namespace Tanzeem.Services.Settings
 
             if (affectedRows <= 0)
             {
-                throw new Exception("no default Alert Configurations created"); ///TODO exception handling
+                throw new DbUpdateFailedException("no default Alert Configurations created");
             }
             return alertConfigurations.BranchId;
         }
 
         public async Task<AlertConfigurationsDto> GetAlertConfigurations()
         {
-            int branchId = 1; ///TODO auth
-            
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
             var alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
                 .FirstOrDefaultAsync(x => x.BranchId == branchId);
 
-            if (alert == null) ///TODO exception handling
+            if (alert == null || alert.BranchId != branchId)
             {
-                throw new Exception("No settings found");
+                throw new KeyNotFoundException("No settings found");
             }
             
             AlertConfigurationsDto alertConfigurationsDto = new AlertConfigurationsDto()
@@ -74,14 +77,15 @@ namespace Tanzeem.Services.Settings
 
         public async Task<AlertConfigurationsDto> UpdateAlertConfigurations(AlertConfigurationsDto alertConfigurationsDto)
         {
-            int branchId = 1;///TODO auth
-            
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
             var alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
                 .FirstOrDefaultAsync(x => x.BranchId == branchId);
 
-            if (alert is null)
+            if (alert is null || alert.BranchId != branchId)
             {
-                throw new Exception("no alert settings found");
+                throw new KeyNotFoundException("no alert settings found");
             }
 
             alert.DaysBeforeExpiry = alertConfigurationsDto.DaysBeforeExpiry;

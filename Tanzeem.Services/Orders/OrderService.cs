@@ -404,14 +404,165 @@ namespace Tanzeem.Services.Orders
         #endregion
 
 
+        //public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
+        //{
+        //    // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
+        //    int branchId = 1;
+
+        //    #region data validation
+        //    if (confirmDto == null)
+        //        throw new ValidationException("empty confirmation fields");
+
+        //    var errors = new List<string>();
+        //    if (confirmDto.OrderId <= 0)
+        //        errors.Add("Order Id is required and must be greater than zero");
+
+        //    if (confirmDto.ItemsConfirmDtos == null || !confirmDto.ItemsConfirmDtos.Any())
+        //        errors.Add("You must confirm the items at the order.");
+
+        //    if (confirmDto.RecievedDate == null)
+        //        errors.Add("Recieved date is required");
+
+        //    if (errors.Any())
+        //        throw new ValidationException(errors);
+        //    errors.Clear();
+        //    #endregion
+
+        //    int orderId = confirmDto.OrderId;
+        //    var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
+        //        .Include(o => o.Items)
+        //        .FirstOrDefaultAsync();
+
+
+        //    #region data validation 2
+        //    if (order == null || order.BranchId != branchId)
+        //        throw new KeyNotFoundException("No order with this id");
+
+        //    if (order.Status == OrderStatus.Deliverd)
+        //    {
+        //        throw new BusinessRuleException("This order has been already delivered");
+        //    }
+        //    else if (order.Status == OrderStatus.Cancelled)
+        //    {
+        //        throw new BusinessRuleException("this order has been cancelled");
+        //    }
+
+
+        //    if (order.Items == null || !order.Items.Any())
+        //    {
+        //        errors.Add("you cannot receive empty order");
+        //        foreach(var orderItemConfirm in confirmDto.ItemsConfirmDtos!)
+        //        {
+        //            if (orderItemConfirm != null)
+        //            {
+        //                if(orderItemConfirm.ProductId == 0)
+        //                {
+        //                    errors.Add("Product id is required");
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    var orderProductIds = order.Items.Select(i => i.ProductId).ToList();
+        //    var incomingProductIds = confirmDto.ItemsConfirmDtos.Select(i => i.ProductId).ToList();
+        //    var invalidItems = incomingProductIds.Except(orderProductIds).ToList();
+
+        //    if (invalidItems.Any())
+        //    {
+        //        errors.Add("Some items in the request do not belong to this order!");
+        //    }
+        //    if (confirmDto.RecievedDate == null)
+        //    {
+        //        errors.Add("Recived date is required, please write it");
+        //    }
+
+        //    if (errors.Any())
+        //    {
+        //        throw new ValidationException(errors);
+        //    }
+        //    errors.Clear();
+        //    #endregion
+
+        //    var productIds = order.Items.Select(i => i.ProductId);
+
+        //    var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
+        //        .Where(inv => productIds.Contains(inv.ProductId) && inv.BranchId == branchId).ToListAsync();
+
+        //    #region changes after deliver
+        //    order.Status = Domain.Enums.OrderStatus.Deliverd;
+        //    order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
+
+        //    #region price
+        //    //var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable().AsTracking()
+        //    //    .Where(product => productIds.Contains(product.Id)).ToListAsync();
+
+        //    //if (!products.Any())
+        //    //{
+        //    //    throw new Exception("No products");
+        //    //}
+        //    ///TODO exception handling
+
+        //    //foreach (var product in products)
+        //    //{
+        //    //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
+
+        //    //    if (itemsConfirm != null)
+        //    //    {
+        //    //        product.CostPrice = itemsConfirm.CostPrice;
+        //    //        product.SellingPrice = itemsConfirm.SellPrice;
+        //    //    }
+        //    //}
+        //    #endregion
+
+        //    foreach (var orderItem in order.Items)
+        //    {
+        //        var itemsConfirm = confirmDto.ItemsConfirmDtos.FirstOrDefault(c => c.ProductId == orderItem.ProductId);
+
+        //        if (itemsConfirm != null)
+        //        {
+        //            int totalIssues = itemsConfirm.ItemsIssueDtos?.Sum(issue => issue.Quantity) ?? 0;
+        //            int netQuantityToAdd = orderItem.Quantity - totalIssues;
+
+        //            var existingInventory = inventories.FirstOrDefault(inv => inv.ProductId == orderItem.ProductId);
+
+        //            if (existingInventory != null)
+        //            {
+        //                existingInventory.Quantity += netQuantityToAdd;
+        //            }
+        //            else
+        //            {
+        //                var newInventory = new Inventory
+        //                {
+        //                    ProductId = orderItem.ProductId,
+        //                    BranchId = branchId,
+        //                    Quantity = netQuantityToAdd
+        //                };
+
+        //                await _unitOfWork.GetRepository<Inventory>().AddAsync(newInventory);
+        //            }
+        //        }
+        //    }
+        //    #endregion
+
+        //    int rowsAffected = await _unitOfWork.SaveChangesAsync();
+
+        //    if (rowsAffected <= 0)
+        //        throw new DbUpdateFailedException("Status not changed");
+
+        //    await _transactionService.CreateConfirmOrderTransactionAsync(order);
+        //    await _notificationService.CreateOrderDeliveredNotification(order.Id);
+        //    await _deliveryIssue.CreateDeliveryIssue(confirmDto);
+
+        //    return order.Status.ToString();
+        //}
+
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
             int branchId = 1;
 
-            #region data validation
+            #region Data Validation
             if (confirmDto == null)
-                throw new ValidationException("empty confirmation fields");
+                throw new ValidationException("Empty confirmation fields");
 
             var errors = new List<string>();
             if (confirmDto.OrderId <= 0)
@@ -419,13 +570,14 @@ namespace Tanzeem.Services.Orders
 
             if (confirmDto.ItemsConfirmDtos == null || !confirmDto.ItemsConfirmDtos.Any())
                 errors.Add("You must confirm the items at the order.");
+            else if (confirmDto.ItemsConfirmDtos.Any(i => i.ProductId <= 0))
+                errors.Add("Product id is required for all items.");
 
             if (confirmDto.RecievedDate == null)
                 errors.Add("Recieved date is required");
 
             if (errors.Any())
                 throw new ValidationException(errors);
-            errors.Clear();
             #endregion
 
             int orderId = confirmDto.OrderId;
@@ -433,130 +585,86 @@ namespace Tanzeem.Services.Orders
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync();
 
-
-            #region data validation 2
+            #region Business Validation
             if (order == null || order.BranchId != branchId)
                 throw new KeyNotFoundException("No order with this id");
 
             if (order.Status == OrderStatus.Deliverd)
-            {
                 throw new BusinessRuleException("This order has been already delivered");
-            }
-            else if (order.Status == OrderStatus.Cancelled)
-            {
-                throw new BusinessRuleException("this order has been cancelled");
-            }
 
-            
+            if (order.Status == OrderStatus.Cancelled)
+                throw new BusinessRuleException("This order has been cancelled");
+
             if (order.Items == null || !order.Items.Any())
-            {
-                errors.Add("you cannot receive empty order");
-                foreach(var orderItemConfirm in confirmDto.ItemsConfirmDtos!)
-                {
-                    if (orderItemConfirm != null)
-                    {
-                        if(orderItemConfirm.ProductId == 0)
-                        {
-                            errors.Add("Product id is required");
-                        }
-                    }
-                }
-            }
+                throw new BusinessRuleException("You cannot receive an empty order");
 
             var orderProductIds = order.Items.Select(i => i.ProductId).ToList();
-            var incomingProductIds = confirmDto.ItemsConfirmDtos.Select(i => i.ProductId).ToList();
+            var incomingProductIds = confirmDto.ItemsConfirmDtos!.Select(i => i.ProductId).ToList();
             var invalidItems = incomingProductIds.Except(orderProductIds).ToList();
 
             if (invalidItems.Any())
-            {
-                errors.Add("Some items in the request do not belong to this order!");
-            }
-            if (confirmDto.RecievedDate == null)
-            {
-                errors.Add("Recived date is required, please write it");
-            }
-
-            if (errors.Any())
-            {
-                throw new ValidationException(errors);
-            }
-            errors.Clear();
-            #endregion
-            
-            var productIds = order.Items.Select(i => i.ProductId);
-
-            var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
-                .Where(inv => productIds.Contains(inv.ProductId) && inv.BranchId == branchId).ToListAsync();
-
-            #region changes after deliver
-            order.Status = Domain.Enums.OrderStatus.Deliverd;
-            order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.Now;
-
-            #region price
-            //var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable().AsTracking()
-            //    .Where(product => productIds.Contains(product.Id)).ToListAsync();
-
-            //if (!products.Any())
-            //{
-            //    throw new Exception("No products");
-            //}
-            ///TODO exception handling
-
-            //foreach (var product in products)
-            //{
-            //    var itemsConfirm = confirmDto!.ItemsConfirmDtos.FirstOrDefault(confirmDto => confirmDto.ProductId == product.Id);
-
-            //    if (itemsConfirm != null)
-            //    {
-            //        product.CostPrice = itemsConfirm.CostPrice;
-            //        product.SellingPrice = itemsConfirm.SellPrice;
-            //    }
-            //}
+                throw new ValidationException("Some items in the request do not belong to this order!");
             #endregion
 
-            foreach (var orderItem in order.Items)
-            {
-                var itemsConfirm = confirmDto.ItemsConfirmDtos.FirstOrDefault(c => c.ProductId == orderItem.ProductId);
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
 
-                if (itemsConfirm != null)
+            try
+            {
+                var productIds = order.Items.Select(i => i.ProductId);
+                var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable().AsTracking()
+                    .Where(inv => productIds.Contains(inv.ProductId) && inv.BranchId == branchId).ToListAsync();
+
+                #region Changes after deliver
+                order.Status = Domain.Enums.OrderStatus.Deliverd;
+                order.RecievedDeliveryDate = confirmDto.RecievedDate ?? DateTime.UtcNow;
+
+                foreach (var orderItem in order.Items)
                 {
-                    int totalIssues = itemsConfirm.ItemsIssueDtos?.Sum(issue => issue.Quantity) ?? 0;
-                    int netQuantityToAdd = orderItem.Quantity - totalIssues;
+                    var itemsConfirm = confirmDto.ItemsConfirmDtos!.FirstOrDefault(c => c.ProductId == orderItem.ProductId);
 
-                    var existingInventory = inventories.FirstOrDefault(inv => inv.ProductId == orderItem.ProductId);
+                    if (itemsConfirm != null)
+                    {
+                        int totalIssues = itemsConfirm.ItemsIssueDtos?.Sum(issue => issue.Quantity) ?? 0;
+                        int netQuantityToAdd = orderItem.Quantity - totalIssues;
 
-                    if (existingInventory != null)
-                    {
-                        existingInventory.Quantity += netQuantityToAdd;
-                    }
-                    else
-                    {
-                        var newInventory = new Inventory
+                        var existingInventory = inventories.FirstOrDefault(inv => inv.ProductId == orderItem.ProductId);
+
+                        if (existingInventory != null)
                         {
-                            ProductId = orderItem.ProductId,
-                            BranchId = branchId,
-                            Quantity = netQuantityToAdd
-                        };
-
-                        await _unitOfWork.GetRepository<Inventory>().AddAsync(newInventory);
+                            existingInventory.Quantity += netQuantityToAdd;
+                        }
+                        else
+                        {
+                            var newInventory = new Inventory
+                            {
+                                ProductId = orderItem.ProductId,
+                                BranchId = branchId,
+                                Quantity = netQuantityToAdd
+                            };
+                            await _unitOfWork.GetRepository<Inventory>().AddAsync(newInventory);
+                        }
                     }
                 }
+                #endregion
+
+                int rowsAffected = await _unitOfWork.SaveChangesAsync();
+                if (rowsAffected <= 0)
+                    throw new DbUpdateFailedException("Status not changed");
+
+                await _transactionService.CreateConfirmOrderTransactionAsync(order);
+                await _notificationService.CreateOrderDeliveredNotification(order.Id);
+                await _deliveryIssue.CreateDeliveryIssue(confirmDto);
+
+                await transaction.CommitAsync();
+
+                return order.Status.ToString();
             }
-            #endregion
-
-            int rowsAffected = await _unitOfWork.SaveChangesAsync();
-
-            if (rowsAffected <= 0)
-                throw new DbUpdateFailedException("Status not changed");
-
-            await _transactionService.CreateConfirmOrderTransactionAsync(order);
-            await _notificationService.CreateOrderDeliveredNotification(order.Id);
-            await _deliveryIssue.CreateDeliveryIssue(confirmDto);
-
-            return order.Status.ToString();
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw; 
+            }
         }
-        
-    
         public async Task<OrderCountsDto> Counts()
         {
             // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");

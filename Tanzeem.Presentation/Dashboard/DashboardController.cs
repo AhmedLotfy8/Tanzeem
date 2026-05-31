@@ -10,6 +10,7 @@ namespace Tanzeem.Presentation.Dashboard
 {
     [ApiController]
     [Route("api/[controller]")]
+    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class DashboardController(IDashboardService _dashboardService) :ControllerBase
     {
         [HttpGet("get_four_boxes")]

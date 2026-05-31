@@ -10,18 +10,22 @@ using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Alerts;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Dashboard;
 using Tanzeem.Shared.Dtos.Dashboard;
 
 namespace Tanzeem.Services.Dashboard
 {
-    public class DashboardService(IUnitOfWork _unitOfWork, IAlertService _alertService) : IDashboardService
+    public class DashboardService(IUnitOfWork _unitOfWork, IAlertService _alertService, ICurrentService _currentService) : IDashboardService
     {
         private async Task<decimal> CalculateTotalStockValue()
         {
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
             var totalValue = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.Quantity > 0 && inv.BranchId == 1) ///TODO AUTH
+                .Where(inv => inv.Quantity > 0 && inv.BranchId == branchId) 
                 .SumAsync(inv => (inv.Quantity ?? 0) * inv.Product.CostPrice);
 
             return totalValue;
@@ -47,15 +51,18 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<TopMovingItemsDto>> GetTopMovingItemsAsync()
         {
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
             var sixtyDaysAgo = DateTime.UtcNow.AddDays(-60);
 
             var rawData = await _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
-                .Where(ti => ti.Transaction.BranchId == 1 ///TODO: Auth
+                .Where(ti => ti.Transaction.BranchId == branchId
                           && ti.Transaction.Type == TransactionType.Out
                           && ti.Transaction.SourceReason == TransactionSource.Selling 
-                          && ti.Transaction.CreatedAt >= sixtyDaysAgo) // بنسحب آخر شهرين بس
+                          && ti.Transaction.CreatedAt >= sixtyDaysAgo)
                 .GroupBy(ti => new { ti.ProductId, ti.Product.Name })
                 .Select(g => new
                 {
@@ -85,9 +92,12 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<CategoryDistributionDto>> GetCategoryDistribution()
         {
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            
             var rawDistribution = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.BranchId == 1 && inv.Quantity > 0) ///TODO: Auth
+                .Where(inv => inv.BranchId == branchId && inv.Quantity > 0)
                 .GroupBy(inv => new { inv.Product.Category.Id, inv.Product.Category.Name })
                 .Select(g => new
                 {
@@ -124,13 +134,17 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<MonthlyMovementDto>> GetMonthlyStockMovementAsync()
         {
-            var branchId = 1; ///TODO Auth
+            var branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
+            var now = DateTime.UtcNow;
+            var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
 
             var last12Months = Enumerable.Range(0, 12)
-                .Select(i => DateTime.UtcNow.AddMonths(-11 + i))
+                .Select(i => startOfCurrentMonth.AddMonths(-11 + i))
                 .ToList();
 
-            var startDate = last12Months.First().Date; 
+            var startDate = last12Months.First();
 
             var rawData = await _unitOfWork.GetRepository<Transaction>()
                 .GetAllAsIQueryable()
@@ -154,9 +168,9 @@ namespace Tanzeem.Services.Dashboard
 
                 return new MonthlyMovementDto
                 {
-                    MonthName = m.ToString("MMM"), 
-                    StockIn = dbRecord != null ? dbRecord.InCount : 0,  
-                    StockOut = dbRecord != null ? dbRecord.OutCount : 0 
+                    MonthName = m.ToString("MMM"),
+                    StockIn = dbRecord != null ? dbRecord.InCount : 0,
+                    StockOut = dbRecord != null ? dbRecord.OutCount : 0
                 };
             }).ToList();
 
@@ -165,32 +179,52 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<StockValueDto>> GetStockValueTrendAsync()
         {
-            var branchId = 1; ///TODO Auth
+            var branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
-            var last12Months = Enumerable.Range(0, 12)
-                .Select(i => DateTime.UtcNow.AddMonths(-11 + i))
-                .ToList();
+            var now = DateTime.UtcNow;
+            var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var startDate12MonthsAgo = startOfCurrentMonth.AddMonths(-11);
+
+            var initialStockValue = await _unitOfWork.GetRepository<TransactionItem>()
+                .GetAllAsIQueryable()
+                .Where(ti => ti.Transaction.BranchId == branchId && ti.Transaction.CreatedAt < startDate12MonthsAgo)
+                .SumAsync(ti =>
+                    ti.Transaction.Type == TransactionType.In
+                        ? ti.QuantityOfTransactedItem * ti.UnitPrice
+                        : -ti.QuantityOfTransactedItem * ti.Product.CostPrice);
+
+            var monthlyNetChanges = await _unitOfWork.GetRepository<TransactionItem>()
+                .GetAllAsIQueryable()
+                .Where(ti => ti.Transaction.BranchId == branchId && ti.Transaction.CreatedAt >= startDate12MonthsAgo)
+                .GroupBy(ti => new { ti.Transaction.CreatedAt.Year, ti.Transaction.CreatedAt.Month })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    NetChange = g.Sum(ti =>
+                        ti.Transaction.Type == TransactionType.In
+                            ? ti.QuantityOfTransactedItem * ti.UnitPrice
+                            : -ti.QuantityOfTransactedItem * ti.Product.CostPrice)
+                })
+                .ToListAsync();
 
             var result = new List<StockValueDto>();
+            var runningTotalValue = initialStockValue;
+
+            var last12Months = Enumerable.Range(0, 12).Select(i => startDate12MonthsAgo.AddMonths(i)).ToList();
 
             foreach (var monthDate in last12Months)
             {
-                var daysInMonth = DateTime.DaysInMonth(monthDate.Year, monthDate.Month);
-                var endOfMonth = new DateTime(monthDate.Year, monthDate.Month, daysInMonth, 23, 59, 59);
+                var monthChange = monthlyNetChanges
+                    .FirstOrDefault(m => m.Year == monthDate.Year && m.Month == monthDate.Month)?.NetChange ?? 0;
 
-                var monthlyTotalValue = await _unitOfWork.GetRepository<TransactionItem>()
-                    .GetAllAsIQueryable()
-                    .Where(ti => ti.Transaction.BranchId == branchId
-                              && ti.Transaction.CreatedAt <= endOfMonth)
-                    .SumAsync(ti =>
-                        (ti.Transaction.Type == TransactionType.In ? ti.QuantityOfTransactedItem : -ti.QuantityOfTransactedItem)
-                        * ti.Product.CostPrice
-                    );
+                runningTotalValue += monthChange;
 
                 result.Add(new StockValueDto
                 {
                     Month = monthDate.ToString("MMM"),
-                    TotalValue = monthlyTotalValue
+                    TotalValue = Math.Max(0, runningTotalValue)
                 });
             }
 

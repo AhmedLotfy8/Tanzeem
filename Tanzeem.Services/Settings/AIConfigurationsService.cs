@@ -40,12 +40,13 @@ namespace Tanzeem.Services.Settings
         public async Task<AIConfigurationsDto> GetIConfigurationsAsync()
         {
             int branchId = 54;
-
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            
             var aIConfigurations = await _unitOfWork.GetRepository<AIConfigurations>()
                 .GetAllAsIQueryable()
                 .FirstOrDefaultAsync( x => x.BranchId == branchId);
 
-            if (aIConfigurations == null)
+            if (aIConfigurations == null || aIConfigurations.BranchId != branchId)
             {
                 throw new KeyNotFoundException("No ai settings with this branch! Try contact Tanzeem admins");
             }
@@ -65,7 +66,7 @@ namespace Tanzeem.Services.Settings
                 .GetAllAsIQueryable()
                 .FirstOrDefaultAsync(x => x.BranchId == branchId);
 
-            if (aIConfigurations == null)
+            if (aIConfigurations == null || aIConfigurations.BranchId != branchId)
             {
                 throw new KeyNotFoundException("No ai settings with this branch! Try contact Tanzeem admins");
             }

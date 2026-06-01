@@ -654,7 +654,7 @@ namespace Tanzeem.Services.Orders
                     throw new DbUpdateFailedException("Status not changed");
 
                 await _transactionService.CreateConfirmOrderTransactionAsync(order);
-                await _notificationService.CreateOrderDeliveredNotification(order.Id);
+                await _notificationService.CreateOrderDeliveredNotification(order);
                 await _deliveryIssue.CreateDeliveryIssue(confirmDto);
 
                 await transaction.CommitAsync();

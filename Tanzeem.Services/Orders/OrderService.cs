@@ -558,7 +558,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            int branchId = 1;
+            int branchId = 2;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             #region Data Validation
             if (confirmDto == null)
@@ -585,8 +586,9 @@ namespace Tanzeem.Services.Orders
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync();
 
+            //|| order.BranchId != branchId
             #region Business Validation
-            if (order == null || order.BranchId != branchId)
+            if (order == null)
                 throw new KeyNotFoundException("No order with this id");
 
             if (order.Status == OrderStatus.Deliverd)

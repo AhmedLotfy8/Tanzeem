@@ -13,9 +13,9 @@ namespace Tanzeem.Shared.Dtos.Suppliers
         public string SupplierName { get; set; }
         public string Email { get; set; }
 
-        [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only digits.")]
+        [RegularExpression(@"^\+?[0-9\s\-]+$", ErrorMessage = "Phone number is invalid.")]
         public string PhoneNumberOne { get; set; }
-        [RegularExpression(@"^[0-9]+$", ErrorMessage = "Phone number must contain only digits.")]
+        [RegularExpression(@"^\+?[0-9\s\-]+$", ErrorMessage = "Phone number is invalid.")]
         public string? PhoneNumberTwo { get; set; }
 
         public string Street { get; set; }

@@ -40,15 +40,18 @@ namespace Tanzeem.Services.Suppliers
 
             if (isDuplicate)
                 throw new BusinessRuleException("A supplier with the same email or tax ID already exists in this company.");
+            
+            string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
+            string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
             #endregion
 
             #region mapping
             Supplier supplier = new Supplier
             {
-                FullName = supplierDto.SupplierName.Trim(), 
+                FullName = supplierDto!.SupplierName.Trim(), 
                 Email = supplierDto.Email.Trim(),
-                PhoneNumberOne = supplierDto.PhoneNumberOne.Trim(),
-                PhoneNumberTwo = supplierDto.PhoneNumberTwo?.Trim(),
+                PhoneNumberOne = cleanPhone,
+                PhoneNumberTwo = cleanPhone2,
                 City = supplierDto.City,
                 Country = supplierDto.Country,
                 Street = supplierDto.Street,
@@ -267,6 +270,8 @@ namespace Tanzeem.Services.Suppliers
             
             var emailToCheck = supplierDto.Email?.Trim();
             var taxIdToCheck = supplierDto.Tax_Id?.Trim();
+            string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
+            string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
 
             var isDuplicate = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
                         .AnyAsync(s => s.CompanyId == companyId &&
@@ -287,10 +292,10 @@ namespace Tanzeem.Services.Suppliers
 
             #region mapping
 
-            supplierToUpdate.FullName = supplierDto.SupplierName.Trim();
+            supplierToUpdate.FullName = supplierDto!.SupplierName.Trim();
             supplierToUpdate.Email = emailToCheck!;
-            supplierToUpdate.PhoneNumberOne = supplierDto.PhoneNumberOne?.Trim()!;
-            supplierToUpdate.PhoneNumberTwo = supplierDto.PhoneNumberTwo?.Trim();
+            supplierToUpdate.PhoneNumberOne = cleanPhone;
+            supplierToUpdate.PhoneNumberTwo = cleanPhone2;
             supplierToUpdate.City = supplierDto.City;
             supplierToUpdate.Country = supplierDto.Country;
             supplierToUpdate.Street = supplierDto.Street;

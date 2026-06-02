@@ -44,7 +44,7 @@ namespace Tanzeem.Domain.Entities.Products {
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
         public Category Category { get; set; }
-        public DemandForecast DemandForecast { get; set; }
+        public ICollection<DemandForecast> Forecasts { get; set; } = new List<DemandForecast>();
 
     }
 }

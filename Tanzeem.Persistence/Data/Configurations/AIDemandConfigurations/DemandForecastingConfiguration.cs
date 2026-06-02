@@ -17,14 +17,14 @@ namespace Tanzeem.Persistence.Data.Configurations.AIDemandConfigurations
         {
             builder.HasKey(x => x.Id);
 
-            builder.HasOne(d => d.Product)
-              .WithOne(o => o.DemandForecast)
-              .HasForeignKey<DemandForecast>(d => d.ProductId)
-              .OnDelete(DeleteBehavior.Restrict);
-
             builder.HasOne(x => x.Branch)
                .WithMany(x => x.DemandForecasts)
                .HasForeignKey(d => d.BranchId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Product)
+               .WithMany(x => x.Forecasts)
+               .HasForeignKey(d => d.ProductId)
                .OnDelete(DeleteBehavior.Restrict);
         }
     }

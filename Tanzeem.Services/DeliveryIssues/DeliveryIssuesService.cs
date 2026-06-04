@@ -23,8 +23,8 @@ namespace Tanzeem.Services.DeliveryIssues
     {
         public async Task<int> CreateDeliveryIssue(OrderConfirmDto orderConfirmDto)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var order = await _unitOfWork.GetRepository<Order>()
                 .GetByIdAsQueryable(orderConfirmDto.OrderId)
@@ -99,8 +99,8 @@ namespace Tanzeem.Services.DeliveryIssues
 
         public async Task<PaginationResponseDto<DeliveryIssueDto>> GetAllDeliveryIssues(int page, int pageSize, DeliveryIssuesSort? sortId = null, string? searchTerm = null)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             if (page <= 0) page = 1;
 
@@ -247,8 +247,8 @@ namespace Tanzeem.Services.DeliveryIssues
         
         public async Task<DeliveryIssueDto> GetDeliveryIssueById(int id)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var deliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>()
                 .GetByIdAsQueryable(id)
@@ -260,7 +260,7 @@ namespace Tanzeem.Services.DeliveryIssues
                     .ThenInclude(x => x.Product)
                     .FirstOrDefaultAsync();
 
-            if (deliveryIssue == null)
+            if (deliveryIssue == null || deliveryIssue.BranchId != branchId)
             {
                 throw new KeyNotFoundException("No delivery issue found with this id");
             }

@@ -6,12 +6,14 @@ using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.AI;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Shared.Dtos.Settings;
 
 namespace Tanzeem.Services.Settings
 {
-    public class AIConfigurationsService(IUnitOfWork _unitOfWork, IDemandForecastingService _demandForecasting) : IAIConfigService
+    public class AIConfigurationsService(IUnitOfWork _unitOfWork, IDemandForecastingService _demandForecasting,
+        ICurrentService _currentService) : IAIConfigService
     {
         public async Task<AIConfigurationsDto> CreateAIConfigurations(int branchId)
         {
@@ -39,8 +41,8 @@ namespace Tanzeem.Services.Settings
 
         public async Task<AIConfigurationsDto> GetIConfigurationsAsync()
         {
-            int branchId = 54;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 54;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var aIConfigurations = await _unitOfWork.GetRepository<AIConfigurations>()
                 .GetAllAsIQueryable()
@@ -60,7 +62,7 @@ namespace Tanzeem.Services.Settings
 
         public async Task<AIConfigurationsDto> UpdateIConfigurationsAsync(AIConfigurationsDto aIConfigurationsDto)
         {
-            int branchId = 54;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned");
 
             var aIConfigurations = await _unitOfWork.GetRepository<AIConfigurations>()
                 .GetAllAsIQueryable()

@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Constants;
 using Tanzeem.Services.Abstractions.Notifications;
 
 namespace Tanzeem.Presentation.Notifications
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class NotificationController(INotificationService _notificationService) : ControllerBase
     {
         [HttpGet]

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Constants;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Suppliers;
@@ -16,7 +17,7 @@ namespace Tanzeem.Presentation.Suppliers
 
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class SupplierController(ISupplierService _supplierService) : ControllerBase
     {
         [HttpPost]

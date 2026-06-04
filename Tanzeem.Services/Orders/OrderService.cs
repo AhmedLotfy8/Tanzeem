@@ -29,8 +29,8 @@ namespace Tanzeem.Services.Orders
     {
         public async Task<int> CreateOrderAsync(OrderRequestDto orderDto)
         {
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
-            int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
 
             #region validations dto
             if (orderDto == null || orderDto.Items == null || !orderDto.Items.Any())
@@ -110,8 +110,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<bool> DeleteOrderAsync(int id)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var orderToDelete = await _unitOfWork.GetRepository<Order>().GetByIdAsync(id);
 
@@ -134,8 +134,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<OrderResponseDto> GetOrderByIdAsync(int id)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var query = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id);
             
@@ -184,8 +184,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<int> UpdateOrderAsync(int id, OrderRequestDto orderDto)
         {
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
-            int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
 
             #region validations dto
             if (orderDto == null || orderDto.Items == null || !orderDto.Items.Any())
@@ -272,8 +272,8 @@ namespace Tanzeem.Services.Orders
         public async Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(
             int page, int pageSize, OrderFilter? orderFilter = null,OrderSort? orderSort=null, string? searchTerm = null)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             if (page <= 0) page = 1;
 
@@ -536,8 +536,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             #region Data Validation
             if (confirmDto == null)
@@ -564,9 +564,9 @@ namespace Tanzeem.Services.Orders
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync();
 
-            //|| order.BranchId != branchId
+
             #region Business Validation
-            if (order == null)
+            if (order == null || order.BranchId != branchId)
                 throw new KeyNotFoundException("No order with this id");
 
             if (order.Status == OrderStatus.Deliverd)
@@ -647,8 +647,8 @@ namespace Tanzeem.Services.Orders
         }
         public async Task<OrderCountsDto> Counts()
         {
-            // int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
-            int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("User is not assigned to any branch.");
+            //int branchId = 2;
 
             var pendingCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
                 .CountAsync(o => o.BranchId == branchId && o.Status == OrderStatus.Pending);
@@ -672,8 +672,8 @@ namespace Tanzeem.Services.Orders
 
         public async Task<OrderConfirmResponseDto> ViewConfirm(int id)
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
                 .Include(o => o.Items)

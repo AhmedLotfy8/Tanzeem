@@ -381,28 +381,6 @@ namespace Tanzeem.Services.Orders
             };
         }
 
-        #region I commented out this method, the dropdown menu will be implemented in ProductService, and the order service will call it to get the products for the dropdown menu
-        /*
-        public async Task<IEnumerable<ProductLookupDto>> GetProductsLookupAsync(string searchTerm)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return Enumerable.Empty<ProductLookupDto>();
-
-            var query = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable();
-
-            var selectedProducts = await query.Where(p => p.Name.Contains(searchTerm) || p.SKU.StartsWith(searchTerm))
-            .Select(p => new ProductLookupDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Price = p.CostPrice,
-            }).Take(15).ToListAsync();
-
-            return selectedProducts;
-        }
-        */
-        #endregion
-
 
         //public async Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto)
         //{

@@ -25,7 +25,7 @@ namespace Tanzeem.Persistence.Data.Configurations.AIDemandConfigurations
             builder.HasOne(x => x.Product)
                .WithMany(x => x.Forecasts)
                .HasForeignKey(d => d.ProductId)
-               .OnDelete(DeleteBehavior.Restrict);
+               .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

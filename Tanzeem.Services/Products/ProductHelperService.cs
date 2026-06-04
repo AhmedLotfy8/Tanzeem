@@ -2,12 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
-using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Services.Abstractions.Current;
 
@@ -16,15 +12,18 @@ namespace Tanzeem.Services.Products {
         ICurrentService currentService) {
 
         public async Task<IEnumerable<Product>> GetAllProducts(int? sortId, int? filterId) {
-            var query = _unitOfWork.GetRepository<Product>().GetAllAsIQueryable();
-            query = query.Include(x => x.Category);
-            query = query.Include(x => x.Inventories);
-            
-            // Filter by category
+
+            var companyId = currentService.CompanyId
+                ?? throw new UnauthorizedAccessException("CompanyId not found");
+
+            // Declare as IQueryable<Product> first, apply filters before includes
+            IQueryable<Product> query = _unitOfWork.GetRepository<Product>()
+                .GetAllAsIQueryable()
+                .Where(p => p.CompanyId == companyId);
+
             if (filterId.HasValue)
                 query = query.Where(p => p.CategoryId == filterId);
 
-            // Sort
             query = sortId switch {
                 1 => query.OrderBy(p => p.Name),
                 2 => query.OrderBy(p => p.SellingPrice),
@@ -33,19 +32,15 @@ namespace Tanzeem.Services.Products {
                              .Select(i => i.Quantity)
                              .FirstOrDefault()),
                 null => query.OrderBy(p => p.Id),
-                _ => throw new Exception("Invalid sort option")
+                _ => throw new ArgumentException($"Invalid sort option: {sortId}")
             };
 
-            return await query.ToListAsync();
+            // Apply includes last, after all IQueryable<Product> operations are done
+            return await query
+                .Include(p => p.Category)
+                .Include(p => p.Inventories)
+                .ToListAsync();
         }
+
     }
-
 }
-
-
-#region To be Done Later
-//public static async Task<IEnumerable<Product>> SearchProducts(string searchTerm, IUnitOfWork _unitOfWork) {
-//    var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
-//    return products.Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
-//}
-#endregion

@@ -18,10 +18,6 @@ namespace Tanzeem.Services.Abstractions.Orders
 
         Task<bool> DeleteOrderAsync(int id);
 
-        #region I commented out this method, the dropdown menu will be implemented in ProductService, and the order service will call it to get the products for the dropdown menu
-        //public Task<IEnumerable<ProductLookupDto>> GetProductsLookupAsync(string searchTerm);
-        #endregion
-
         public Task<PaginationResponseDto<OrderSummaryResponseDto>> GetOrdersWithPaginationAsync(int page, int pageSize, OrderFilter? orderFilter = null, OrderSort? orderSort = null, string? searchTerm = null);
 
         public Task<string> ChangeOrderToDeliverd(OrderConfirmDto confirmDto);

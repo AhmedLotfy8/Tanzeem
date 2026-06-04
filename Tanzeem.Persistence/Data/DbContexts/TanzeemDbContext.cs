@@ -53,10 +53,10 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         }
 
         private void ApplyAllGlobal(ModelBuilder modelBuilder) {
-            //
-            // Company children
-            //modelBuilder.Entity<Product>().HasQueryFilter(
-            //    p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+
+            //Company children
+            modelBuilder.Entity<Product>().HasQueryFilter(
+                p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
             //
             //modelBuilder.Entity<TransactionItem>().HasQueryFilter(
@@ -72,8 +72,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
 
             //
             // Branch children
-            //modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
-            //&& (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
+            && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             /*
             modelBuilder.Entity<Transaction>().HasQueryFilter(t => t.BranchId == currentService.BranchId);

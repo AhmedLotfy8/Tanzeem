@@ -23,9 +23,9 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
 {
     public async Task<PaginationResponseDto<AIDemandForecastResponseDto>> GetAllPredictionsAsync(int page, int pageSize)
     {
-        //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+        int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
         
-        int branchId = 1;
+        //int branchId = 1;
 
         if (page <= 0) page = 1;
 
@@ -65,8 +65,8 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
 
     public async Task<IEnumerable<TopCategoriesByForecastDto>> GetTopCategoriesByForecast()
     {
-        int branchId = 1;
-        //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+        //int branchId = 1;
+        int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
         var topCategories = await _unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
             .Where(x => x.BranchId == branchId)
@@ -86,9 +86,10 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
 
     public async Task<DemandDashboardDto> GetCounts()
     {
-        //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+        int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
         
-        int branchId = 1;
+        //int branchId = 1;
+        
         var demandItems = _unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
             .Where(x => x.BranchId == branchId);
 

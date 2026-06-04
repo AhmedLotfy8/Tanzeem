@@ -75,8 +75,8 @@ namespace Tanzeem.Services.Alerts
         public async Task<IEnumerable<AlertDto>> ShowDeadStockAlerts(int DeadStockFilterByMonths =3)
         {
 
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var recentlySoldIds = _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
@@ -120,8 +120,8 @@ namespace Tanzeem.Services.Alerts
         }
         public async Task<IEnumerable<AlertDto>> ShowLowStockAlerts()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .Where(x => x.BranchId == branchId
@@ -142,8 +142,8 @@ namespace Tanzeem.Services.Alerts
           
         public async Task<IEnumerable<AlertDto>> ShowExpiryAlerts(int ExpiryFilterByMonths = 3)
         {
-            int companyId = 14;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 14;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
                 .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(ExpiryFilterByMonths)
@@ -180,8 +180,8 @@ namespace Tanzeem.Services.Alerts
 
         public async Task<IEnumerable<AlertDto>> ShowOutStockAlerts()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .Where(x => x.BranchId == branchId
                 && x.Quantity == 0)
@@ -201,8 +201,8 @@ namespace Tanzeem.Services.Alerts
 
         public async Task<IEnumerable<AlertDto>> ShowOrderUpdates()
         {
-            int branchId = 2;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 2;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var recentDate = DateTime.UtcNow.AddDays(-2);
 

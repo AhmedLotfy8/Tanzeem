@@ -1,16 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Constants;
 using Tanzeem.Services.Abstractions.Dashboard;
 
 namespace Tanzeem.Presentation.Dashboard
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class DashboardController(IDashboardService _dashboardService) :ControllerBase
     {
         [HttpGet("get_four_boxes")]

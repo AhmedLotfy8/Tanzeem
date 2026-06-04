@@ -30,8 +30,8 @@ namespace Tanzeem.Services.Notifications
         //try query filters
         public async Task<PaginationResponseDto<NotificationDto>> GetAllNotifications(int page, int pageSize)
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             if (page <= 0) page = 1;
 
             const int maxPageSize = 20;
@@ -76,8 +76,8 @@ namespace Tanzeem.Services.Notifications
         /// <exception cref="Exception"></exception>        
         public async Task<IEnumerable<int>> CreateLowStockNotification(List<TransactionItem> lowStockItems,List<Inventory> inventories)
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             List<Notification> notifications = new List<Notification>();
 
@@ -369,10 +369,12 @@ namespace Tanzeem.Services.Notifications
 
         public async Task<bool> MarkAsReadAsync(int notificationId)
         {
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned");
+            
             var notification = await _unitOfWork.GetRepository<Notification>().GetByIdAsync(notificationId);
 
             
-            if (notification == null) throw new KeyNotFoundException("no notification with this id");
+            if (notification == null || notification.BranchId != branchId) throw new KeyNotFoundException("no notification with this id");
 
             if (!notification.IsRead)
             {
@@ -386,8 +388,8 @@ namespace Tanzeem.Services.Notifications
 
         public async Task MarkAllAsReadAsync()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+           // int branchId = 1;
+           int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var unreadNotifications = await _unitOfWork.GetRepository<Notification>()
                 .GetAllAsIQueryable()

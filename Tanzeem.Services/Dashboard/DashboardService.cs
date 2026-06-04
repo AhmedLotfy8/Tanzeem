@@ -20,8 +20,8 @@ namespace Tanzeem.Services.Dashboard
     {
         private async Task<decimal> CalculateTotalStockValue()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var totalValue = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
@@ -51,8 +51,8 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<TopMovingItemsDto>> GetTopMovingItemsAsync()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
             var sixtyDaysAgo = DateTime.UtcNow.AddDays(-60);
@@ -92,8 +92,8 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<CategoryDistributionDto>> GetCategoryDistribution()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             var rawDistribution = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
@@ -134,8 +134,8 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<MonthlyMovementDto>> GetMonthlyStockMovementAsync()
         {
-            var branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //var branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var now = DateTime.UtcNow;
             var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
@@ -179,8 +179,8 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<StockValueDto>> GetStockValueTrendAsync()
         {
-            var branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //var branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var now = DateTime.UtcNow;
             var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);

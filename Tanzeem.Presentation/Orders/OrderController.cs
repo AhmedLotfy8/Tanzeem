@@ -9,7 +9,7 @@ namespace Tanzeem.Presentation.Orders
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
+    [Authorize(Roles = AppRoles.Admin + "," + AppRoles.Manager)]
     public class OrderController(IOrderService _orderService) : ControllerBase
     {
         [HttpPost]

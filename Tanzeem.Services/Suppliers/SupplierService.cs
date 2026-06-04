@@ -23,8 +23,8 @@ namespace Tanzeem.Services.Suppliers
         
         public async Task<int> CreateSupplierAsync(SupplierRequestDto supplierDto)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             #region validation dto 
             if (supplierDto is null)
@@ -73,8 +73,8 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<bool> DeleteSupplierAsync(int id)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             var supplierToDelete = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(id);
 
@@ -97,8 +97,8 @@ namespace Tanzeem.Services.Suppliers
         public async Task<PaginationResponseDto<SupplierResponseDto>> GetAllSuppliersAsync
             (int page, int pageSize,SupplierFilter? supplierFilter = null,SupplierSort? supplierSort = null ,string? searchTerm = null)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             if (page <= 0) page = 1;
 
@@ -218,8 +218,8 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<SupplierResponseDto> GetSupplierByIdAsync(int id)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsQueryable(id)
                 .Include(s => s.Orders)
@@ -259,8 +259,8 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<int> UpdateSupplierAsync(int id, SupplierRequestDto supplierDto)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             if (supplierDto is null)
                 throw new ValidationException("Empty fields");
@@ -320,8 +320,8 @@ namespace Tanzeem.Services.Suppliers
         
         public async Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync(string? searchTerm = null)
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             var query = _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
                 .Where(x => x.CompanyId == companyId && x.SupplierStatus == SupplierStatus.Active);
@@ -346,8 +346,8 @@ namespace Tanzeem.Services.Suppliers
 
         public async Task<SupplierCountsDto> Counts()
         {
-            int companyId = 4;
-            //int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
+            //int companyId = 4;
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
             var baseQuery = _unitOfWork.GetRepository<Supplier>()
                 .GetAllAsIQueryable()

@@ -44,8 +44,8 @@ namespace Tanzeem.Services.Settings
 
         public async Task<AlertConfigurationsDto> GetAlertConfigurations()
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
                 .FirstOrDefaultAsync(x => x.BranchId == branchId);
@@ -77,8 +77,8 @@ namespace Tanzeem.Services.Settings
 
         public async Task<AlertConfigurationsDto> UpdateAlertConfigurations(AlertConfigurationsDto alertConfigurationsDto)
         {
-            int branchId = 1;
-            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            //int branchId = 1;
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var alert = await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
                 .FirstOrDefaultAsync(x => x.BranchId == branchId);

@@ -120,7 +120,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
         public DateTime Date { get; set; }
         public int Quantity { get; set; }
     }
-
+    #region old code
     //    public async Task UpdateAllForecastsAsync()
     //    {
     //        var settings = await _unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()
@@ -428,7 +428,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, HttpClient _httpC
     //    }
     //    #endregion
     //}
-
+    #endregion
     public async Task UpdateAllForecastsAsync()
     {
         var settings = await _unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()

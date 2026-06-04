@@ -30,6 +30,8 @@ namespace Tanzeem.Services.Notifications
         //try query filters
         public async Task<PaginationResponseDto<NotificationDto>> GetAllNotifications(int page, int pageSize)
         {
+            int branchId = 1;
+            //int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             if (page <= 0) page = 1;
 
             const int maxPageSize = 20;
@@ -37,7 +39,7 @@ namespace Tanzeem.Services.Notifications
             if (pageSize > maxPageSize) pageSize = maxPageSize;
 
             var query = _unitOfWork.GetRepository<Notification>().GetAllAsIQueryable()
-                .OrderByDescending(x => x.CreatedAt);
+                .OrderByDescending(x => x.CreatedAt).Where(x => x.BranchId == branchId);
                 
 
             var rowsCount = query.Count();
@@ -369,6 +371,7 @@ namespace Tanzeem.Services.Notifications
         {
             var notification = await _unitOfWork.GetRepository<Notification>().GetByIdAsync(notificationId);
 
+            
             if (notification == null) throw new KeyNotFoundException("no notification with this id");
 
             if (!notification.IsRead)

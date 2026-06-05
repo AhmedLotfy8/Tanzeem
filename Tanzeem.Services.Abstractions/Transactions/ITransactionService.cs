@@ -11,7 +11,7 @@ namespace Tanzeem.Services.Abstractions.Transactions {
 
         // Get
         Task<TransactionDto> GetTransactionByIdAsync(int id);
-        Task<IEnumerable<TransactionDto>> GetAllTransactions(int? sortId, int? filterId);
+        Task<IEnumerable<TransactionDto>> GetAllTransactions(int? sortId, int? filterId, string? searchQuery);
 
 
         // Post

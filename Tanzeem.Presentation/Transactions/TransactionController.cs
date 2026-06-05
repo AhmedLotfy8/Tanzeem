@@ -17,24 +17,24 @@ namespace Tanzeem.Presentation.Transactions {
 
 
         [HttpGet]
-        [Route("Transactions/{id}")]
-        //[Authorize(Roles = "")]
+        [Route("Get-Transaction/{id}")]
+        [Authorize]
         public async Task<IActionResult> GetTransactionById(int id) {
             var result = await transactionService.GetTransactionByIdAsync(id);
             return Ok(result);
         }
 
         [HttpGet]
-        [Route("Transactions")]
-        //[Authorize(Roles = "")]
-        public async Task<IActionResult> GetTransactions(int? sortId, int? filterId) {
-            var result = await transactionService.GetAllTransactions(sortId, filterId);
+        [Route("Get-Transactions")]
+        [Authorize]
+        public async Task<IActionResult> GetTransactions(int? sortId, int? filterId, string? searchQuery) {
+            var result = await transactionService.GetAllTransactions(sortId, filterId, searchQuery);
             return Ok(result);
         }
 
         [HttpPost]
-        [Route("Transactions")]
-        //[Authorize(Roles = "")]
+        [Route("Create-Transaction")]
+        [Authorize]
         public async Task<IActionResult> CreateTransaction(TransactionDto transaction) {
             var result = await transactionService.CreateTransactionAsync(transaction);
             return Ok(result);

@@ -60,9 +60,9 @@ namespace Tanzeem.Services.Products {
             };
         }
 
-        public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId) {
+        public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId, string? searchQuery) {
 
-            var products = await productHelperService.GetAllProducts(sortId, filterId);
+            var products = await productHelperService.GetAllProducts(sortId, filterId, searchQuery);
 
             return products.Select(product => new ProductDto {
                 Name = product.Name,

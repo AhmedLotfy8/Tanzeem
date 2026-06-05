@@ -8,7 +8,8 @@ using Tanzeem.Domain.Enums;
 namespace Tanzeem.Shared.Dtos.Transactions {
     public class TransactionDto {
 
-        public string Id { get; set; }
+        public int Id { get; set; }
+        public string TransactionId { get; set; }
 
         public TransactionType Type { get; set; }          // In_Out_Adjustment
 

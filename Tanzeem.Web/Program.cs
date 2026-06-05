@@ -51,14 +51,20 @@ namespace Tanzeem.Web {
 
             #region Added Services
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ProductHelperService>();
+            
             builder.Services.AddScoped<ICompanyService, CompanyService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
+            
             builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddScoped<TransactionHelperService>();
+            
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IOnboardingService, OnboardingService>();
+            
             builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtOptions"));
             builder.Services.AddScoped<ICurrentService, CurrentService>();
             builder.Services.AddHttpContextAccessor();
@@ -116,18 +122,23 @@ namespace Tanzeem.Web {
             });
 
             #endregion
+            
+            #region Controller & swagger
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            #endregion
+
+            #region DB Connection
 
             builder.Services.AddDbContext<TanzeemDbContext>(options => {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
             });
 
-
+            #endregion
 
             var app = builder.Build();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -149,6 +160,9 @@ namespace Tanzeem.Web {
                 Cron.Daily(23, 0));
             }
             #endregion
+
+            #region Swagger Routing
+
             // Configure the HTTP request pipeline.
             //if (app.Environment.IsDevelopment()){}
             app.UseSwagger();
@@ -156,6 +170,8 @@ namespace Tanzeem.Web {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "V1");
                 options.RoutePrefix = string.Empty;
             });
+
+            #endregion
 
             app.UseHangfireDashboard("/hangfire"); // move it after auth middlewares -- at production phase
             app.UseHttpsRedirection();

@@ -46,9 +46,11 @@ namespace Tanzeem.Services.Products {
             #endregion
 
             return new ProductDto {
+                Id = product.Id,
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category?.Name ?? "-",
+                CategoryId = product.CategoryId,
                 Stock = inventory.Quantity ?? 0,
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
@@ -65,9 +67,11 @@ namespace Tanzeem.Services.Products {
             var products = await productHelperService.GetAllProducts(sortId, filterId, searchQuery);
 
             return products.Select(product => new ProductDto {
+                Id = product.Id,
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category?.Name ?? "Uncategorized",
+                CategoryId = product.CategoryId,
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
                 ExpiryDate = product.ExpiryDate,

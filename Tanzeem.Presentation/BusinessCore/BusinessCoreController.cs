@@ -19,7 +19,7 @@ namespace Tanzeem.Presentation.BusinessCore {
 
         [HttpPost]
         [Route("Create-Employee")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateNewEmployee(EmployeeCreationDto createEmployeeDto) {
 
             var result = await businessCoreService.CreateNewEmployee(createEmployeeDto);
@@ -29,7 +29,7 @@ namespace Tanzeem.Presentation.BusinessCore {
 
         [HttpPut]
         [Route("Assign-User")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignUserToBranch(int userId, int currentBranchId, int newBranchId) {
 
             var result = await businessCoreService.AssignUserToBranch(userId, currentBranchId, newBranchId);

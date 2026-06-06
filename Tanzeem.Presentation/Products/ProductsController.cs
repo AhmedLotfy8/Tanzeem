@@ -25,8 +25,8 @@ namespace Tanzeem.Presentation.Products {
         [HttpGet]
         [Route("Get-Products-Dropdown-Menu")]
         [Authorize]
-        public async Task<IActionResult> GetAllProductsMenu() {
-            var result = await productService.GetAllProductsMenuAsync();
+        public async Task<IActionResult> GetAllProductsMenu(string? searchQuery) {
+            var result = await productService.GetAllProductsMenuAsync(searchQuery);
             return Ok(result);
         }
 

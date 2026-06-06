@@ -86,22 +86,34 @@ namespace Tanzeem.Services.Products {
             });
         }
 
-        public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync() {
+        public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync(string? searchQuery) {
 
             var companyId = currentService.CompanyId
                 ?? throw new UnauthorizedAccessException("CompanyId not found");
 
             return await _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
-                .Where(p => p.CompanyId == companyId)
+                .Where(p => p.CompanyId == companyId && (string.IsNullOrEmpty(searchQuery) ||
+                    p.Name.Contains(searchQuery) ||
+                    p.SKU.Contains(searchQuery) ||
+                    p.Barcode.Contains(searchQuery)
+                ))
                 .Select(p => new ProductDropdownMenuDto {
                     Id = p.Id,
                     Name = p.Name,
                     SKU = p.SKU,
+                    Barcode = p.Barcode,
+                    Stock = p.Inventories
+                              .Where(i => i.BranchId == currentService.BranchId)
+                              .Select(i => i.Quantity)
+                              .FirstOrDefault() ?? 0,
                     Price = p.SellingPrice
                 })
                 .Take(15)
                 .ToListAsync();
+
+
+
         }
 
         public async Task<int> CreateProductAsync(ProductDto productDto) {

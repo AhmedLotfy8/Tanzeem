@@ -1,9 +1,10 @@
-﻿using Tanzeem.Domain.Entities.DeliveryIssues;
+﻿using Tanzeem.Domain.AuditLogs;
+using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Orders
 {
-    public class OrderItem
+    public class OrderItem : IAuditable
     {
         public int Id { get; set; }
         public int Quantity { get; set; }

@@ -43,9 +43,14 @@ namespace Tanzeem.Services.Suppliers
             
             string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
             string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
+
+            if (cleanPhone.Length > 20 || cleanPhone2.Length > 20)
+            {
+                throw new ValidationException("Phone number is too long. Maximum allowed is 20 digits.");
+            }
             #endregion
-            
-            
+
+
             var lastSupplier = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
                 .Where(s => s.CompanyId == companyId)
                 .OrderByDescending(s => s.Id)
@@ -295,7 +300,10 @@ namespace Tanzeem.Services.Suppliers
             var taxIdToCheck = supplierDto.Tax_Id?.Trim();
             string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
             string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
-
+            if (cleanPhone.Length > 20 || cleanPhone2.Length > 20)
+            {
+                throw new ValidationException("Phone number is too long. Maximum allowed is 20 digits.");
+            }
             var isDuplicate = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
                         .AnyAsync(s => s.CompanyId == companyId &&
                        s.Id != id &&

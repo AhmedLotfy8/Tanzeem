@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.AuditLogs;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Suppliers;
 
 namespace Tanzeem.Domain.Entities.DeliveryIssues
 {
-    public class DeliveryIssue
+    public class DeliveryIssue : IAuditable
     {
         public int Id { get; set; }
         public string DeliveryIssueNumber { get; set; }

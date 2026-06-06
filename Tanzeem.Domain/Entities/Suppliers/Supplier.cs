@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.AuditLogs;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.DeliveryIssues;
@@ -11,7 +12,7 @@ using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Suppliers
 {
-    public class Supplier
+    public class Supplier : IAuditable
     {
         public int Id { get; set; }
         public string SupplierNumber { get; set; }

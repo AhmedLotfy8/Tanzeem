@@ -16,7 +16,7 @@ namespace Tanzeem.Presentation.Branches {
 
         [HttpGet]
         [Route("Get-Branch/{id}")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetBranch(int id) {
             var branch = await branchService.GetBranchAsync(id);
             return Ok(branch);
@@ -24,24 +24,15 @@ namespace Tanzeem.Presentation.Branches {
 
         [HttpGet]
         [Route("Get-Branches")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetBranches() {
             var branches = await branchService.GetCompanyBranchesAsync();
             return Ok(branches);
         }
 
-        [HttpPost]
-        [Route("Create-Branch")]
-        //[Authorize(Roles = "")]
-        // Hard coded values (adminId/companyId)
-        public async Task<IActionResult> CreateBranch(BranchDto branchDto, int adminId, int companyId) {
-            var result = await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
-            return Ok(result);
-        }
-
         [HttpPut]
         [Route("Update-Branch/{id}")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateBranch(int id, BranchDto branchDto) {
             var result = await branchService.UpdateBranchAsync(id, branchDto);
             return Ok(result);
@@ -49,7 +40,7 @@ namespace Tanzeem.Presentation.Branches {
 
         [HttpDelete]
         [Route("Delete-Branch/{id}")]
-        //[Authorize(Roles = "")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteBranch(int id) {
             var result = await branchService.DeleteBranchAsync(id);
             return Ok(result);

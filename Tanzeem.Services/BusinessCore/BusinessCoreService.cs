@@ -4,13 +4,16 @@ using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Domain.Exceptions;
+using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Current;
+using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.BusinessCore {
     public class BusinessCoreService(
         IUnitOfWork unitOfWork,
+        IBranchService branchService,
         ICurrentService currentService) : IBusinessCoreService {
 
         public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) {
@@ -52,27 +55,30 @@ namespace Tanzeem.Services.BusinessCore {
             return employee.Id;
         }
 
-        public async Task<bool> AssignUserToBranch(int userId, int currentBranchId, int newBranchId) {
+        public async Task<int> CreateAdditionalBranchAsync(BranchDto branchDto) {
+            var adminId = currentService.UserId
+                ?? throw new InvalidOperationException("User not authenticated.");
+            var companyId = currentService.CompanyId
+                ?? throw new InvalidOperationException("Company context missing from token.");
 
-            #region Validate entities exist
+            return await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
+        }
+        
+        public async Task<bool> AssignUserToBranch(int userId, int newBranchId) {
+            var userTask = unitOfWork.GetRepository<User>().GetAsync(u => u.Id == userId);
+            var branchTask = unitOfWork.GetRepository<Branch>().GetAsync(b => b.Id == newBranchId);
+            await Task.WhenAll(userTask, branchTask);
 
-            var userExists = await unitOfWork.GetRepository<User>().GetAsync(u => u.Id == userId);
-            var branchExists = await unitOfWork.GetRepository<Branch>().GetAsync(b => b.Id == newBranchId);
-            if (userExists is null || branchExists is null)
+            if (userTask.Result is null || branchTask.Result is null)
                 throw new Exception("User or Branch not found.");
 
-            #endregion
-
-
-            #region Fetch current primary
-
             var currentPrimaryRelation = await unitOfWork.GetRepository<BranchUserRelationship>()
-                .GetAsync(bur => bur.UserId == userId && bur.BranchId == currentBranchId);
+                .GetAsync(bur => bur.UserId == userId && bur.IsPrimary);
+
             if (currentPrimaryRelation is null)
                 throw new Exception("Current primary branch relation not found.");
 
-            #endregion
-
+            if (currentPrimaryRelation.BranchId == newBranchId) return true;
 
             currentPrimaryRelation.IsPrimary = false;
             unitOfWork.GetRepository<BranchUserRelationship>().UpdateAsync(currentPrimaryRelation);
@@ -80,13 +86,10 @@ namespace Tanzeem.Services.BusinessCore {
             var newPrimaryRelation = await unitOfWork.GetRepository<BranchUserRelationship>()
                 .GetAsync(bur => bur.UserId == userId && bur.BranchId == newBranchId);
 
-            // If the relation already exists, just update it to be primary. 
             if (newPrimaryRelation is not null) {
                 newPrimaryRelation.IsPrimary = true;
                 unitOfWork.GetRepository<BranchUserRelationship>().UpdateAsync(newPrimaryRelation);
             }
-
-            // Otherwise, create a new relation.
             else {
                 await unitOfWork.GetRepository<BranchUserRelationship>().AddAsync(new BranchUserRelationship {
                     UserId = userId,
@@ -97,7 +100,8 @@ namespace Tanzeem.Services.BusinessCore {
 
             return await unitOfWork.SaveChangesAsync() > 0;
         }
-    
+
+
     }
 }
 

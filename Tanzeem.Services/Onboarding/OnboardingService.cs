@@ -14,7 +14,6 @@ namespace Tanzeem.Services.Onboarding {
         IAlertConfigurationsService alertConfigurationsService,
         IAIConfigService aIConfigService) : IOnboardingService {
 
-        // Hardcoded values
         public async Task<string> OnboardNewTenantAsync(OnboardingDto onboardingDto) {
 
             if (onboardingDto == null) {

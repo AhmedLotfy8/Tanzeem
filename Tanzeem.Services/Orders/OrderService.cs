@@ -67,8 +67,23 @@ namespace Tanzeem.Services.Orders
 
             if (existingProducts.Count != productIds.Count)
                 throw new BusinessRuleException("One or more products may be deleted from system!");
-            
-        
+
+            var lastOrder = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                .Where(o => o.BranchId == branchId)
+                .OrderByDescending(o => o.Id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (lastOrder != null && !string.IsNullOrWhiteSpace(lastOrder.OrderNumber))
+            {
+                string[] numberParts = lastOrder.OrderNumber.Split('-');
+                if (numberParts.Length > 0 && int.TryParse(numberParts.Last(), out int lastSeq))
+                {
+                    nextNumber = lastSeq + 1;
+                }
+            }
+            string generatedOrderNumber = $"ORD-{nextNumber:D4}";
             #region mapping
             var OrderItems = orderDto.Items.Select(item => new OrderItem
             {
@@ -91,6 +106,7 @@ namespace Tanzeem.Services.Orders
                 Items = OrderItems,
                 Status = OrderStatus.Pending,
                 BranchId = branchId,
+                OrderNumber = generatedOrderNumber,
             };
             #endregion
 
@@ -186,7 +202,7 @@ namespace Tanzeem.Services.Orders
             
             var query = _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id);
             
-            var orderQuery = query.Include(o => o.Items).ThenInclude(p => p.Product);
+            var orderQuery = query.Include(c => c.Supplier).Include(o => o.Items).ThenInclude(p => p.Product);
 
             var order = await orderQuery.FirstOrDefaultAsync();
 
@@ -210,12 +226,12 @@ namespace Tanzeem.Services.Orders
             OrderResponseDto orderDto = new OrderResponseDto
             {
                 Id = order.Id,
-                StringId = $"ORD-{order.Id:D4}",
+                StringId = order.OrderNumber,
                 OrderDate = order.OrderDate,
                 ExpectedDeliveryDate = order.ExpectedDeliveryDate,
                 RecievedDeliveryDate = order.RecievedDeliveryDate ?? null,
                 SupplierId = order.SupplierId ?? 0,
-                StringSupplierId = order.SupplierId.HasValue ? $"Sup-{order.SupplierId:D4}" : "Deleted Supplier",
+                StringSupplierId = order.Supplier!.SupplierNumber ?? "Deleted Supplier",
                 SupplierName = order.SupplierName,
                 Total = order.Total,
                 Taxes = order.Taxes,
@@ -355,6 +371,7 @@ namespace Tanzeem.Services.Orders
                 query = query.Where(order =>
 
                     order.SupplierName.ToLower().Contains(cleanSearch) ||
+                    order.OrderNumber.Contains(cleanSearch) ||
                     (order.Notes != null && order.Notes.ToLower().Contains(cleanSearch)) ||
 
                     (isNumber && (order.Id == searchNumber || order.Total == searchNumber)) ||
@@ -411,7 +428,7 @@ namespace Tanzeem.Services.Orders
             var mappedData = orders.Select(order => new OrderSummaryResponseDto
             {
                 Id = order.Id,
-                StringId = $"ORD-{order.Id:D4}",
+                StringId = order.OrderNumber,
                 OrderDate = order.OrderDate,
                 SupplierId = order.SupplierId ?? 0,
                 SupplierName = order.SupplierName,
@@ -723,6 +740,7 @@ namespace Tanzeem.Services.Orders
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(id)
+                .Include(x => x.Supplier)
                 .Include(o => o.Items)
                 .ThenInclude(p => p.Product)
                 .FirstOrDefaultAsync();
@@ -751,8 +769,9 @@ namespace Tanzeem.Services.Orders
             return new OrderConfirmResponseDto
             {
                 OrderId = id,
-                OrderStringId = $"ORD-{id:D4}",
+                OrderStringId = order.OrderNumber,
                 SupplierId = order.SupplierId ?? 0,
+                SupplierStringId = order.Supplier!.SupplierNumber ?? "Deleted Supplier",
                 SupplierName = order.SupplierName,
                 ItemsConfirmResponseDtos = itemsDtos
             };

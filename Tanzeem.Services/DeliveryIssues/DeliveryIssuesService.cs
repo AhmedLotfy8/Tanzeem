@@ -9,6 +9,7 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.CustomExceptions;
 using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Orders;
+using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.Current;
@@ -73,16 +74,27 @@ namespace Tanzeem.Services.DeliveryIssues
             {
                 return 0;
             }
-            //var lastDeliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
-            //    .Where(d => d.BranchId == branchId)
-            //    .OrderByDescending(x => x.Id)
-            //    .FirstOrDefaultAsync();
-            
-            //int nextNumber = 1;
+            var lastDeliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+                .Where(d => d.BranchId == branchId)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (lastDeliveryIssue != null && !string.IsNullOrWhiteSpace(lastDeliveryIssue.DeliveryIssueNumber))
+            {
+                string[] numberParts = lastDeliveryIssue.DeliveryIssueNumber.Split('-');
+                if (numberParts.Length > 0 && int.TryParse(numberParts.Last(), out int lastSeq))
+                {
+                    nextNumber = lastSeq + 1;
+                }
+            }
+
+            string generatedIssueNumber = $"ISS-{nextNumber:D4}";
             DeliveryIssue deliveryIssue = new DeliveryIssue()
             {
                 BranchId = order.BranchId,
-
+                DeliveryIssueNumber = generatedIssueNumber,
                 OrderId = orderConfirmDto.OrderId,
                 RecieveDate = orderConfirmDto.RecievedDate ?? DateTime.UtcNow,
                 SupplierId = order!.SupplierId ?? 0,
@@ -127,6 +139,7 @@ namespace Tanzeem.Services.DeliveryIssues
 
                 query = query.Where(issue =>
                         issue.SupplierName.Contains(cleanSearch) ||
+                        issue.DeliveryIssueNumber.Contains(cleanSearch) ||
                         (issue.Notes != null && issue.Notes.Contains(cleanSearch)) ||
                         (isNumber && (issue.Id == searchNumber || issue.SupplierId == searchNumber 
                         || issue.OrderId == searchNumber || issue.Discrepancy == searchNumber || issue.ItemsAffected == searchNumber)) ||
@@ -168,7 +181,7 @@ namespace Tanzeem.Services.DeliveryIssues
                         .Select(d => new DeliveryIssueDto
                         {
                             Id = d.Id,
-                            StringId = $"ISS-{d.Id:D4}",
+                            StringId = d.DeliveryIssueNumber,
                             ItemsAffected = d.ItemsAffected,
                             Discrepancy = d.Discrepancy,
                             Notes = d.Notes,
@@ -295,7 +308,7 @@ namespace Tanzeem.Services.DeliveryIssues
             return new DeliveryIssueDto
             {
                Id = deliveryIssue.Id,
-               StringId = $"ISS-{deliveryIssue.Id:D4}", 
+               StringId = deliveryIssue.DeliveryIssueNumber, 
                ItemsAffected = deliveryIssue.ItemsAffected,
                Discrepancy = deliveryIssue.Discrepancy,
                Notes = deliveryIssue.Notes,

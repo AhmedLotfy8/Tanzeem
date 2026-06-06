@@ -26,7 +26,8 @@ namespace Tanzeem.Persistence.Data.Configurations.DeliveryIssuesConfigurations
             builder.HasOne(x => x.Supplier).
                 WithMany(x => x.DeliveryIssues)
                 .HasForeignKey(d => d.SupplierId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasOne(x => x.Branch)
                 .WithMany(x => x.DeliveryIssues)

@@ -20,12 +20,12 @@ namespace Tanzeem.Domain.Entities.DeliveryIssues
         public string SupplierName { get; set; }
 
         public int OrderId { get; set; }
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public int BranchId { get; set; }
 
 
         public Order Order { get; set; }
-        public Supplier Supplier { get; set; }
+        public Supplier? Supplier { get; set; }
         public Branch Branch { get; set; }
         public ICollection<DeliveryIssueItem> DeliveryIssueItem { get; set; } = new List<DeliveryIssueItem>(); //items
     }

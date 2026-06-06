@@ -108,29 +108,74 @@ namespace Tanzeem.Services.Orders
             return order.Id;
         }
 
+        //public async Task<bool> DeleteOrderAsync(int id)
+        //{
+        //    //int branchId = 2;
+        //    int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+
+        //    var orderToDelete = await _unitOfWork.GetRepository<Order>().GetByIdAsync(id);
+        //    var deliveryissue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+        //        .Where(x => x.OrderId == id).FirstOrDefaultAsync();
+
+        //    if (orderToDelete is null || orderToDelete.BranchId != branchId)
+        //        throw new KeyNotFoundException("No order with this id");
+
+        //    if (orderToDelete.Status == OrderStatus.Deliverd)
+        //    {
+        //        throw new BusinessRuleException("You cannot delete an order that is already processed or completed. Only pending or cancelled orders can be deleted.");
+        //    }
+
+        //    _unitOfWork.GetRepository<Order>().DeleteAsync(orderToDelete);
+
+        //    int affectedRows = await _unitOfWork.SaveChangesAsync();
+
+        //    if (affectedRows <= 0)
+        //        throw new DbUpdateFailedException("No rows affected");
+        //    return true;
+        //}
         public async Task<bool> DeleteOrderAsync(int id)
         {
-            //int branchId = 2;
-            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned");
 
             var orderToDelete = await _unitOfWork.GetRepository<Order>().GetByIdAsync(id);
-            var deliveryissue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
-                .Where(x => x.OrderId == id).FirstOrDefaultAsync();
 
             if (orderToDelete is null || orderToDelete.BranchId != branchId)
-                throw new KeyNotFoundException("No order with this id");
+                throw new KeyNotFoundException("No order found with this id in your branch");
 
             if (orderToDelete.Status == OrderStatus.Deliverd)
             {
                 throw new BusinessRuleException("You cannot delete an order that is already processed or completed. Only pending or cancelled orders can be deleted.");
             }
 
+            var deliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+                .Where(x => x.OrderId == id).FirstOrDefaultAsync();
+
+            if (deliveryIssue != null)
+            {
+                var deliveryIssueItems = await _unitOfWork.GetRepository<DeliveryIssueItem>().GetAllAsIQueryable()
+                    .Where(x => x.DeliveryIssueId == deliveryIssue.Id).ToListAsync();
+
+                foreach (var issueItem in deliveryIssueItems)
+                {
+                    _unitOfWork.GetRepository<DeliveryIssueItem>().DeleteAsync(issueItem);
+                }
+                _unitOfWork.GetRepository<DeliveryIssue>().DeleteAsync(deliveryIssue);
+            }
+
+            var orderItems = await _unitOfWork.GetRepository<OrderItem>().GetAllAsIQueryable()
+                .Where(x => x.OrderId == id).ToListAsync();
+
+            foreach (var item in orderItems)
+            {
+                _unitOfWork.GetRepository<OrderItem>().DeleteAsync(item);
+            }
             _unitOfWork.GetRepository<Order>().DeleteAsync(orderToDelete);
 
             int affectedRows = await _unitOfWork.SaveChangesAsync();
 
             if (affectedRows <= 0)
-                throw new DbUpdateFailedException("No rows affected");
+                throw new DbUpdateFailedException("Failed to delete the order and its related data");
+
             return true;
         }
 

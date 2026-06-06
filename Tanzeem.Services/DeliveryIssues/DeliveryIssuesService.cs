@@ -175,7 +175,7 @@ namespace Tanzeem.Services.DeliveryIssues
                             OrderId = d.OrderId,
                             RecievedDate = d.RecieveDate,
                             SupplierName = d.SupplierName,
-                            SupplierId = d.SupplierId,
+                            SupplierId = d.SupplierId ?? 0,
                             SupplierEmail = d.Supplier.Email ?? "",
                             SupplierPhone = d.Supplier.PhoneNumberOne ?? "",
                             Items = d.DeliveryIssueItem
@@ -303,7 +303,7 @@ namespace Tanzeem.Services.DeliveryIssues
                OrderId = deliveryIssue.OrderId,
                RecievedDate = deliveryIssue.RecieveDate,
 
-               SupplierId = deliveryIssue.SupplierId,
+               SupplierId = deliveryIssue.SupplierId ?? 0,
                SupplierName = deliveryIssue.SupplierName,
                SupplierEmail = deliveryIssue.Supplier?.Email ?? "",
                SupplierPhone = deliveryIssue.Supplier?.PhoneNumberOne ?? "",

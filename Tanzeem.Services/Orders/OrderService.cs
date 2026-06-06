@@ -114,6 +114,8 @@ namespace Tanzeem.Services.Orders
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
             var orderToDelete = await _unitOfWork.GetRepository<Order>().GetByIdAsync(id);
+            var deliveryissue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+                .Where(x => x.OrderId == id).FirstOrDefaultAsync();
 
             if (orderToDelete is null || orderToDelete.BranchId != branchId)
                 throw new KeyNotFoundException("No order with this id");

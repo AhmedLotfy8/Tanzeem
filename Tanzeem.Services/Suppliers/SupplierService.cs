@@ -59,6 +59,7 @@ namespace Tanzeem.Services.Suppliers
                 Notes = supplierDto.Notes,
                 Tax_Id = supplierDto.Tax_Id?.Trim(),
                 ContactPersonName = supplierDto.ContactPersonName?.Trim(),
+                SupplierStatus = supplierDto.SupplierStatus,
                 CompanyId = companyId
             };
             #endregion

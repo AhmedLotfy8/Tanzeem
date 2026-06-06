@@ -20,6 +20,7 @@ namespace Tanzeem.Persistence.Data.Configurations.OrderConfigurations
             builder.Property(x => x.ExpectedDeliveryDate).HasColumnType("date");
             builder.Property(x => x.RecievedDeliveryDate).HasColumnType("date").IsRequired(false);
             builder.Property(x => x.Total).HasPrecision(10, 2);
+            builder.Property(o => o.OrderNumber).HasDefaultValue("Old-Record");
 
             builder.Property(x => x.ShippingCost).HasPrecision(7, 2);//num of nums , nums after point
             builder.Property(x => x.Taxes).HasPrecision(7, 2);

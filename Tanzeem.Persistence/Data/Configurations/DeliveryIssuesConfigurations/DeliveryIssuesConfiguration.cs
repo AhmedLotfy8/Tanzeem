@@ -16,6 +16,7 @@ namespace Tanzeem.Persistence.Data.Configurations.DeliveryIssuesConfigurations
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.RecieveDate).HasColumnName("date");
+            builder.Property(o => o.DeliveryIssueNumber).HasDefaultValue("Old-Record");
 
             builder.HasOne(d => d.Order)
                .WithOne(o => o.DeliveryIssue)

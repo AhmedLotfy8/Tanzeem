@@ -12,6 +12,7 @@ namespace Tanzeem.Domain.Entities.DeliveryIssues
     public class DeliveryIssue
     {
         public int Id { get; set; }
+        public string DeliveryIssueNumber { get; set; }
         public DateTime RecieveDate { get; set; }
         public int ItemsAffected { get; set; }
         public int Discrepancy { get; set; }

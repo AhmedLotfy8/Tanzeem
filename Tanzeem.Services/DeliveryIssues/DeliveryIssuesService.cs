@@ -73,6 +73,12 @@ namespace Tanzeem.Services.DeliveryIssues
             {
                 return 0;
             }
+            //var lastDeliveryIssue = await _unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+            //    .Where(d => d.BranchId == branchId)
+            //    .OrderByDescending(x => x.Id)
+            //    .FirstOrDefaultAsync();
+            
+            //int nextNumber = 1;
             DeliveryIssue deliveryIssue = new DeliveryIssue()
             {
                 BranchId = order.BranchId,

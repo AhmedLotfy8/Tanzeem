@@ -20,6 +20,7 @@ namespace Tanzeem.Persistence.Data.Configurations.AuditLogsConfigurations
             builder.Property(x => x.CreatedAt).IsRequired();
 
             builder.HasOne(x => x.User).WithMany(x => x.auditTrials).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull).IsRequired(false);
+            builder.HasOne(x => x.Branch).WithMany(x => x.auditTrials).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
         }
     }
 }

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.AuditLogs;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Inventories {
-    public class Inventory {
+    public class Inventory : IAuditable {
     
         public int Id { get; set; }
 

@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 
-namespace Tanzeem.Domain.Entities.AuditLogs
+namespace Tanzeem.Shared.Dtos.AuditLogs
 {
-    public class AuditTrial
+    public class AuditLogsDto
     {
         public int Id { get; set; }
         public required string EntityName { get; set; }
@@ -18,10 +17,9 @@ namespace Tanzeem.Domain.Entities.AuditLogs
         public DateTime CreatedAt { get; set; }
         public int EntityPrimaryKey { get; set; }
 
-        public int? UserId { get; set; }
-        public int BranchId { get; set; }
-        public virtual User User { get; set; }
-        public virtual Branch Branch { get; set; }
+        public int UserId { get; set; }
+        public string UserName { get; set; }
+
 
     }
 }

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.AuditLogs;
 using Tanzeem.Domain.Entities.Branches;
 
 namespace Tanzeem.Domain.Entities.Settings
 {
-    public class AlertConfigurations
+    public class AlertConfigurations : IAuditable
     {
         public int Id { get; set; }
         

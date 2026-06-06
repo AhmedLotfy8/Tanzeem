@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.AuditLogs;
 using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Transactions;
 
 namespace Tanzeem.Domain.Entities.Products {
-    public class Product {
+    public class Product : IAuditable{
         
         public int Id { get; set; }
 

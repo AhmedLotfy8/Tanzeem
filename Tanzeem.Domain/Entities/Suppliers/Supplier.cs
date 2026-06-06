@@ -14,6 +14,7 @@ namespace Tanzeem.Domain.Entities.Suppliers
     public class Supplier
     {
         public int Id { get; set; }
+        public string SupplierNumber { get; set; }
         public string FullName { get; set; }
         public string Email { get; set; }
         public string PhoneNumberOne { get; set; }

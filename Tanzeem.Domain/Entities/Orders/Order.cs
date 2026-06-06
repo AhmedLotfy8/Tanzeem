@@ -14,6 +14,7 @@ namespace Tanzeem.Domain.Entities.Orders
     public class Order
     {
         public int Id { get; set; }
+        public string OrderNumber { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal Total { get; set; } // calculated from order items
         public OrderStatus Status { get; set; } = OrderStatus.Pending; //enum

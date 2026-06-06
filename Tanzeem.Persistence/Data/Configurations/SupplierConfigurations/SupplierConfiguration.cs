@@ -31,6 +31,7 @@ namespace Tanzeem.Persistence.Data.Configurations.SupplierConfigurations
             builder.Property(x => x.WebsiteURL).HasMaxLength(255).IsRequired(false);
 
             builder.Property(x => x.SupplierStatus).HasConversion<string>();
+            builder.Property(o => o.SupplierNumber).HasDefaultValue("Old-Record");
 
             builder.HasOne(x => x.Company).WithMany(x => x.Suppliers).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
                 

@@ -46,9 +46,11 @@ namespace Tanzeem.Services.Products {
             #endregion
 
             return new ProductDto {
+                Id = product.Id,
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category?.Name ?? "-",
+                CategoryId = product.CategoryId,
                 Stock = inventory.Quantity ?? 0,
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
@@ -60,14 +62,16 @@ namespace Tanzeem.Services.Products {
             };
         }
 
-        public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId) {
+        public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId, string? searchQuery) {
 
-            var products = await productHelperService.GetAllProducts(sortId, filterId);
+            var products = await productHelperService.GetAllProducts(sortId, filterId, searchQuery);
 
             return products.Select(product => new ProductDto {
+                Id = product.Id,
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category?.Name ?? "Uncategorized",
+                CategoryId = product.CategoryId,
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
                 ExpiryDate = product.ExpiryDate,
@@ -82,22 +86,34 @@ namespace Tanzeem.Services.Products {
             });
         }
 
-        public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync() {
+        public async Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync(string? searchQuery) {
 
             var companyId = currentService.CompanyId
                 ?? throw new UnauthorizedAccessException("CompanyId not found");
 
             return await _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
-                .Where(p => p.CompanyId == companyId)
+                .Where(p => p.CompanyId == companyId && (string.IsNullOrEmpty(searchQuery) ||
+                    p.Name.Contains(searchQuery) ||
+                    p.SKU.Contains(searchQuery) ||
+                    p.Barcode.Contains(searchQuery)
+                ))
                 .Select(p => new ProductDropdownMenuDto {
                     Id = p.Id,
                     Name = p.Name,
                     SKU = p.SKU,
+                    Barcode = p.Barcode,
+                    Stock = p.Inventories
+                              .Where(i => i.BranchId == currentService.BranchId)
+                              .Select(i => i.Quantity)
+                              .FirstOrDefault() ?? 0,
                     Price = p.SellingPrice
                 })
                 .Take(15)
                 .ToListAsync();
+
+
+
         }
 
         public async Task<int> CreateProductAsync(ProductDto productDto) {

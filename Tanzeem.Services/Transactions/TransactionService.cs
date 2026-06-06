@@ -1,4 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Inventories;
@@ -9,190 +12,82 @@ using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Notifications;
 using Tanzeem.Services.Abstractions.Transactions;
-using Tanzeem.Shared.Dtos.Orders;
-using Tanzeem.Shared.Dtos.Products;
 using Tanzeem.Shared.Dtos.Transactions;
 
 namespace Tanzeem.Services.Transactions {
-    public class TransactionService(IUnitOfWork _unitOfWork,
+    public class TransactionService(
+        IUnitOfWork _unitOfWork,
         ICurrentService currentService,
+        TransactionHelperService transactionHelper,
         INotificationService _notificationService)
         : ITransactionService {
 
         public async Task<TransactionDto> GetTransactionByIdAsync(int id) {
 
-            var transaction = await _unitOfWork.GetRepository<Transaction>().GetByIdAsync(id);
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
 
-            if (transaction == null) {
+            // Single query — loads TransactionItems and their Products and the PerformedByUser
+            var transaction = await _unitOfWork.GetRepository<Transaction>()
+                .GetAllAsIQueryable()
+                .Include(t => t.TransactionItems)
+                    .ThenInclude(ti => ti.Product)
+                        .ThenInclude(p => p.Category)
+                .Include(t => t.PreformedByUser)
+                .FirstOrDefaultAsync(t => t.Id == id && t.BranchId == branchId);
+
+            if (transaction is null)
                 throw new KeyNotFoundException($"Transaction with ID {id} not found.");
-            }
 
-            #region Mapping
-
-            var transactionItemsList = _unitOfWork.GetRepository<TransactionItem>()
-                .GetAllAsync().Result.Where(x => x.TransactionId == transaction.Id).ToList();
-
-            var transactionItemDtosList = new List<TransactionItemDto>();
-
-            foreach (var item in transactionItemsList) {
-
-                var product = _unitOfWork.GetRepository<Product>().GetAllAsync()
-                            .Result.FirstOrDefault(x => x.SKU == item.Product.SKU)
-                              ?? throw new Exception("Product not found");
-
-                // Mapping TransactionItem to TransactionItemDto
-                var transactionItemDto = new TransactionItemDto {
-
-                    QuantityOfTransactedItem = item.QuantityOfTransactedItem,
-                    UnitPrice = item.UnitPrice,
-                    BatchNumber = item.BatchNumber ?? "Null",
-
-                    // Mapping Product to ProductDto
-                    Product = new ProductDto {
-                        Name = product.Name,
-                        SKU = product.SKU,
-                        Category = "tempCat",
-                        Stock = 987123546,
-                        CostPrice = product.CostPrice,
-                        SellingPrice = product.SellingPrice,
-                        ExpiryDate = product.ExpiryDate,
-                        Barcode = product.Barcode,
-                        Description = product.Description,
-                        ReorderLevel = product.ReorderLevel,
-                        Status = product.Status,
-                    }
-                };
-
-                transactionItemDtosList.Add(transactionItemDto);
-            }
-
-            // Mapping Transaction to TransactionDto
-            var result = new TransactionDto {
-                Id = transaction.TransactionId,
-                Type = transaction.Type,
-                CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status,
-                Value = transaction.Value,
-                TotalTransactedItems = transaction.TotalTransactedItems,
-                SourceReason = transaction.SourceReason,
-                ReferenceNumber = transaction.ReferenceNumber,
-                Notes = transaction.Notes,
-                TransactionItemDtos = transactionItemDtosList,
-                PreformedBy = "", // dummy value
-            };
-
-            #endregion
-
-            return result;
+            return MapToTransactionDto(transaction, branchId);
         }
 
-        // Hard coded function (category, stock, performedby, batchnumber)
-        // Refactor Code
-        public async Task<IEnumerable<TransactionDto>> GetAllTransactions(int? filterId, int? sortId) {
+        public async Task<IEnumerable<TransactionDto>> GetAllTransactions(int? filterId, int? sortId, string? searchQuery) {
 
-            var transactions = await TransactionHelperService.GetAllTransactions(_unitOfWork, sortId, filterId);
+            var transactions = await transactionHelper.GetAllTransactions(sortId, filterId, searchQuery);
 
-            #region Mapping
-
-            var transactionItemDtosList = new List<TransactionItemDto>();
-
-            // Mapping TransactionItems to TransactionItemDtos
-            foreach (var item in transactions) {
-
-                var transactionItemsList = _unitOfWork.GetRepository<TransactionItem>()
-                    .GetAllAsync().Result.Where(x => x.TransactionId == item.Id).ToList();
-
-
-                // Mapping TransactionItems to TransactionItemDtos
-                foreach (var ti in transactionItemsList) {
-
-                    var product = _unitOfWork.GetRepository<Product>().GetAllAsync()
-                            .Result.FirstOrDefault(x => x.SKU == ti.Product.SKU)
-                              ?? throw new Exception("Product not found");
-
-
-                    // Mapping TransactionItem to TransactionItemDto
-                    var transactionItemDto = new TransactionItemDto {
-
-                        QuantityOfTransactedItem = ti.QuantityOfTransactedItem,
-                        UnitPrice = ti.UnitPrice,
-
-                        // Mapping Product to ProductDto
-                        Product = new ProductDto {
-                            Name = product.Name,
-                            SKU = product.SKU,
-                            Category = "TempCat",
-                            Stock = 987123546,
-                            CostPrice = product.CostPrice,
-                            SellingPrice = product.SellingPrice,
-                            ExpiryDate = product.ExpiryDate,
-                            Barcode = product.Barcode,
-                            Description = product.Description,
-                            ReorderLevel = product.ReorderLevel,
-                            Status = product.Status,
-                        }
-
-                    };
-
-
-                    transactionItemDtosList.Add(transactionItemDto);
-                }
-
-            }
-
-            // Mapping Transactions to TransactionDtos
-            var result = transactions.Select(transaction => new TransactionDto {
-                Id = transaction.TransactionId,
-                Type = transaction.Type,
-                CreatedAt = transaction.CreatedAt,
-                Status = transaction.Status,
-                Value = transaction.Value,
-                TotalTransactedItems = transaction.TotalTransactedItems,
-                SourceReason = transaction.SourceReason,
-                ReferenceNumber = transaction.ReferenceNumber,
-                Notes = transaction.Notes,
-                TransactionItemDtos = transactionItemDtosList,
-                PreformedBy = "User", // dummy value
-            });
-
-            #endregion
-
-            return result;
-
+            return transactions.Select(t => MapToTransactionDto(t, currentService.BranchId ?? 0));
         }
 
-
-        // Hard coded branchId / UserId for now, will be taken from the current service in the future.
-        // Handle Global Exception in Controller/Middleware, not here. This function should just throw and let the caller handle it.
         public async Task<int> CreateTransactionAsync(TransactionDto transactionDto) {
+
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
+
+            var userId = currentService.UserId
+                ?? throw new UnauthorizedAccessException("UserId not found");
+
             await using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
             try {
 
                 #region Entities Loading
 
-                // Load inventories for the branch
+                // Load branch inventories with their products in one query
                 var inventories = await _unitOfWork.GetRepository<Inventory>()
                     .GetAllAsIQueryable()
                     .AsTracking()
-                    .Include(x => x.Product)
-                    .Where(x => x.BranchId == 1) // currentService.BranchId || hardcoded for now
+                    .Include(i => i.Product)
+                    .Where(i => i.BranchId == branchId)
                     .ToListAsync();
 
-                // Load all needed products in one shot
-                var skus = transactionDto.TransactionItemDtos.Select(x => x.Product.SKU).ToHashSet();
-                var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
-                var productsBySku = products
+                // Load all needed products in one shot by SKU
+                var skus = transactionDto.TransactionItemDtos
+                    .Select(x => x.Product.SKU)
+                    .ToHashSet();
+
+                var productsBySku = await _unitOfWork.GetRepository<Product>()
+                    .GetAllAsIQueryable()
+                    .AsTracking()          // ensure tracked instances
                     .Where(p => skus.Contains(p.SKU))
-                    .ToDictionary(p => p.SKU);
+                    .ToDictionaryAsync(p => p.SKU);
 
                 #endregion
 
                 #region Mapping
 
-                // Map TransactionItems
                 var transactionItems = transactionDto.TransactionItemDtos.Select(item => {
                     if (!productsBySku.TryGetValue(item.Product.SKU, out var product))
-                        throw new Exception($"Product with SKU '{item.Product.SKU}' not found.");
+                        throw new KeyNotFoundException($"Product with SKU '{item.Product.SKU}' not found.");
 
                     return new TransactionItem {
                         QuantityOfTransactedItem = item.QuantityOfTransactedItem,
@@ -202,7 +97,6 @@ namespace Tanzeem.Services.Transactions {
                     };
                 }).ToList();
 
-                // Map Transaction
                 var transaction = new Transaction {
                     TransactionId = Guid.NewGuid().ToString(),
                     Type = transactionDto.Type,
@@ -214,13 +108,13 @@ namespace Tanzeem.Services.Transactions {
                     ReferenceNumber = transactionDto.ReferenceNumber,
                     Notes = transactionDto.Notes,
                     TransactionItems = transactionItems,
-                    BranchId = 1, // currentService.BranchId ?? throw new Exception("Branch not found")  
-                    PerformedByUserId =  3 // hard coded User Id
+                    BranchId = branchId,
+                    PerformedByUserId = userId
                 };
 
                 #endregion
 
-                #region Update inventory quantities
+                #region Update Inventory
 
                 if (transactionDto.Type == TransactionType.In)
                     InTransaction(transactionItems, inventories);
@@ -229,10 +123,8 @@ namespace Tanzeem.Services.Transactions {
 
                 #endregion
 
-
                 await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
                 await _unitOfWork.SaveChangesAsync();
-
                 await dbTransaction.CommitAsync();
 
                 await LowStockAlertAsync(transaction, transactionItems, inventories);
@@ -241,95 +133,45 @@ namespace Tanzeem.Services.Transactions {
             }
             catch {
                 await dbTransaction.RollbackAsync();
-                throw; // let the caller/middleware handle it
-            }
-
-        }
-        #region In / Out Private Functions
-        private void InTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
-            foreach (var item in transactionItems) {
-                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id);
-
-                if (inventory == null)
-                    throw new Exception($"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
-
-                inventory.Quantity = (inventory.Quantity ?? 0) + item.QuantityOfTransactedItem;
+                throw;
             }
         }
-
-        private void OutTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
-            foreach (var item in transactionItems) {
-                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id);
-
-                if (inventory == null)
-                    throw new Exception($"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
-
-                if ((inventory.Quantity ?? 0) < item.QuantityOfTransactedItem)
-                    throw new Exception($"Insufficient stock for product '{item.Product.Name}'. Available: {inventory.Quantity}, Requested: {item.QuantityOfTransactedItem}.");
-
-                inventory.Quantity -= item.QuantityOfTransactedItem;
-            }
-        }
-
-        #endregion
-
-        // branchId is hard coded here
-        private async Task LowStockAlertAsync(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
-            try {
-                if (transaction.Type != TransactionType.Out) return;
-
-                var lowStockItems = transactionItems.Where(item => {
-                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.Product.Id && x.BranchId == 1);
-                    return inventory != null && inventory.Quantity <= inventory.Product.ReorderLevel;
-                }).ToList();
-
-                if (lowStockItems.Any())
-                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
-            }
-            catch (Exception ex) {
-                // Don't let a failed alert bubble up and affect the transaction
-                // TODO: plug into your logger here → _logger.LogError(ex, "LowStockAlert failed")
-            }
-        }
-
 
         public async Task<int> CreateConfirmOrderTransactionAsync(Order order) {
-            if (order is null) {
-                return 0; ///TODO exceptionhandling
-            }
 
-            var transactionsItems = order.Items.Select(orderItem => new TransactionItem() {
+            if (order is null)
+                throw new ArgumentNullException(nameof(order), "Order cannot be null");
+
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
+
+            var userId = currentService.UserId
+                ?? throw new UnauthorizedAccessException("UserId not found");
+
+            var receivedDate = order.RecievedDeliveryDate
+                ?? throw new InvalidOperationException("Order delivery date is required to confirm a transaction");
+
+            var transactionItems = order.Items.Select(orderItem => new TransactionItem {
                 Product = orderItem.Product,
                 QuantityOfTransactedItem = orderItem.Quantity,
                 UnitPrice = orderItem.Price,
                 ProductId = orderItem.ProductId,
-                BatchNumber = " "
+                BatchNumber = string.Empty
             }).ToList();
 
-            Transaction transaction = new Transaction() {
-                BranchId = 1, ///TODO auth
-
+            var transaction = new Transaction {
+                BranchId = branchId,
+                PerformedByUserId = userId,
                 TransactionId = Guid.NewGuid().ToString(),
-
-                CreatedAt = (DateTime)order?.RecievedDeliveryDate!,
-
+                CreatedAt = receivedDate,
                 SourceReason = TransactionSource.Supplier,
-
-                TransactionItems = transactionsItems,
-
-                TotalTransactedItems = transactionsItems.Sum(item => item.QuantityOfTransactedItem),
-
+                TransactionItems = transactionItems,
+                TotalTransactedItems = transactionItems.Sum(item => item.QuantityOfTransactedItem),
                 Type = TransactionType.In,
-
-                Value = transactionsItems.Sum(item => item.UnitPrice * item.QuantityOfTransactedItem),
-
+                Status = TransactionStatus.Completed,
+                Value = transactionItems.Sum(item => item.UnitPrice * item.QuantityOfTransactedItem),
                 Notes = order.Notes ?? "Order confirmed",
-
                 ReferenceNumber = "--",
-
-                PerformedByUserId = 3, ///TODO auth
-
-
             };
 
             await _unitOfWork.GetRepository<Transaction>().AddAsync(transaction);
@@ -338,29 +180,97 @@ namespace Tanzeem.Services.Transactions {
             return transaction.Id;
         }
 
+        #region Private Helpers
+
+        private TransactionDto MapToTransactionDto(Transaction transaction, int branchId) {
+            var itemDtos = transaction.TransactionItems.Select(ti => new TransactionItemDto {
+                QuantityOfTransactedItem = ti.QuantityOfTransactedItem,
+                UnitPrice = ti.UnitPrice,
+                BatchNumber = ti.BatchNumber ?? string.Empty,
+                Product = new Shared.Dtos.Products.ProductDto {
+                    Name = ti.Product.Name,
+                    SKU = ti.Product.SKU,
+                    Category = ti.Product.Category?.Name ?? "Uncategorized",
+                    CostPrice = ti.Product.CostPrice,
+                    SellingPrice = ti.Product.SellingPrice,
+                    ExpiryDate = ti.Product.ExpiryDate,
+                    Barcode = ti.Product.Barcode,
+                    Description = ti.Product.Description,
+                    ReorderLevel = ti.Product.ReorderLevel,
+                    Status = ti.Product.Status,
+                    Stock = ti.Product.Inventories
+                                     .Where(i => i.BranchId == branchId)
+                                     .Select(i => i.Quantity)
+                                     .FirstOrDefault()
+                }
+            }).ToList();
+
+            return new TransactionDto {
+                Id = transaction.Id,
+                TransactionId = transaction.TransactionId,
+                Type = transaction.Type,
+                CreatedAt = transaction.CreatedAt,
+                Status = transaction.Status,
+                Value = transaction.Value,
+                TotalTransactedItems = transaction.TotalTransactedItems,
+                SourceReason = transaction.SourceReason,
+                ReferenceNumber = transaction.ReferenceNumber,
+                Notes = transaction.Notes,
+                PreformedBy = transaction.PreformedByUser?.Name ?? "-",
+                TransactionItemDtos = itemDtos
+            };
+        }
+
+        private void InTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            foreach (var item in transactionItems) {
+                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id)
+                    ?? throw new KeyNotFoundException(
+                        $"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
+
+                inventory.Quantity = (inventory.Quantity ?? 0) + item.QuantityOfTransactedItem;
+            }
+        }
+
+        private void OutTransaction(List<TransactionItem> transactionItems, List<Inventory> inventories) {
+            foreach (var item in transactionItems) {
+                var inventory = inventories.FirstOrDefault(inv => inv.ProductId == item.Product.Id)
+                    ?? throw new KeyNotFoundException(
+                        $"Inventory record not found for product '{item.Product.Name}' (SKU: {item.Product.SKU}).");
+
+                if ((inventory.Quantity ?? 0) < item.QuantityOfTransactedItem)
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for '{item.Product.Name}'. Available: {inventory.Quantity}, Requested: {item.QuantityOfTransactedItem}.");
+
+                inventory.Quantity -= item.QuantityOfTransactedItem;
+            }
+        }
+
+        private async Task LowStockAlertAsync(
+            Transaction transaction,
+            List<TransactionItem> transactionItems,
+            List<Inventory> inventories) {
+            try {
+                if (transaction.Type != TransactionType.Out) return;
+
+                // inventories is already branch-scoped from CreateTransactionAsync — match by ProductId only
+                var lowStockItems = transactionItems
+                    .Where(item => {
+                        var inventory = inventories.FirstOrDefault(x => x.ProductId == item.Product.Id);
+                        return inventory != null && inventory.Quantity <= inventory.Product.ReorderLevel;
+                    })
+                    .ToList();
+
+                if (lowStockItems.Any())
+                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
+            }
+            catch {
+                // Never let a failed alert bubble up and roll back the transaction
+                // TODO: plug into your logger here → _logger.LogError(ex, "LowStockAlert failed for TransactionId: {id}", transaction.Id)
+            }
+        }
+
+        #endregion
+    
     }
 }
-        
-#region Old Low Stock Alert
-        /* 
-        private async void LowStockAlert(Transaction transaction, List<TransactionItem> transactionItems, List<Inventory> inventories) {
 
-            if (transaction.Type == TransactionType.Out) {
-                var lowStockItems = transactionItems.Where(item => {
-                    var inventory = inventories.FirstOrDefault(x => x.ProductId == item.ProductId && x.BranchId == 1); // branchId is hard coded here
-                    if (inventory == null) {
-                        throw new Exception("this inventory not found");
-                        ///TODO exception handling
-                    }
-                    return inventory.Quantity <= inventory.Product.ReorderLevel;
-                }).ToList();
-
-                if (lowStockItems.Any()) {
-                    await _notificationService.CreateLowStockNotification(lowStockItems, inventories);
-                }
-
-            }
-
-        }
-        */
-        #endregion

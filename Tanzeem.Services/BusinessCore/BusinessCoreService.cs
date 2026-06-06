@@ -3,19 +3,22 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.BusinessCore;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.BusinessCore {
-    public class BusinessCoreService(IUnitOfWork unitOfWork) : IBusinessCoreService {
+    public class BusinessCoreService(
+        IUnitOfWork unitOfWork,
+        ICurrentService currentService) : IBusinessCoreService {
 
-        // Hard coded function (companyId, BranchId)
         public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == employeeCreationDto.Email);
 
             if (user is not null) {
-                throw new Exception("Email is already Registered!");
+                throw new BusinessRuleException("Email is already Registered!");
             }
 
             if (employeeCreationDto.Role == UserRoles.Admin) {
@@ -28,10 +31,10 @@ namespace Tanzeem.Services.BusinessCore {
                 Name = employeeCreationDto.Name,
                 Email = employeeCreationDto.Email,
                 Role = employeeCreationDto.Role, // Staff / Manager
-                CompanyId = 33, // hardcoded for now, will be dynamic when company registration is implemented
+                CompanyId = currentService.CompanyId,
                 BURelations = new List<BranchUserRelationship> {
                     new BranchUserRelationship {
-                        BranchId = 34, // hardcoded
+                        BranchId = currentService.BranchId ?? 0, 
                         IsPrimary = true,
                     }
                 }

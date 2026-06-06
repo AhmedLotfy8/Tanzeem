@@ -1,92 +1,69 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Services.Abstractions.Current;
 
 namespace Tanzeem.Services.Transactions {
-    public static class TransactionHelperService {
+    public class TransactionHelperService(
+        IUnitOfWork _unitOfWork,
+        ICurrentService currentService) {
 
-        public static async Task<IEnumerable<Transaction>> GetAllTransactions(IUnitOfWork _unitOfWork, int? sortId, int? filterId) {
+        public async Task<IEnumerable<Transaction>> GetAllTransactions(int? sortId, int? filterId, string? searchQuery) {
 
-            var transactions = await _unitOfWork.GetRepository<Transaction>().GetAllAsync();
-            
-            #region Cases (Is sorted / Is filtered)
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
 
-            if (sortId.HasValue && filterId.HasValue) {
-                var filteredProducts = FilterTransactions(_unitOfWork, transactions, filterId);
-                return SortTransactions(_unitOfWork, filteredProducts, sortId);
+            IQueryable<Transaction> query = _unitOfWork.GetRepository<Transaction>()
+                .GetAllAsIQueryable()
+                .Where(t => t.BranchId == branchId);
+
+            if (filterId.HasValue)
+                query = ApplyFilter(query, filterId.Value);
+
+            if (!string.IsNullOrWhiteSpace(searchQuery)) {
+                var term = searchQuery.Trim().ToLower();
+                query = query.Where(t =>
+                    t.TransactionId.ToLower().Contains(term) ||
+                    (t.ReferenceNumber != null && t.ReferenceNumber.ToLower().Contains(term)) ||
+                    (t.Notes != null && t.Notes.ToLower().Contains(term))
+                );
             }
 
-            else if (filterId.HasValue)
-                return FilterTransactions(_unitOfWork, transactions, filterId);
+            query = ApplySort(query, sortId);
 
-            else if (sortId.HasValue)
-                return SortTransactions(_unitOfWork, transactions, sortId);
-
-            #endregion
-
-            return transactions;
-
+            return await query
+                .Include(t => t.TransactionItems)
+                    .ThenInclude(ti => ti.Product)
+                        .ThenInclude(p => p.Category)
+                .Include(t => t.TransactionItems)
+                    .ThenInclude(ti => ti.Product)
+                        .ThenInclude(p => p.Inventories)
+                .Include(t => t.PreformedByUser)
+                .ToListAsync();
         }
 
-        private static IEnumerable<Transaction> SortTransactions(IUnitOfWork _unitOfWork,
-            IEnumerable<Transaction> transactions, int? sortId) {
-            
-            switch (sortId) {
-                
-                case 1:
-                    return transactions.OrderBy(t => t.CreatedAt).ToList();
-                
-                case 2:
-                    return transactions.OrderBy(t => t.Value).ToList();
-                
-                case 3:
-                    return transactions.OrderBy(t => t.TotalTransactedItems).ToList();
-                
-                case null:
-                    return transactions.OrderBy(t => t.Id).ToList();
-                
-                default:
-                    throw new Exception("Invalid sort option");
-            }
-
+        private static IQueryable<Transaction> ApplyFilter(IQueryable<Transaction> query, int filterId) {
+            return filterId switch {
+                >= 1 and <= 3 => query.Where(t => t.Type == (TransactionType)filterId),
+                >= 4 and <= 6 => query.Where(t => t.Status == (TransactionStatus)filterId),
+                >= 7 and <= 12 => query.Where(t => t.SourceReason == (TransactionSource)filterId),
+                _ => throw new ArgumentOutOfRangeException(nameof(filterId), "Invalid filter option")
+            };
         }
 
-        private static IEnumerable<Transaction> FilterTransactions(IUnitOfWork _unitOfWork,
-            IEnumerable<Transaction> transactions, int? filterId) {
-
-            switch (filterId) {
-
-                case int filter when (filter >= 1 && filter <= 3):
-                    return transactions.Where(t => t.Type == (TransactionType)filter).ToList();
-                
-                case int filter when (filter >= 4 && filterId <= 6):
-                    return transactions.Where(t => t.Status == (TransactionStatus)filter).ToList();
-                
-                case int filter when (filter >= 7 && filter <= 12):
-                    return transactions.Where(t => t.SourceReason == (TransactionSource)filter).ToList();
-
-                case null:
-                    return transactions.ToList();
-                
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(filterId), "Invalid filter option");
-
-            }
-
+        private static IQueryable<Transaction> ApplySort(IQueryable<Transaction> query, int? sortId) {
+            return sortId switch {
+                1 => query.OrderBy(t => t.CreatedAt),
+                2 => query.OrderBy(t => t.Value),
+                3 => query.OrderBy(t => t.TotalTransactedItems),
+                null => query.OrderBy(t => t.Id),
+                _ => throw new ArgumentException($"Invalid sort option: {sortId}")
+            };
         }
-
     }
-
 }
-
-#region To be Done Later (but for transactions)
-//public static async Task<IEnumerable<Product>> SearchProducts(string searchTerm, IUnitOfWork _unitOfWork) {
-//    var products = await _unitOfWork.GetRepository<Product>().GetAllAsync();
-//    return products.Where(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
-//}
-#endregion

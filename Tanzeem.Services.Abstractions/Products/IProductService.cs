@@ -10,8 +10,8 @@ namespace Tanzeem.Services.Abstractions.Products {
 
         // Get
         Task<ProductDto> GetProductByIdAsync(int id);
-        Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId);
-        Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync();
+        Task<IEnumerable<ProductDto>> GetAllProductsAsync(int? sortId, int? filterId, string? searchQuery);
+        Task<IEnumerable<ProductDropdownMenuDto>> GetAllProductsMenuAsync(string? searchQuery);
 
         // Post
         Task<int> CreateProductAsync(ProductDto productDto);

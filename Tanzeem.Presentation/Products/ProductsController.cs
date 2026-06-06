@@ -17,16 +17,16 @@ namespace Tanzeem.Presentation.Products {
         [HttpGet]
         [Route("Get-Products")]
         [Authorize]
-        public async Task<IActionResult> GetAllProducts(int? sortId, int? filterId) {
-            var result = await productService.GetAllProductsAsync(sortId, filterId);
+        public async Task<IActionResult> GetAllProducts(int? sortId, int? filterId, string? searchQuery) {
+            var result = await productService.GetAllProductsAsync(sortId, filterId, searchQuery);
             return Ok(result);
         }
 
         [HttpGet]
         [Route("Get-Products-Dropdown-Menu")]
         [Authorize]
-        public async Task<IActionResult> GetAllProductsMenu() {
-            var result = await productService.GetAllProductsMenuAsync();
+        public async Task<IActionResult> GetAllProductsMenu(string? searchQuery) {
+            var result = await productService.GetAllProductsMenuAsync(searchQuery);
             return Ok(result);
         }
 

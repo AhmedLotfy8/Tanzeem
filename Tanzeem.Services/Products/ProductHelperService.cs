@@ -11,18 +11,24 @@ namespace Tanzeem.Services.Products {
     public class ProductHelperService(IUnitOfWork _unitOfWork,
         ICurrentService currentService) {
 
-        public async Task<IEnumerable<Product>> GetAllProducts(int? sortId, int? filterId) {
+        public async Task<IEnumerable<Product>> GetAllProducts(int? sortId, int? filterId, string? searchQuery) {
 
-            var companyId = currentService.CompanyId
-                ?? throw new UnauthorizedAccessException("CompanyId not found");
-
-            // Declare as IQueryable<Product> first, apply filters before includes
             IQueryable<Product> query = _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
-                .Where(p => p.CompanyId == companyId);
+                .Where(p => p.CompanyId == currentService.CompanyId);
 
             if (filterId.HasValue)
                 query = query.Where(p => p.CategoryId == filterId);
+
+            // Search across Name, SKU, and Barcode
+            if (!string.IsNullOrWhiteSpace(searchQuery)) {
+                var term = searchQuery.Trim().ToLower();
+                query = query.Where(p =>
+                    p.Name.ToLower().Contains(term) ||
+                    p.SKU.ToLower().Contains(term) ||
+                    p.Barcode.ToLower().Contains(term)
+                );
+            }
 
             query = sortId switch {
                 1 => query.OrderBy(p => p.Name),
@@ -35,7 +41,6 @@ namespace Tanzeem.Services.Products {
                 _ => throw new ArgumentException($"Invalid sort option: {sortId}")
             };
 
-            // Apply includes last, after all IQueryable<Product> operations are done
             return await query
                 .Include(p => p.Category)
                 .Include(p => p.Inventories)

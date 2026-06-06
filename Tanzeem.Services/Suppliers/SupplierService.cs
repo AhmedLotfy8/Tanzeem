@@ -44,7 +44,25 @@ namespace Tanzeem.Services.Suppliers
             string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
             string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
             #endregion
+            
+            
+            var lastSupplier = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                .Where(s => s.CompanyId == companyId)
+                .OrderByDescending(s => s.Id)
+                .FirstOrDefaultAsync();
 
+            int nextNumber = 1;
+
+            if (lastSupplier != null && !string.IsNullOrWhiteSpace(lastSupplier.SupplierNumber))
+            {
+                string[] numberParts = lastSupplier.SupplierNumber.Split('-');
+                if (numberParts.Length > 0 && int.TryParse(numberParts.Last(), out int lastSeq))
+                {
+                    nextNumber = lastSeq + 1;
+                }
+            }
+
+            string generatedSupplierNumber = $"SUP-{nextNumber:D4}";
             #region mapping
             Supplier supplier = new Supplier
             {
@@ -60,7 +78,8 @@ namespace Tanzeem.Services.Suppliers
                 Tax_Id = supplierDto.Tax_Id?.Trim(),
                 ContactPersonName = supplierDto.ContactPersonName?.Trim(),
                 SupplierStatus = supplierDto.SupplierStatus,
-                CompanyId = companyId
+                CompanyId = companyId,
+                SupplierNumber = generatedSupplierNumber
             };
             #endregion
             await _unitOfWork.GetRepository<Supplier>().AddAsync(supplier);
@@ -131,6 +150,7 @@ namespace Tanzeem.Services.Suppliers
 
                 query = query.Where(supplier =>
                     supplier.FullName.ToLower().Contains(cleanSearch) ||
+                    supplier.SupplierNumber.Contains(cleanSearch) ||
                     (supplier.Notes != null && supplier.Notes.ToLower().Contains(cleanSearch)) ||
                     (supplier.City != null && supplier.City.ToLower().Contains(cleanSearch)) ||
                     (supplier.ContactPersonName != null && supplier.ContactPersonName.ToLower().Contains(cleanSearch)) ||
@@ -204,6 +224,7 @@ namespace Tanzeem.Services.Suppliers
                 SupplierStatus = s.SupplierStatus,
 
                 Badge = SupplierServiceHelper.GetBadge(s.Orders),
+                SupplierNumber = s.SupplierNumber,
 
             }).ToList();
 
@@ -253,6 +274,7 @@ namespace Tanzeem.Services.Suppliers
                 SupplierStatus = supplier.SupplierStatus,
 
                 Badge = SupplierServiceHelper.GetBadge(supplier.Orders),
+                SupplierNumber = supplier.SupplierNumber,
 
             };
             return supplierDto;
@@ -337,7 +359,8 @@ namespace Tanzeem.Services.Suppliers
                 .Select(s => new SupplierLookupDto
                 {
                     Id = s.Id,
-                    Name = s.FullName
+                    Name = s.FullName,
+                    Number = s.SupplierNumber,
                 })
                 .Take(50)
                 .ToListAsync();

@@ -3,10 +3,13 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Branches;
+using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared.Dtos.Branches;
 
 namespace Tanzeem.Services.Branches {
-    public class BranchService(IUnitOfWork _unitOfWork) : IBranchService {
+    public class BranchService(
+        IUnitOfWork _unitOfWork,
+        ICurrentService currentService) : IBranchService {
 
         public async Task<BranchDto> GetBranchAsync(int branchId) {
 
@@ -35,10 +38,9 @@ namespace Tanzeem.Services.Branches {
             return result;
         }
 
-        // Hard coded function (companyId)
         public async Task<List<BranchDto>> GetCompanyBranchesAsync() {
 
-            var companyId = 3;
+            var companyId = currentService.CompanyId;
             var branches = await _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable().ToListAsync();
 
             #region Mapping
@@ -63,7 +65,6 @@ namespace Tanzeem.Services.Branches {
             return result;
         }
 
-        // Hard coded function (companyId)
         public async Task<int> CreateNewBranchAsync(BranchDto branchDto, int adminId, int companyId) {
 
             var branch = new Branch {
@@ -73,15 +74,20 @@ namespace Tanzeem.Services.Branches {
                 Email = branchDto.Email,
                 CreatedAt = DateTime.UtcNow,
                 Status = BranchStatus.Active,
-                CompanyId = companyId // This is hardcoded for now, later we will get the company id from the user context
+                CompanyId = companyId
             };
 
             await _unitOfWork.GetRepository<Branch>().AddAsync(branch);
 
+            bool isFirstBranch = !await _unitOfWork.GetRepository<BranchUserRelationship>()
+                .GetAllAsIQueryable()
+                .AnyAsync(r => r.UserId == adminId);
+
+
             branch.BURelations = new List<BranchUserRelationship>() {
                 new BranchUserRelationship {
-                    UserId = adminId, // This is hardcoded for now, later we will get the user id from the user 
-                    IsPrimary = true
+                    UserId = adminId,
+                    IsPrimary = isFirstBranch
                 }
             };
 
@@ -123,16 +129,6 @@ namespace Tanzeem.Services.Branches {
 
             return count > 0;
         }
-
-
-
-        // Hard coded function (companyId, adminId)
-        //private Branch AssignCreatedCompanyAndBranchToAdmin(BranchDto branchDto, int adminId, int companyId) {
-
-
-
-        //    return branch;
-        //}
 
 
     }

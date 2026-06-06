@@ -27,12 +27,19 @@ namespace Tanzeem.Presentation.BusinessCore {
 
         }
 
+        [HttpPost]
+        [Route("Create-Additional-Branch")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateAdditionalBranch(BranchDto branchDto) {
+            var result = await businessCoreService.CreateAdditionalBranchAsync(branchDto);
+            return Ok(result);
+        }
+
         [HttpPut]
         [Route("Assign-User")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AssignUserToBranch(int userId, int currentBranchId, int newBranchId) {
-
-            var result = await businessCoreService.AssignUserToBranch(userId, currentBranchId, newBranchId);
+        public async Task<IActionResult> AssignUserToBranch(int userId, int newBranchId) {
+            var result = await businessCoreService.AssignUserToBranch(userId, newBranchId);
             return Ok(result);
         }
 

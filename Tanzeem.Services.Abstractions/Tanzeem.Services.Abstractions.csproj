@@ -16,4 +16,8 @@
     <ProjectReference Include="..\Tanzeem.Shared\Tanzeem.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AuditLogs\" />
+  </ItemGroup>
+
 </Project>

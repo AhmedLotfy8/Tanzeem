@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tanzeem.Domain.Entities.AuditLogs;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Notifications;
@@ -35,6 +36,6 @@ namespace Tanzeem.Domain.Entities.Users {
         public ICollection<BranchUserRelationship> BURelations { get; set; } = default!;
         public Subscription Subscription { get; set; } = default!;
 
-
+        public ICollection<AuditTrial> auditTrials { get; set; } = new List<AuditTrial>();
     }
 }

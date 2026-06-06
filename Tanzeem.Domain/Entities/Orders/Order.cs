@@ -8,10 +8,11 @@ using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.DeliveryIssues;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.AuditLogs;
 
 namespace Tanzeem.Domain.Entities.Orders
 {
-    public class Order
+    public class Order : IAuditable
     {
         public int Id { get; set; }
         public string OrderNumber { get; set; }

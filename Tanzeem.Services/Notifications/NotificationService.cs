@@ -148,6 +148,7 @@ namespace Tanzeem.Services.Notifications
                 .ToListAsync();
 
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
                 .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == branchId && inv.Quantity > 0)
                 .ToListAsync();
 

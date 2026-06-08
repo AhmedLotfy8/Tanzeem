@@ -6,9 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tanzeem.Web", "Tanzeem.Web\Tanzeem.Web.csproj", "{696D1051-2637-4A37-8A71-CC5B6931615C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-	ProjectSection(SolutionItems) = preProject
-		Tanzeem.Services.Abstractions\AuditLogs\IAuditable.cs = Tanzeem.Services.Abstractions\AuditLogs\IAuditable.cs
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{94750CFF-49BB-47A6-8B82-88A634827CB6}"
 EndProject

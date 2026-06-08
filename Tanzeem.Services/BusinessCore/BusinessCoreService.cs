@@ -149,7 +149,7 @@ namespace Tanzeem.Services.BusinessCore {
             return await unitOfWork.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> UpdateEmployeeAsync(int employeeId, EmployeeCreationDto updatedEmployeeDto) {
+        public async Task<bool> UpdateEmployeeAsync(int employeeId, EmployeeUpdateDto updatedEmployeeDto) {
             var employee = await unitOfWork.GetRepository<User>()
                 .GetAsync(u => u.Id == employeeId && u.Role != UserRoles.Admin);
             if (employee is null) {

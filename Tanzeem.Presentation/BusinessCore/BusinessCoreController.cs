@@ -65,5 +65,23 @@ namespace Tanzeem.Presentation.BusinessCore {
             return Ok(employees);
         }
 
+        [HttpPut]
+        [Route("Update-Employee-Role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateEmployee(int employeeId, EmployeeUpdateDto updateDto) {
+            var result = await businessCoreService.UpdateEmployeeAsync(employeeId, updateDto);
+            return Ok(result);
+        }
+
+        [HttpDelete]
+        [Route("Delete-Employee/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> TerminateEmployee(int id) {
+            var result = await businessCoreService.TerminateEmployeeAsync(id);
+            return Ok(result);
+        }
+
+
+
     }
 }

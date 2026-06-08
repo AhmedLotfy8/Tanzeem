@@ -1,4 +1,7 @@
-﻿using Tanzeem.Domain.Entities.Branches;
+﻿using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Entities.Users;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Users;
 
@@ -11,5 +14,8 @@ namespace Tanzeem.Services.Abstractions.BusinessCore {
         Task<UserProfileDto> GetUserProfileAsync();
         Task<UserProfileDto> GetEmployeeProfileAsync(int id);
         Task<List<UserProfileDto>> GetAllEmployeesAsync();
+        Task<bool> TerminateEmployeeAsync(int employeeId);
+        Task<bool> UpdateEmployeeAsync(int employeeId, EmployeeUpdateDto updatedEmployeeDto);
+
     }
 }

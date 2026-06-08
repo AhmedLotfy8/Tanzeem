@@ -171,6 +171,7 @@ namespace Tanzeem.Services.BusinessCore {
         }
 
         private static UserProfileDto MapToProfileDto(User user) => new() {
+            Id = user.Id,
             UserId = user.UserId,
             Name = user.Name,
             Email = user.Email,

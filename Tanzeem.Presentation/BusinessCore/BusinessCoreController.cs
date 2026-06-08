@@ -52,7 +52,7 @@ namespace Tanzeem.Presentation.BusinessCore {
         [HttpGet]
         [Route("Get-Employee-Profile/{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetEmployeeProfile(int id) {
+        public async Task<IActionResult> GetEmployeeProfile(int id) {/
             var profile = await businessCoreService.GetEmployeeProfileAsync(id);
             return Ok(profile);
         }
@@ -66,10 +66,10 @@ namespace Tanzeem.Presentation.BusinessCore {
         }
 
         [HttpPut]
-        [Route("Update-Employee-Role")]
+        [Route("Update-Employee/{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateEmployee(int employeeId, EmployeeUpdateDto updateDto) {
-            var result = await businessCoreService.UpdateEmployeeAsync(employeeId, updateDto);
+        public async Task<IActionResult> UpdateEmployee(int id, EmployeeUpdateDto updateDto) {
+            var result = await businessCoreService.UpdateEmployeeAsync(id, updateDto);
             return Ok(result);
         }
 

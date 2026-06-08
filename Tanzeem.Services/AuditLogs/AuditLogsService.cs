@@ -40,7 +40,7 @@ namespace Tanzeem.Services.AuditLogs
                 NewValue = a.NewValue,
                 OldValue = a.OldValue,
                 UserId = a.UserId ?? 0,
-                UserName = a.User.Name,
+                UserName = a.User.Name ?? "System",
                 
             });
 
@@ -81,7 +81,7 @@ namespace Tanzeem.Services.AuditLogs
                 NewValue = a.NewValue,
                 OldValue = a.OldValue,
                 UserId = a.UserId ?? 0,
-                UserName = a.User.Name,
+                UserName = a.User.Name ?? "System",
 
             });
 

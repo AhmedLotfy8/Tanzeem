@@ -69,8 +69,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var currentTime = DateTime.UtcNow;
-            var userId = currentService.UserId ??  throw new UnauthorizedAccessException("no user id");
-            var branchId = currentService.BranchId ??  throw new UnauthorizedAccessException("no branch id");
+            var userId = currentService.UserId ?? 0;
+            var branchId = currentService.BranchId ??  0;
 
             var auditEntries = new List<(AuditTrial audit, EntityEntry entry)>();
 

@@ -15,12 +15,18 @@ namespace Tanzeem.Domain.Entities.Users {
     public class User {
     
         public int Id { get; set; }
+        
+        public string UserId { get; set; }
 
         public string Name { get; set; }
 
         public string Email { get; set; }
 
         public string PasswordHash { get; set; }
+
+        public string PhoneNumber { get; set; }
+
+        public UserStatus Status { get; set; }
 
         public UserRoles Role { get; set; }
 

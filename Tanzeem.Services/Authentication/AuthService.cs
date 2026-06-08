@@ -5,6 +5,7 @@ using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
+using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared;
@@ -20,13 +21,16 @@ namespace Tanzeem.Services.Authentication {
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userDto.Email);
 
             if (user is not null) {
-                throw new Exception("Email is already Registered!");
+                throw new BusinessRuleException("Email is already Registered!");
             }
 
             #region Mapping
             var admin = new User() {
+                UserId = Guid.NewGuid().ToString("N")[..8],
                 Name = userDto.Name,
                 Email = userDto.Email,
+                PhoneNumber = userDto.PhoneNumber,
+                Status = UserStatus.Active,
                 Role = UserRoles.Admin,
             };
 
@@ -62,21 +66,7 @@ namespace Tanzeem.Services.Authentication {
             return token;
         }
 
-        public async Task<UserProfileDto> GetUserProfileAsync() {
-            var user = await unitOfWork.GetRepository<User>()
-                .GetAsync(u => u.Id == currentService.UserId);
-            if (user is null) {
-                throw new Exception("User not found");
-            }
-            var userProfile = new UserProfileDto() {
-                Name = user.Name,
-                Email = user.Email,
-                Role = user.Role
-            };
-            return userProfile;
-
-        }
-    
+        
     }
 
 }

@@ -10,4 +10,11 @@ namespace Tanzeem.Domain.Enums {
         Manager = 2,
         Staff = 3,
     }
+
+    public enum UserStatus {
+        Active = 1,
+        Inactive = 2,
+        Suspended = 3,
+    }
+
 }

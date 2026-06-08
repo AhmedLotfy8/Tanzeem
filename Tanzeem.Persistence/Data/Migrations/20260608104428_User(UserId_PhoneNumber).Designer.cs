@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tanzeem.Persistence.Data.DbContexts;
 
@@ -11,9 +12,11 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    partial class TanzeemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608104428_User(UserId_PhoneNumber)")]
+    partial class UserUserId_PhoneNumber
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,9 +81,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -101,8 +101,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("UserId");
 
@@ -856,15 +854,7 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
 
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<string>("StripeCustomerId")
@@ -874,6 +864,11 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("phoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 
@@ -907,17 +902,10 @@ namespace Tanzeem.Persistence.Data.Migrations
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.AuditLogs.AuditTrial", b =>
                 {
-                    b.HasOne("Tanzeem.Domain.Entities.Branches.Branch", "Branch")
-                        .WithMany("auditTrials")
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Tanzeem.Domain.Entities.Users.User", "User")
                         .WithMany("auditTrials")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Branch");
 
                     b.Navigation("User");
                 });
@@ -1196,8 +1184,6 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("Transactions");
-
-                    b.Navigation("auditTrials");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Companies.Company", b =>

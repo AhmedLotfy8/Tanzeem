@@ -9,8 +9,10 @@ using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Persistence;
 using Tanzeem.Persistence.Data.DbContexts;
 using Tanzeem.Persistence.Data.Migrations;
+using Tanzeem.Presentation;
 using Tanzeem.Services.Abstractions.AI;
 using Tanzeem.Services.Abstractions.Alerts;
+using Tanzeem.Services.Abstractions.AuditLogs;
 using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
@@ -26,6 +28,7 @@ using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Services.Alerts;
+using Tanzeem.Services.AuditLogs;
 using Tanzeem.Services.Authentication;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
@@ -79,6 +82,7 @@ namespace Tanzeem.Web {
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<IDemandForecastingService, DemandForecastingService>();
             builder.Services.AddScoped<IAIConfigService, AIConfigurationsService>();
+            builder.Services.AddScoped<IAuditLogsService, AuditLogsService>();
             #endregion
 
             #region Added Authentication

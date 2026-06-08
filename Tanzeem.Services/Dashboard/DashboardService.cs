@@ -92,19 +92,18 @@ namespace Tanzeem.Services.Dashboard
 
         public async Task<List<CategoryDistributionDto>> GetCategoryDistribution()
         {
-            //int branchId = 1;
-            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
-            
+            int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned");
+
             var rawDistribution = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.BranchId == branchId && inv.Quantity > 0)
+                .Where(inv => inv.BranchId == branchId)
                 .GroupBy(inv => new { inv.Product.Category.Id, inv.Product.Category.Name })
                 .Select(g => new
                 {
                     CategoryName = g.Key.Name,
-                    TotalQuantity = g.Sum(inv => inv.Quantity ?? 0)
+                    TypesCount = g.Select(inv => inv.ProductId).Distinct().Count()
                 })
-                .OrderByDescending(x => x.TotalQuantity)
+                .OrderByDescending(x => x.TypesCount)
                 .ToListAsync();
 
             var result = new List<CategoryDistributionDto>();
@@ -115,13 +114,13 @@ namespace Tanzeem.Services.Dashboard
                 result.Add(new CategoryDistributionDto
                 {
                     CategoryName = item.CategoryName,
-                    Count = item.TotalQuantity
+                    Count = item.TypesCount 
                 });
             }
 
             if (rawDistribution.Count > 4)
             {
-                var othersCount = rawDistribution.Skip(4).Sum(x => x.TotalQuantity);
+                var othersCount = rawDistribution.Skip(4).Sum(x => x.TypesCount);
                 result.Add(new CategoryDistributionDto
                 {
                     CategoryName = "Others",

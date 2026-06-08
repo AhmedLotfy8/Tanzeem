@@ -13,5 +13,7 @@ namespace Tanzeem.Shared.Dtos.Users {
         
         public string Password { get; set; }
 
+        public string PhoneNumber { get; set; }
+
     }
 }

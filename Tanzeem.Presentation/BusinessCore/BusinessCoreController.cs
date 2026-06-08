@@ -21,10 +21,8 @@ namespace Tanzeem.Presentation.BusinessCore {
         [Route("Create-Employee")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateNewEmployee(EmployeeCreationDto createEmployeeDto) {
-
             var result = await businessCoreService.CreateNewEmployee(createEmployeeDto);
             return Ok(result);
-
         }
 
         [HttpPost]
@@ -41,6 +39,29 @@ namespace Tanzeem.Presentation.BusinessCore {
         public async Task<IActionResult> AssignUserToBranch(int userId, int newBranchId) {
             var result = await businessCoreService.AssignUserToBranch(userId, newBranchId);
             return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("Get-Profile")]
+        public async Task<IActionResult> GetProfile() {
+            var profile = await businessCoreService.GetUserProfileAsync();
+            return Ok(profile);
+        }
+
+        [HttpGet]
+        [Route("Get-Employee-Profile/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetEmployeeProfile(int id) {
+            var profile = await businessCoreService.GetEmployeeProfileAsync(id);
+            return Ok(profile);
+        }
+
+        [HttpGet]
+        [Route("Get-All-Employees")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllEmployees() {
+            var employees = await businessCoreService.GetAllEmployeesAsync();
+            return Ok(employees);
         }
 
     }

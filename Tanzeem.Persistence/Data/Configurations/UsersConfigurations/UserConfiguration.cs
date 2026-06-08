@@ -12,11 +12,17 @@ namespace Tanzeem.Persistence.Data.Configurations.UsersConfigurations {
     public class UserConfiguration : IEntityTypeConfiguration<User> {
         public void Configure(EntityTypeBuilder<User> builder) {
 
+            builder.Property(x => x.UserId)
+                .HasMaxLength(50);
+
             builder.Property(x => x.Name)
                 .HasMaxLength(256);
 
             builder.Property(x => x.Email)
                 .HasMaxLength(256);
+
+            builder.Property(user => user.PhoneNumber)
+                .HasMaxLength(20);
 
             builder.Property(x => x.PasswordHash)
                 .HasMaxLength(512);

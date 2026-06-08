@@ -8,5 +8,8 @@ namespace Tanzeem.Services.Abstractions.BusinessCore {
         Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto);
         Task<bool> AssignUserToBranch(int userId, int newBranchId);
         Task<int> CreateAdditionalBranchAsync(BranchDto branchDto);
+        Task<UserProfileDto> GetUserProfileAsync();
+        Task<UserProfileDto> GetEmployeeProfileAsync(int id);
+        Task<List<UserProfileDto>> GetAllEmployeesAsync();
     }
 }

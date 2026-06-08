@@ -43,6 +43,7 @@ namespace Tanzeem.Presentation.BusinessCore {
 
         [HttpGet]
         [Route("Get-Profile")]
+        [Authorize]
         public async Task<IActionResult> GetProfile() {
             var profile = await businessCoreService.GetUserProfileAsync();
             return Ok(profile);

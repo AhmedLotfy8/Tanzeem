@@ -69,8 +69,8 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var currentTime = DateTime.UtcNow;
-            var userId = currentService.UserId ?? 0;
-            var branchId = currentService.BranchId ??  0;
+            var userId = currentService.UserId;
+            var branchId = currentService.BranchId;
 
             var auditEntries = new List<(AuditTrial audit, EntityEntry entry)>();
 
@@ -109,7 +109,7 @@ namespace Tanzeem.Persistence.Data.DbContexts {
             return result;
         }
 
-        private AuditTrial CreateAuditTrialFromEntry(EntityEntry entry, DateTime currentTime, int userId, int branchId)
+        private AuditTrial CreateAuditTrialFromEntry(EntityEntry entry, DateTime currentTime, int? userId, int? branchId)
         {
             var auditTrial = new AuditTrial()
             {

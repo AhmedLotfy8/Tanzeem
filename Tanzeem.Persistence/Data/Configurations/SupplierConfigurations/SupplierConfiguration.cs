@@ -22,7 +22,7 @@ namespace Tanzeem.Persistence.Data.Configurations.SupplierConfigurations
             builder.HasIndex(x => x.Email).IsUnique();
 
             builder.Property(x => x.PhoneNumberOne).IsRequired().HasMaxLength(20);
-            builder.Property(x => x.PhoneNumberTwo).IsRequired().HasMaxLength(20);
+            builder.Property(x => x.PhoneNumberTwo).HasMaxLength(20);
 
             builder.Property(x => x.Tax_Id).HasMaxLength(50).IsRequired(false);
 

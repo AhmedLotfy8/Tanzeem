@@ -23,6 +23,9 @@ namespace Tanzeem.Persistence.Repositories {
         public async Task AddAsync(Entity entity) {
             await _context.AddAsync(entity);
         }
+        public async Task AddRangeAsync(IEnumerable<Entity> entities) {
+            await _context.AddRangeAsync(entities);
+        }
 
         public void UpdateAsync(Entity entity) {
             _context.Update(entity);

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -61,6 +62,20 @@ namespace Tanzeem.Presentation.Products {
             var result = await productService.DeletedProductAsync(id);
             return Ok(result);
         }
+        [HttpPost]
+        [Route("Import-CSV")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> ImportProducts(IFormFile file) {
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Only CSV files are allowed.");
+            }
+
+            var insertedCount = await productService.CsvUploadAsync(file);
+
+            return Ok(new { Message = $"Successfully imported {insertedCount} products." });
+        }
+
 
     }
 }

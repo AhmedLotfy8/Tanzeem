@@ -305,10 +305,12 @@ namespace Tanzeem.Services.Suppliers
             var taxIdToCheck = supplierDto.Tax_Id?.Trim();
             string cleanPhone = supplierDto.PhoneNumberOne.Replace(" ", "").Replace("-", "");
             string cleanPhone2 = supplierDto?.PhoneNumberTwo?.Replace(" ", "").Replace("-", "") ?? "-";
+            
             if (cleanPhone.Length > 20 || cleanPhone2.Length > 20)
             {
                 throw new ValidationException("Phone number is too long. Maximum allowed is 20 digits.");
             }
+            
             var isDuplicate = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
                         .AnyAsync(s => s.CompanyId == companyId &&
                        s.Id != id &&
@@ -413,7 +415,8 @@ namespace Tanzeem.Services.Suppliers
                 HasHeaderRecord = true,
                 Delimiter = ",",
                 MissingFieldFound = null,
-                HeaderValidated = null
+                HeaderValidated = null,
+                PrepareHeaderForMatch = args => args.Header.ToLower()
             };
 
             using var stream = file.OpenReadStream();
@@ -455,17 +458,22 @@ namespace Tanzeem.Services.Suppliers
             {
                 rowIndex++;
 
-                string name = csv.GetField<string>("Name") ?? "N/A";
-                string email = csv.GetField<string>("Email")?.Trim().ToLower() ?? "N/A";
-                string phone1 = csv.GetField<string>("Phone 1") ?? "N/A";
-                string phone2 = csv.GetField<string>("Phone 2") ?? "N/A";
-                string Street = csv.GetField<string>("Street") ?? "N/A";
-                string City = csv.GetField<string>("City") ?? "N/A";
-                string Country = csv.GetField<string>("Country") ?? "N/A";
-                string ContactPersonName = csv.GetField<string>("Contact Person Name") ?? "N/A";
-                string WebsiteURL = csv.GetField<string>("Website URL") ?? "N/A";
-                string TaxId = csv.GetField<string>("Tax Id") ?? "N/A";
-                string Notes = csv.GetField<string>("Notes") ?? "N/A";
+                string name = csv.GetField<string>("name") ??
+                              csv.GetField<string>("supplier name") ??
+                              "N/A";
+                string email = csv.GetField<string>("email")?.Trim().ToLower() ??
+                               csv.GetField<string>("supplier email")?.Trim().ToLower() ??
+                               "N/A";
+                string phone1 = csv.GetField<string>("phone 1") ?? "N/A";
+                string phone2 = csv.GetField<string>("phone 2") ?? "N/A";
+                string Street = csv.GetField<string>("street") ?? "N/A";
+                string City = csv.GetField<string>("city") ?? "N/A";
+                string Country = csv.GetField<string>("country") ?? "N/A";
+                string ContactPersonName = csv.GetField<string>("contact person name") ?? "N/A";
+                string WebsiteURL = csv.GetField<string>("website url") ?? "N/A";
+                string TaxId = csv.GetField<string>("tax id") ?? "N/A";
+                string Notes = csv.GetField<string>("notes") ?? "N/A";
+                string status = csv.GetField<string>("status") ?? "Active";
 
 
                 string cleanPhone1 = phone1?.Replace(" ", "").Replace("-", "") ?? "";
@@ -522,6 +530,12 @@ namespace Tanzeem.Services.Suppliers
                         validationErrors.Add($"Row {rowIndex}: 'Phone 2' is too long. Maximum allowed is 20 digits.");
                     }
                 }
+
+                SupplierStatus parsedStatus;
+                if (string.IsNullOrWhiteSpace(status) || !Enum.TryParse<SupplierStatus>(status, true, out parsedStatus))
+                {
+                    parsedStatus = SupplierStatus.Active;
+                }
                 #endregion
                 //if (cleanPhone1.Length > 20) cleanPhone1 = cleanPhone1.Substring(0, 20);
                 //if (cleanPhone2.Length > 20) cleanPhone2 = cleanPhone2.Substring(0, 20);
@@ -542,7 +556,7 @@ namespace Tanzeem.Services.Suppliers
                     ContactPersonName = string.IsNullOrWhiteSpace(ContactPersonName) ? "N/A" : ContactPersonName,
                     Tax_Id = string.IsNullOrWhiteSpace(TaxId) ? "N/A" : TaxId,
                     Notes = string.IsNullOrWhiteSpace(Notes) ? "N/A" : Notes,
-                    SupplierStatus = SupplierStatus.Active,
+                    SupplierStatus = parsedStatus,
                     
                     CompanyId = companyId
                 };

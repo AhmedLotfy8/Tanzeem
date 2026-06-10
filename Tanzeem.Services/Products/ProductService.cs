@@ -1,6 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using CsvHelper;
+using CsvHelper.Configuration;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
@@ -8,9 +12,13 @@ using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Inventories;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Suppliers;
+using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Products;
+using Tanzeem.Services.Current;
 using Tanzeem.Shared.Dtos.Products;
+using ValidationException = Tanzeem.Domain.Exceptions.ValidationException;
 
 namespace Tanzeem.Services.Products {
     public class ProductService(IUnitOfWork _unitOfWork,
@@ -318,8 +326,169 @@ namespace Tanzeem.Services.Products {
             return count > 0;
         }
 
-        public Task<int> CsvUploadAsync(string filePath) {
-            throw new NotImplementedException();
+        public async Task<int> CsvUploadAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                throw new ValidationException("Please upload a valid CSV file.");
+
+            int companyId = currentService.CompanyId ?? throw new UnauthorizedAccessException("No company assigned.");
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                Delimiter = ",",
+                MissingFieldFound = null,
+                HeaderValidated = null,
+                PrepareHeaderForMatch = args => args.Header.ToLower()
+            };
+
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            using var csv = new CsvReader(reader, config);
+
+            csv.Read();
+            csv.ReadHeader();
+
+            int rowIndex = 1;
+            var validationErrors = new List<string>();
+
+            var existingSkus = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Where(p => p.CompanyId == companyId && !string.IsNullOrEmpty(p.SKU))
+                .Select(p => p.SKU.ToLower())
+                .ToListAsync();
+
+            var existingBarcodes = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                .Where(p => p.CompanyId == companyId && !string.IsNullOrEmpty(p.Barcode))
+                .Select(p => p.Barcode.ToLower())
+                .ToListAsync();
+
+            var existingCategories = await _unitOfWork.GetRepository<Category>().GetAllAsIQueryable()
+            //.Where(c => c.CompanyId == companyId)
+            .AsTracking()
+            .ToDictionaryAsync(c => c.Name.ToLower(), c => c);
+
+            var skusInCsv = new HashSet<string>();
+            var barcodesInCsv = new HashSet<string>();
+
+            var productsToInsert = new List<Product>();
+
+            while (csv.Read())
+            {
+                rowIndex++;
+
+                string name = csv.GetField<string>("name") ?? csv.GetField<string>("product name") ?? "";
+                string sku = csv.GetField<string>("sku")?.Trim() ?? "N/A";
+                string barcode = csv.GetField<string>("barcode")?.Trim() ?? "N/A";
+                string costPriceStr = csv.GetField<string>("cost price") ?? "0";
+                string sellingPriceStr = csv.GetField<string>("selling price") ?? "0";
+                string expiryDateStr = csv.GetField<string>("expiry date") ?? "1999/01/01";
+                string description = csv.GetField<string>("description") ?? "N/A";
+                string reorderLevelStr = csv.GetField<string>("reorder Level") ?? "0";
+                string status = csv.GetField<string>("status") ?? "Active";
+                string categoryName = csv.GetField<string>("category name") ?? "N/A";
+
+                #region Validation & Parsing
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Name' is required.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(sku))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'SKU' is required.");
+                    continue;
+                }
+
+                string skuLower = sku.ToLower();
+                if (existingSkus.Contains(skuLower))
+                    validationErrors.Add($"Row {rowIndex}: SKU '{sku}' already exists in the system.");
+                else if (skusInCsv.Contains(skuLower))
+                    validationErrors.Add($"Row {rowIndex}: SKU '{sku}' is duplicated within the CSV file.");
+                else
+                    skusInCsv.Add(skuLower);
+
+                if (!string.IsNullOrWhiteSpace(barcode))
+                {
+                    string barcodeLower = barcode.ToLower();
+                    if (existingBarcodes.Contains(barcodeLower))
+                        validationErrors.Add($"Row {rowIndex}: Barcode '{barcode}' already exists in the system.");
+                    else if (barcodesInCsv.Contains(barcodeLower))
+                        validationErrors.Add($"Row {rowIndex}: Barcode '{barcode}' is duplicated within the CSV file.");
+                    else
+                        barcodesInCsv.Add(barcodeLower);
+                }
+
+
+                if (!decimal.TryParse(costPriceStr, out decimal costPrice))
+                    validationErrors.Add($"Row {rowIndex}: 'Cost Price' ({costPriceStr}) is not a valid number.");
+
+                if (!decimal.TryParse(sellingPriceStr, out decimal sellingPrice))
+                    validationErrors.Add($"Row {rowIndex}: 'Selling Price' ({sellingPriceStr}) is not a valid number.");
+
+                
+                if (string.IsNullOrWhiteSpace(categoryName))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Category Name' is required.");
+                    continue;
+                }
+
+                int reorderLevel = 0;
+                if (!string.IsNullOrWhiteSpace(reorderLevelStr) && !int.TryParse(reorderLevelStr, out reorderLevel))
+                    validationErrors.Add($"Row {rowIndex}: 'Reorder Level' ({reorderLevelStr}) must be a valid integer.");
+
+                DateTime expiryDate = DateTime.MinValue;
+                if (!string.IsNullOrWhiteSpace(expiryDateStr) && !DateTime.TryParse(expiryDateStr, out expiryDate))
+                    validationErrors.Add($"Row {rowIndex}: 'Expiry Date' ({expiryDateStr}) is not a valid date format.");
+
+
+                string categoryKey = categoryName.ToLower();
+                if (!existingCategories.TryGetValue(categoryKey, out Category? categoryObj))
+                {
+                    categoryObj = new Category
+                    {
+                        Name = categoryName,
+                    };
+                    existingCategories[categoryKey] = categoryObj;
+                }
+                #endregion
+
+
+                if (!validationErrors.Any(e => e.StartsWith($"Row {rowIndex}:")))
+                {
+                    var product = new Product
+                    {
+                        Name = name,
+                        SKU = sku,
+                        Barcode = string.IsNullOrWhiteSpace(barcode) ? "N/A" : barcode,
+                        CostPrice = costPrice,
+                        SellingPrice = sellingPrice,
+                        ExpiryDate = expiryDate, 
+                        Description = description,
+                        ReorderLevel = reorderLevel,
+                        Status = status,
+                        Category = categoryObj,
+                        CompanyId = companyId
+                    };
+
+                    productsToInsert.Add(product);
+                }
+            }
+
+            if (validationErrors.Any())
+            {
+                string detailedErrorMessage = string.Join(" | ", validationErrors);
+                throw new ValidationException($"CSV Validation Failed: {detailedErrorMessage}");
+            }
+
+            if (productsToInsert.Any())
+            {
+                await _unitOfWork.GetRepository<Product>().AddRangeAsync(productsToInsert);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            return productsToInsert.Count;
         }
 
     }

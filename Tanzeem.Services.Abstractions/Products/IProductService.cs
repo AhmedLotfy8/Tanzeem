@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,7 @@ namespace Tanzeem.Services.Abstractions.Products {
 
         // Post
         Task<int> CreateProductAsync(ProductDto productDto);
-        Task<int> CsvUploadAsync(string filePath);
+        Task<int> CsvUploadAsync(IFormFile file);
 
         // Put
         Task<int> UpdateProductAsync(int id, ProductDto productDto);

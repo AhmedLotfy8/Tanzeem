@@ -9,6 +9,7 @@ namespace Tanzeem.Domain.Contracts {
         Task<Entity?> GetByIdAsync(int id);
 
         Task AddAsync(Entity entity);
+        Task AddRangeAsync(IEnumerable<Entity> entities);
 
         void UpdateAsync(Entity entity);
 

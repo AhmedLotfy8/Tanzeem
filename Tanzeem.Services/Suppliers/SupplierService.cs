@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 
@@ -15,6 +16,10 @@ using Tanzeem.Services.Abstractions.Suppliers;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.Suppliers;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using CsvHelper;
+using CsvHelper.Configuration;
+using System.Globalization;
+using ValidationException = Tanzeem.Domain.Exceptions.ValidationException;
 
 namespace Tanzeem.Services.Suppliers
 {
@@ -396,5 +401,86 @@ namespace Tanzeem.Services.Suppliers
             };
         }
 
+        public async Task<int> ImportSuppliersFromCsvAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                throw new ValidationException("Please upload a valid CSV file.");
+
+            int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company assigned.");
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+                Delimiter = ",",
+                MissingFieldFound = null,
+                HeaderValidated = null
+            };
+
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            using var csv = new CsvReader(reader, config);
+
+            csv.Read();
+            csv.ReadHeader();
+
+            var lastSupplier = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+            .Where(s => s.CompanyId == companyId)
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (lastSupplier != null && !string.IsNullOrWhiteSpace(lastSupplier.SupplierNumber))
+            {
+                string[] numberParts = lastSupplier.SupplierNumber.Split('-');
+                if (numberParts.Length > 0 && int.TryParse(numberParts.Last(), out int lastSeq))
+                {
+                    nextNumber = lastSeq + 1;
+                }
+            }
+
+            var suppliersToInsert = new List<Supplier>();
+
+            while (csv.Read())
+            {
+                string name = csv.GetField<string>("Name") ?? "N/A";
+                string email = csv.GetField<string>("Email") ?? "N/A";
+                string phone1 = csv.GetField<string>("Phone 1") ?? "N/A";
+                string phone2 = csv.GetField<string>("Phone 2") ?? "N/A";
+                string Street = csv.GetField<string>("Street") ?? "N/A";
+                string City = csv.GetField<string>("City") ?? "N/A";
+                string Country = csv.GetField<string>("Country") ?? "N/A";
+
+                string cleanPhone1 = phone1?.Replace(" ", "").Replace("-", "") ?? "";
+                string cleanPhone2 = phone2?.Replace(" ", "").Replace("-", "") ?? "";
+
+                if (cleanPhone1.Length > 20) cleanPhone1 = cleanPhone1.Substring(0, 20);
+                if (cleanPhone2.Length > 20) cleanPhone2 = cleanPhone2.Substring(0, 20);
+
+                var supplier = new Supplier
+                {
+                    SupplierNumber = $"SUP-{nextNumber:D4}",
+                    FullName = name,
+                    Email = string.IsNullOrWhiteSpace(email) ? "N/A" : email,
+                    PhoneNumberOne = cleanPhone1,
+                    PhoneNumberTwo = string.IsNullOrWhiteSpace(cleanPhone2) ? null : cleanPhone2,
+                    
+                    Street = string.IsNullOrWhiteSpace(Street) ? "N/A" : Street,
+                    City = string.IsNullOrWhiteSpace(City) ? "N/A" : City,
+                    Country = string.IsNullOrWhiteSpace(Country) ? "N/A" : Country,
+                    CompanyId = companyId
+                };
+                nextNumber++;
+                suppliersToInsert.Add(supplier);
+            }
+
+            if (suppliersToInsert.Any())
+            {
+                await _unitOfWork.GetRepository<Supplier>().AddRangeAsync(suppliersToInsert);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            return suppliersToInsert.Count;
+        }
     }
 }

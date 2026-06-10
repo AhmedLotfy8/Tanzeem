@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -85,6 +86,19 @@ namespace Tanzeem.Presentation.Suppliers
         {
             var result = await _supplierService.Counts();
             return Ok(result);
+        }
+
+        [HttpPost("Import-CSV")]
+        public async Task<IActionResult> ImportSuppliers(IFormFile file)
+        {
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Only CSV files are allowed.");
+            }
+
+            var insertedCount = await _supplierService.ImportSuppliersFromCsvAsync(file);
+
+            return Ok(new { Message = $"Successfully imported {insertedCount} suppliers." });
         }
 
     }

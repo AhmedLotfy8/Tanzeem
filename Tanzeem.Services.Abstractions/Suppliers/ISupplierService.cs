@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,5 +28,6 @@ namespace Tanzeem.Services.Abstractions.Suppliers
         Task<IEnumerable<SupplierLookupDto>> GetSuppliersLookupAsync(string? searchTerm = null);
 
         public Task<SupplierCountsDto> Counts();
+        public Task<int> ImportSuppliersFromCsvAsync(IFormFile file);
     }
 }

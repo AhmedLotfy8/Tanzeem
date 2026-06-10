@@ -423,6 +423,15 @@ namespace Tanzeem.Services.Suppliers
             csv.Read();
             csv.ReadHeader();
 
+            int rowIndex = 1;
+            var validationErrors = new List<string>();
+            var existingEmails = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+            .Where(s => s.CompanyId == companyId && !string.IsNullOrEmpty(s.Email) && s.Email != "N/A")
+            .Select(s => s.Email.ToLower())
+            .ToListAsync();
+            var emailsInCsv = new HashSet<string>();
+
+            #region generate supplier number
             var lastSupplier = await _unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
             .Where(s => s.CompanyId == companyId)
             .OrderByDescending(s => s.Id)
@@ -438,24 +447,85 @@ namespace Tanzeem.Services.Suppliers
                     nextNumber = lastSeq + 1;
                 }
             }
+            #endregion
 
             var suppliersToInsert = new List<Supplier>();
 
             while (csv.Read())
             {
+                rowIndex++;
+
                 string name = csv.GetField<string>("Name") ?? "N/A";
-                string email = csv.GetField<string>("Email") ?? "N/A";
+                string email = csv.GetField<string>("Email")?.Trim().ToLower() ?? "N/A";
                 string phone1 = csv.GetField<string>("Phone 1") ?? "N/A";
                 string phone2 = csv.GetField<string>("Phone 2") ?? "N/A";
                 string Street = csv.GetField<string>("Street") ?? "N/A";
                 string City = csv.GetField<string>("City") ?? "N/A";
                 string Country = csv.GetField<string>("Country") ?? "N/A";
+                string ContactPersonName = csv.GetField<string>("Contact Person Name") ?? "N/A";
+                string WebsiteURL = csv.GetField<string>("Website URL") ?? "N/A";
+                string TaxId = csv.GetField<string>("Tax Id") ?? "N/A";
+                string Notes = csv.GetField<string>("Notes") ?? "N/A";
+
 
                 string cleanPhone1 = phone1?.Replace(" ", "").Replace("-", "") ?? "";
                 string cleanPhone2 = phone2?.Replace(" ", "").Replace("-", "") ?? "";
 
-                if (cleanPhone1.Length > 20) cleanPhone1 = cleanPhone1.Substring(0, 20);
-                if (cleanPhone2.Length > 20) cleanPhone2 = cleanPhone2.Substring(0, 20);
+                #region validation
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Name' is required.");
+                    continue; 
+                }
+
+                if (string.IsNullOrWhiteSpace(phone1))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Phone 1' is required.");
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(email) && email != "n/a")
+                {
+                    if (existingEmails.Contains(email))
+                    {
+                        validationErrors.Add($"Row {rowIndex}: Email '{email}' already exists in the system.");
+                    }
+                    else if (emailsInCsv.Contains(email))
+                    {
+                        validationErrors.Add($"Row {rowIndex}: Email '{email}' is duplicated within the CSV file.");
+                    }
+                    else
+                    {
+                        emailsInCsv.Add(email); // to compare it with the next lines
+                    }
+                }
+
+                string phone1Check = cleanPhone1.StartsWith("+") ? cleanPhone1.Substring(1) : cleanPhone1;
+                if (phone1Check.Any(c => !char.IsDigit(c)))
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Phone 1' ({phone1}) contains invalid characters. Only digits are allowed.");
+                }
+                else if (cleanPhone1.Length > 20)
+                {
+                    validationErrors.Add($"Row {rowIndex}: 'Phone 1' is too long. Maximum allowed is 20 digits.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(cleanPhone2))
+                {
+                    string phone2Check = cleanPhone2.StartsWith("+") ? cleanPhone2.Substring(1) : cleanPhone2;
+                    if (phone2Check.Any(c => !char.IsDigit(c)))
+                    {
+                        validationErrors.Add($"Row {rowIndex}: 'Phone 2' ({phone2}) contains invalid characters.");
+                    }
+                    else if (cleanPhone2.Length > 20)
+                    {
+                        validationErrors.Add($"Row {rowIndex}: 'Phone 2' is too long. Maximum allowed is 20 digits.");
+                    }
+                }
+                #endregion
+                //if (cleanPhone1.Length > 20) cleanPhone1 = cleanPhone1.Substring(0, 20);
+                //if (cleanPhone2.Length > 20) cleanPhone2 = cleanPhone2.Substring(0, 20);
+
 
                 var supplier = new Supplier
                 {
@@ -468,10 +538,22 @@ namespace Tanzeem.Services.Suppliers
                     Street = string.IsNullOrWhiteSpace(Street) ? "N/A" : Street,
                     City = string.IsNullOrWhiteSpace(City) ? "N/A" : City,
                     Country = string.IsNullOrWhiteSpace(Country) ? "N/A" : Country,
+                    WebsiteURL = string.IsNullOrWhiteSpace(WebsiteURL) ? "N/A" : WebsiteURL,
+                    ContactPersonName = string.IsNullOrWhiteSpace(ContactPersonName) ? "N/A" : ContactPersonName,
+                    Tax_Id = string.IsNullOrWhiteSpace(TaxId) ? "N/A" : TaxId,
+                    Notes = string.IsNullOrWhiteSpace(Notes) ? "N/A" : Notes,
+                    SupplierStatus = SupplierStatus.Active,
+                    
                     CompanyId = companyId
                 };
                 nextNumber++;
                 suppliersToInsert.Add(supplier);
+            }
+
+            if (validationErrors.Any())
+            {
+                string detailedErrorMessage = string.Join(" | ", validationErrors);
+                throw new ValidationException($"CSV Validation Failed: {detailedErrorMessage}");
             }
 
             if (suppliersToInsert.Any())

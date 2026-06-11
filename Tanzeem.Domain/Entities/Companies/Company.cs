@@ -31,6 +31,7 @@ namespace Tanzeem.Domain.Entities.Companies {
         #endregion
         public ICollection<Branch> Branches { get; set; } = new List<Branch>();
         public ICollection<Product> Products  { get; set; } = new List<Product>();
+        public ICollection<Category> Categories  { get; set; } = new List<Category>();
         public ICollection<User> Users { get; set; } = new List<User>();
         
         public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();

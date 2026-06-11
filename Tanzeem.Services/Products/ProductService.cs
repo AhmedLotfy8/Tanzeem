@@ -147,7 +147,7 @@ namespace Tanzeem.Services.Products {
                     .GetAsync(i => i.ProductId == existingProduct.Id && i.BranchId == branchId);
 
                 if (isFoundInInventory is not null)
-                    throw new Exception("Product with the same SKU already exists in this branch.");
+                    throw new KeyNotFoundException("Product with the same SKU already exists in this branch.");
 
                 var tranac = await _unitOfWork.BeginTransactionAsync();
                 try {
@@ -170,13 +170,15 @@ namespace Tanzeem.Services.Products {
             try {
 
                 if (string.IsNullOrWhiteSpace(productDto.Category))
-                    throw new Exception("Category name cannot be empty");
+                    throw new ValidationException("Category name cannot be empty");
 
-                var category = await _unitOfWork.GetRepository<Category>()
-                    .GetAsync(c => c.Name == productDto.Category);
+                var category = await _unitOfWork.GetRepository<Category>()                   
+                    .GetAllAsIQueryable()
+                    .Where(c => c.Name == productDto.Category && c.CompanyId == companyId)
+                    .FirstOrDefaultAsync();
 
                 if (category is null) {
-                    category = new Category { Name = productDto.Category };
+                    category = new Category { Name = productDto.Category , CompanyId = companyId};
                     await _unitOfWork.GetRepository<Category>().AddAsync(category);
                 }
 
@@ -266,13 +268,15 @@ namespace Tanzeem.Services.Products {
 
             // Category — DB-level lookup, not in-memory
             if (string.IsNullOrWhiteSpace(productDto.Category))
-                throw new Exception("Category name cannot be empty");
+                throw new BusinessRuleException("Category name cannot be empty");
 
             var categoryMatch = await _unitOfWork.GetRepository<Category>()
-                .GetAsync(c => c.Name == productDto.Category);
+                    .GetAllAsIQueryable()
+                    .Where(c => c.Name == productDto.Category && c.CompanyId == companyId)
+                    .FirstOrDefaultAsync();
 
             if (categoryMatch is null) {
-                var newCategory = new Category { Name = productDto.Category };
+                var newCategory = new Category { Name = productDto.Category , CompanyId = companyId };
                 await _unitOfWork.GetRepository<Category>().AddAsync(newCategory);
                 product.Category = newCategory;
             }
@@ -310,16 +314,18 @@ namespace Tanzeem.Services.Products {
 
             if (inventory is null)
                 throw new Exception("Inventory not found for this branch");
+            
             var forecast = await _unitOfWork.GetRepository<DemandForecast>()
                 .GetAsync(d => d.ProductId == id && d.BranchId == branchId);
 
-            if (forecast is null)
-                throw new Exception("Forecast not found for this product");
 
             #endregion
 
             _unitOfWork.GetRepository<Inventory>().DeleteAsync(inventory);
-            _unitOfWork.GetRepository<DemandForecast>().DeleteAsync(forecast);
+            if (forecast is not null)
+            {
+                _unitOfWork.GetRepository<DemandForecast>().DeleteAsync(forecast);
+            }
             _unitOfWork.GetRepository<Product>().DeleteAsync(product);
 
             var count = await _unitOfWork.SaveChangesAsync();
@@ -363,7 +369,7 @@ namespace Tanzeem.Services.Products {
                 .ToListAsync();
 
             var existingCategories = await _unitOfWork.GetRepository<Category>().GetAllAsIQueryable()
-            //.Where(c => c.CompanyId == companyId)
+            .Where(c => c.CompanyId == companyId)
             .AsTracking()
             .ToDictionaryAsync(c => c.Name.ToLower(), c => c);
 
@@ -449,6 +455,7 @@ namespace Tanzeem.Services.Products {
                     categoryObj = new Category
                     {
                         Name = categoryName,
+                        CompanyId = companyId
                     };
                     existingCategories[categoryKey] = categoryObj;
                 }

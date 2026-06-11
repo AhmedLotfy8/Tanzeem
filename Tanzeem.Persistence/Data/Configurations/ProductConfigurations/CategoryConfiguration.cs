@@ -13,7 +13,11 @@ namespace Tanzeem.Persistence.Data.Configurations.ProductConfigurations {
 
             builder.Property(x => x.Name)
                 .HasMaxLength(256);
-
+            
+            builder.HasOne(p => p.Company)
+               .WithMany(c => c.Categories)
+               .HasForeignKey(p => p.CompanyId)
+               .OnDelete(DeleteBehavior.Restrict);
         }
 
 

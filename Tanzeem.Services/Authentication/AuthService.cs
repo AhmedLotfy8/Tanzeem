@@ -46,19 +46,19 @@ namespace Tanzeem.Services.Authentication {
             return admin.Id;
         }
 
-        ///TODO i changed somethings at Login Auth Service
+
         public async Task<string?> Login(UserLoginDto userLoginDto) {
 
             var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Email == userLoginDto.Email);
 
             if (user is null) {
-                throw new Exception("User not found");
+                throw new BusinessRuleException("User not found!");
             }
 
 
             if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, userLoginDto.Password)
                 == PasswordVerificationResult.Failed) {
-                throw new Exception("Wrong password");
+                throw new BusinessRuleException("Email or password is incorrect!");
             }
 
             var token = await AuthHelper.GenerateToken(user, options, unitOfWork);
@@ -66,7 +66,30 @@ namespace Tanzeem.Services.Authentication {
             return token;
         }
 
-        
+        public async Task<bool> ChangePasswordAsync(ChangePasswordDto dto)
+        {
+            int userId = currentService.UserId ?? throw new UnauthorizedAccessException("no user id assigned");
+            
+            var user = await unitOfWork.GetRepository<User>()
+                .GetAllAsIQueryable()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user is null)
+                throw new BusinessRuleException("User not found!");
+
+            var hasher = new PasswordHasher<User>();
+            var result = hasher.VerifyHashedPassword(user, user.PasswordHash, dto.OldPassword);
+
+            if (result == PasswordVerificationResult.Failed)
+                throw new BusinessRuleException("Old password is incorrect!");
+
+            user.PasswordHash = hasher.HashPassword(user, dto.NewPassword);
+
+            unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
     }
 
 }

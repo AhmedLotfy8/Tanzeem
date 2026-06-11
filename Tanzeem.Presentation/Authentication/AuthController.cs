@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Services.Abstractions.Authentication;
@@ -21,7 +23,13 @@ namespace Tanzeem.Presentation.Authentication {
             return Ok(token);
         }
 
-
+        [HttpPut("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePasswordAsync([FromBody] ChangePasswordDto dto)
+        {
+            var result = await authService.ChangePasswordAsync(dto);
+            return Ok(new { success = result });
+        }
 
     }
 }

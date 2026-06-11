@@ -42,7 +42,7 @@ namespace Tanzeem.Services.Products {
                 .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId);
 
             if (product is null)
-                throw new Exception("Product not found");
+                throw new KeyNotFoundException("Product not found");
 
             // Branch-scoped inventory
             var inventory = await _unitOfWork.GetRepository<Inventory>()
@@ -338,6 +338,7 @@ namespace Tanzeem.Services.Products {
                 throw new ValidationException("Please upload a valid CSV file.");
 
             int companyId = currentService.CompanyId ?? throw new UnauthorizedAccessException("No company assigned.");
+            int branchId = currentService.BranchId ?? throw new UnauthorizedAccessException("No branch assigned.");
 
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
@@ -377,6 +378,7 @@ namespace Tanzeem.Services.Products {
             var barcodesInCsv = new HashSet<string>();
 
             var productsToInsert = new List<Product>();
+            var inventoriesToInsert = new List<Inventory>();
 
             while (csv.Read())
             {
@@ -392,6 +394,7 @@ namespace Tanzeem.Services.Products {
                 string reorderLevelStr = csv.GetField<string>("reorder Level") ?? "0";
                 string status = csv.GetField<string>("status") ?? "Active";
                 string categoryName = csv.GetField<string>("category name") ?? "N/A";
+                string quantityStr = csv.GetField<string>("quantity") ?? "0";
 
                 #region Validation & Parsing
 
@@ -432,6 +435,9 @@ namespace Tanzeem.Services.Products {
 
                 if (!decimal.TryParse(sellingPriceStr, out decimal sellingPrice))
                     validationErrors.Add($"Row {rowIndex}: 'Selling Price' ({sellingPriceStr}) is not a valid number.");
+                
+                if (!int.TryParse(quantityStr, out int quantity))
+                    validationErrors.Add($"Row {rowIndex}: 'Quantity' ({quantityStr}) is not a valid number.");
 
                 
                 if (string.IsNullOrWhiteSpace(categoryName))
@@ -480,6 +486,15 @@ namespace Tanzeem.Services.Products {
                     };
 
                     productsToInsert.Add(product);
+
+                    var inventory = new Inventory
+                    {
+                        Product = product,
+                        BranchId = branchId,
+                        Quantity = quantity 
+                    };
+                    inventoriesToInsert.Add(inventory);
+
                 }
             }
 
@@ -489,9 +504,10 @@ namespace Tanzeem.Services.Products {
                 throw new ValidationException($"CSV Validation Failed: {detailedErrorMessage}");
             }
 
-            if (productsToInsert.Any())
+            if (productsToInsert.Any() || inventoriesToInsert.Any())
             {
                 await _unitOfWork.GetRepository<Product>().AddRangeAsync(productsToInsert);
+                await _unitOfWork.GetRepository<Inventory>().AddRangeAsync(inventoriesToInsert);
                 await _unitOfWork.SaveChangesAsync();
             }
 

@@ -8,6 +8,8 @@ using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Current;
+using Tanzeem.Services.Abstractions.Settings;
+using Tanzeem.Services.Settings;
 using Tanzeem.Shared.Dtos.Branches;
 using Tanzeem.Shared.Dtos.Users;
 
@@ -15,6 +17,8 @@ namespace Tanzeem.Services.BusinessCore {
     public class BusinessCoreService(
         IUnitOfWork unitOfWork,
         IBranchService branchService,
+        IAlertConfigurationsService alertConfigurationsService,
+        IAIConfigService aIConfigService,
         ICurrentService currentService) : IBusinessCoreService {
 
         public async Task<int> CreateNewEmployee(EmployeeCreationDto employeeCreationDto) {
@@ -65,7 +69,14 @@ namespace Tanzeem.Services.BusinessCore {
             var companyId = currentService.CompanyId
                 ?? throw new InvalidOperationException("Company context missing from token.");
 
-            return await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
+            int branchId = await branchService.CreateNewBranchAsync(branchDto, adminId, companyId);
+
+            #region create new Alert configuration settings | create new ai settings
+            await alertConfigurationsService.CreateDefaultAlertsConfigurationsAsync(branchId);
+            await aIConfigService.CreateAIConfigurations(branchId);
+            #endregion
+
+            return branchId;
         }
 
         public async Task<bool> AssignUserToBranch(int userId, int newBranchId) {
@@ -124,7 +135,7 @@ namespace Tanzeem.Services.BusinessCore {
             }
             var employeeProfile = MapToProfileDto(employee);
             return employeeProfile;
-        }        
+        }
 
         public async Task<List<UserProfileDto>> GetAllEmployeesAsync() {
             var employeeProfiles = await unitOfWork.GetRepository<User>()

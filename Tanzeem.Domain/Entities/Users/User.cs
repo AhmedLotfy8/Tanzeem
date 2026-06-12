@@ -29,7 +29,9 @@ namespace Tanzeem.Domain.Entities.Users {
         public UserStatus Status { get; set; }
 
         public UserRoles Role { get; set; }
-
+        public string? ResetToken { get; set; }              // OTP: "123456"
+        public DateTime? ResetTokenExpiry { get; set; }      // Expires after 10 minutes
+        public int FailedResetAttempts { get; set; } = 0;    // Track failed attempts (max 3)
         #region Relationships
 
         #endregion

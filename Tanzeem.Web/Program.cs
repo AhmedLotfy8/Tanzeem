@@ -81,6 +81,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<IDemandForecastingService, DemandForecastingService>();
+            builder.Services.AddHttpClient<DemandForecastingService>();
             builder.Services.AddScoped<IAIConfigService, AIConfigurationsService>();
             builder.Services.AddScoped<IAuditLogsService, AuditLogsService>();
             #endregion
@@ -158,10 +159,15 @@ namespace Tanzeem.Web {
                     () => notificationService.CreateNotification(),
                     Cron.Weekly(DayOfWeek.Saturday, 1)
                 );
-                recurringJobManager.AddOrUpdate<DemandForecastingService>(
-                        "update-ai-demand-forecast-daily",
-                service => service.UpdateAllForecastsAsync(),
-                Cron.Daily(23, 0));
+                //recurringJobManager.AddOrUpdate<DemandForecastingService>(
+                //        "update-ai-demand-forecast-daily",
+                //service => service.UpdateAllForecastsAsync(),
+                //Cron.Daily(23, 0));
+                recurringJobManager.AddOrUpdate<IDemandForecastingService>(
+                    "update-ai-demand-forecast-dailyy",
+                    service => service.UpdateAllForecastsAsync(),
+                    Cron.Daily(23, 0));
+                //RecurringJob.RemoveIfExists("update-ai-demand-forecast-daily");
             }
             #endregion
 

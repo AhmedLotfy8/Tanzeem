@@ -34,6 +34,10 @@ namespace Tanzeem.Persistence.Repositories {
         public void DeleteAsync(Entity entity) {
             _context.Remove(entity);
         }
+        public void DeleteRangeAsync(IEnumerable<Entity> entities)
+        {
+            _context.RemoveRange(entities);
+        }
 
         public async Task<Entity?> GetAsync(Expression<Func<Entity, bool>> predicate,
             params Expression<Func<Entity, object>>[] includes) {

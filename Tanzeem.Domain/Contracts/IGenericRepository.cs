@@ -14,7 +14,7 @@ namespace Tanzeem.Domain.Contracts {
         void UpdateAsync(Entity entity);
 
         void DeleteAsync(Entity entity);
-
+        void DeleteRangeAsync(IEnumerable<Entity> entities);
         #region new methods
         IQueryable<Entity> GetAllAsIQueryable();
         IQueryable<Entity> GetByIdAsQueryable(int id);

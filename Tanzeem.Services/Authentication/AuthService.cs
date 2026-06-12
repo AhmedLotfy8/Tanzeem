@@ -1,8 +1,21 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using System.Net;
+using System.Net.Mail;
 using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Branches;
+using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.DeliveryIssues;
+using Tanzeem.Domain.Entities.Inventories;
+using Tanzeem.Domain.Entities.Notifications;
+using Tanzeem.Domain.Entities.Orders;
+using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Settings;
+using Tanzeem.Domain.Entities.Suppliers;
+using Tanzeem.Domain.Entities.Transactions;
 using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Domain.Exceptions;
@@ -14,7 +27,11 @@ using Tanzeem.Shared.Dtos.Users;
 namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
         ICurrentService currentService,
-        IOptions<JwtOptions> options) : IAuthService {
+        IOptions<JwtOptions> options, IConfiguration configuration) : IAuthService {
+        
+        private const int OTP_EXPIRY_MINUTES = 10;
+        private const int MAX_FAILED_ATTEMPTS = 3;
+
 
         public async Task<int> CreateAdminAsync(AdminSignUpDto userDto) {
 
@@ -45,7 +62,6 @@ namespace Tanzeem.Services.Authentication {
 
             return admin.Id;
         }
-
 
         public async Task<string?> Login(UserLoginDto userLoginDto) {
 
@@ -91,6 +107,296 @@ namespace Tanzeem.Services.Authentication {
             return true;
         }
 
+        #region Forget Password - Step 1: Request Reset
+
+        /// <summary>
+        /// Step 1: User requests password reset by providing email
+        /// System generates OTP and sends it via email
+        /// </summary>
+        public async Task<bool> RequestResetPasswordAsync(RequestResetPasswordDto dto)
+        {
+            try
+            {
+                // Get user by email
+                var user = await unitOfWork.GetRepository<User>()
+                    .GetAsync(u => u.Email == dto.Email);
+
+                if (user is null)
+                    throw new BusinessRuleException("Email not found in system!");
+
+                // Generate OTP (6 random digits)
+                var otp = AuthHelper.GenerateOtp();
+
+                // Store OTP in database with expiry time
+                user.ResetToken = otp;
+                user.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(OTP_EXPIRY_MINUTES);
+                user.FailedResetAttempts = 0; // Reset counter for fresh attempt
+
+                unitOfWork.GetRepository<User>().UpdateAsync(user);
+                await unitOfWork.SaveChangesAsync();
+
+                // Send OTP via email
+                await SendOtpEmailAsync(user.Email, user.Name, otp);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new BusinessRuleException($"Failed to request password reset: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Forget Password - Step 2: Verify OTP
+
+        /// <summary>
+        /// Step 2: User enters email and OTP to verify identity
+        /// Does NOT change password yet - just validates OTP
+        /// </summary>
+        public async Task<bool> VerifyOtpAsync(VerifyOtpDto dto)
+        {
+            try
+            {
+                // Get user by email
+                var user = await unitOfWork.GetRepository<User>()
+                    .GetAsync(u => u.Email == dto.Email);
+
+                if (user is null)
+                    throw new BusinessRuleException("Email not found in system!");
+
+                // Check if reset is locked (exceeded max failed attempts)
+                if (user.FailedResetAttempts >= MAX_FAILED_ATTEMPTS)
+                    throw new BusinessRuleException("Too many failed attempts. Please request a new OTP.");
+
+                // Check if OTP has expired
+                if (user.ResetTokenExpiry == null || DateTime.UtcNow > user.ResetTokenExpiry)
+                    throw new BusinessRuleException("OTP has expired. Please request a new one.");
+
+                // Verify the OTP code
+                if (user.ResetToken != dto.Otp)
+                {
+                    user.FailedResetAttempts++;
+                    unitOfWork.GetRepository<User>().UpdateAsync(user);
+                    await unitOfWork.SaveChangesAsync();
+
+                    int remainingAttempts = MAX_FAILED_ATTEMPTS - user.FailedResetAttempts;
+                    throw new BusinessRuleException(
+                        $"Invalid OTP. {remainingAttempts} attempt{(remainingAttempts != 1 ? "s" : "")} remaining.");
+                }
+
+                // OTP is valid! User can proceed to Step 3
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new BusinessRuleException($"OTP verification failed: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Forget Password - Step 3: Confirm Reset Password
+
+        /// <summary>
+        /// Step 3: User submits email + OTP + new password
+        /// Password is changed after OTP verification
+        /// No need for old password since user forgot it
+        /// </summary>
+        public async Task<bool> ConfirmResetPasswordAsync(ConfirmResetPasswordDto dto)
+        {
+            try
+            {
+                // Get user by email
+                var user = await unitOfWork.GetRepository<User>()
+                    .GetAsync(u => u.Email == dto.Email);
+
+                if (user is null)
+                    throw new BusinessRuleException("Email not found in system!");
+
+                // Check if reset is locked
+                if (user.FailedResetAttempts >= MAX_FAILED_ATTEMPTS)
+                    throw new BusinessRuleException("Too many failed attempts. Please request a new OTP.");
+
+                // Check if OTP has expired
+                if (user.ResetTokenExpiry == null || DateTime.UtcNow > user.ResetTokenExpiry)
+                    throw new BusinessRuleException("OTP has expired. Please request a new one.");
+
+                // Verify OTP one more time before changing password
+                if (user.ResetToken != dto.Otp)
+                {
+                    user.FailedResetAttempts++;
+                    unitOfWork.GetRepository<User>().UpdateAsync(user);
+                    await unitOfWork.SaveChangesAsync();
+
+                    int remainingAttempts = MAX_FAILED_ATTEMPTS - user.FailedResetAttempts;
+                    throw new BusinessRuleException(
+                        $"Invalid OTP. {remainingAttempts} attempt{(remainingAttempts != 1 ? "s" : "")} remaining.");
+                }
+
+                // ✅ All validations passed! Now change the password
+
+                // Hash the new password
+                var hasher = new PasswordHasher<User>();
+                user.PasswordHash = hasher.HashPassword(user, dto.NewPassword);
+
+                // Clear reset token and reset counter
+                user.ResetToken = null;
+                user.ResetTokenExpiry = null;
+                user.FailedResetAttempts = 0;
+
+                // Update user in database
+                unitOfWork.GetRepository<User>().UpdateAsync(user);
+                await unitOfWork.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new BusinessRuleException($"Failed to reset password: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Forget Password send otp email
+        /// <summary>
+        /// Sends OTP to user's email via SMTP
+        /// Uses Gmail credentials from configuration/user secrets
+        /// </summary>
+        public async Task SendOtpEmailAsync(string email, string userName, string otp)
+        {
+            try
+            {
+                var smtpHost = configuration["SmtpSettings:Host"];
+                var smtpPort = int.Parse(configuration["SmtpSettings:Port"] ?? "587");
+                var smtpEmail = configuration["SmtpSettings:Email"];
+                var smtpPassword = configuration["SmtpSettings:Password"];
+                var displayName = configuration["SmtpSettings:DisplayName"];
+
+                if (smtpHost == null || smtpEmail == null || smtpPassword == null || displayName == null)
+                {
+                    throw new BusinessRuleException("no domain for this company");
+                }
+                using (var client = new SmtpClient(smtpHost, smtpPort))
+                {
+                    // Enable SSL for secure connection
+                    client.EnableSsl = true;
+
+                    // Use credentials from configuration
+                    client.Credentials = new NetworkCredential(smtpEmail, smtpPassword);
+
+                    var mailMessage = new MailMessage
+                    {
+                        From = new MailAddress(smtpEmail, displayName),
+                        Subject = "🔐 Reset Your Password",
+                        Body = AuthHelper.GenerateEmailBody(userName, otp),
+                        IsBodyHtml = true  // HTML email
+                    };
+
+                    mailMessage.To.Add(email);
+
+                    // Send email asynchronously
+                    await client.SendMailAsync(mailMessage);
+                }
+            }
+            catch (SmtpException ex)
+            {
+                throw new BusinessRuleException($"Failed to send email: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new BusinessRuleException($"Email service error: {ex.Message}");
+            }
+        }
+        #endregion
+
+        #region delete admin account
+        public async Task<bool> DeleteAccountFullyAsync()
+        {
+            int CompanyId = currentService.CompanyId ?? throw new UnauthorizedAccessException();
+
+            var companyRepo = unitOfWork.GetRepository<Company>();
+            var company = await companyRepo.GetAsync(c => c.Id == CompanyId);
+
+            if (company is null)
+                throw new BusinessRuleException("Company not found in the system!");
+
+            using var transaction = await unitOfWork.BeginTransactionAsync();
+
+            try
+            {
+                var branchIds = await unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()
+                    .Where(b => b.CompanyId == CompanyId)
+                    .Select(b => b.Id)
+                    .ToListAsync();
+
+                if (branchIds.Any())
+                {
+                    var issues = await unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (issues.Any()) unitOfWork.GetRepository<DeliveryIssue>().DeleteRangeAsync(issues);
+
+                    var transactions = await unitOfWork.GetRepository<Transaction>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (transactions.Any()) unitOfWork.GetRepository<Transaction>().DeleteRangeAsync(transactions);
+
+                    var demandForecasts = await unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (demandForecasts.Any()) unitOfWork.GetRepository<DemandForecast>().DeleteRangeAsync(demandForecasts);
+
+                    var inventories = await unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (inventories.Any()) unitOfWork.GetRepository<Inventory>().DeleteRangeAsync(inventories);
+
+                    var notifications = await unitOfWork.GetRepository<Notification>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (notifications.Any()) unitOfWork.GetRepository<Notification>().DeleteRangeAsync(notifications);
+
+                    var orders = await unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (orders.Any()) unitOfWork.GetRepository<Order>().DeleteRangeAsync(orders);
+
+                    var alertConfigs = await unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (alertConfigs.Any()) unitOfWork.GetRepository<AlertConfigurations>().DeleteRangeAsync(alertConfigs);
+
+                    var aiConfigs = await unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (aiConfigs.Any()) unitOfWork.GetRepository<AIConfigurations>().DeleteRangeAsync(aiConfigs);
+                }
+
+                var products = await unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                    .Where(x => x.CompanyId == CompanyId).ToListAsync();
+                if (products.Any()) unitOfWork.GetRepository<Product>().DeleteRangeAsync(products);
+
+                var categories = await unitOfWork.GetRepository<Category>().GetAllAsIQueryable()
+                    .Where(x => x.CompanyId == CompanyId).ToListAsync();
+                if (categories.Any()) unitOfWork.GetRepository<Category>().DeleteRangeAsync(categories);
+
+                var suppliers = await unitOfWork.GetRepository<Supplier>().GetAllAsIQueryable()
+                    .Where(x => x.CompanyId == CompanyId).ToListAsync();
+                if (suppliers.Any()) unitOfWork.GetRepository<Supplier>().DeleteRangeAsync(suppliers);
+
+                var branches = await unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()
+                    .Where(x => x.CompanyId == CompanyId).ToListAsync();
+                if (branches.Any())
+                    unitOfWork.GetRepository<Branch>().DeleteRangeAsync(branches);
+
+                companyRepo.DeleteAsync(company);
+
+                await unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new BusinessRuleException($"Failed to delete account completely: {ex.Message}");
+            }
+        }
+        #endregion
     }
 
 }

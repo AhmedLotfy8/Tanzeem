@@ -12,6 +12,10 @@ namespace Tanzeem.Services.Abstractions.Authentication {
         Task<string?> Login(UserLoginDto userLoginDto);
 
         public Task<bool> ChangePasswordAsync(ChangePasswordDto dto);
+        public Task<bool> RequestResetPasswordAsync(RequestResetPasswordDto dto);
+        public  Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
+        public Task<bool> ConfirmResetPasswordAsync(ConfirmResetPasswordDto dto);
+        public Task<bool> DeleteAccountFullyAsync();
     }
 }
 

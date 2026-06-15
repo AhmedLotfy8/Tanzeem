@@ -84,6 +84,7 @@ namespace Tanzeem.Web {
             builder.Services.AddHttpClient<DemandForecastingService>();
             builder.Services.AddScoped<IAIConfigService, AIConfigurationsService>();
             builder.Services.AddScoped<IAuditLogsService, AuditLogsService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
             #endregion
 
             #region Added Authentication

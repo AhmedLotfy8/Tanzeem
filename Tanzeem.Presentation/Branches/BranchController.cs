@@ -29,6 +29,14 @@ namespace Tanzeem.Presentation.Branches {
             var branches = await branchService.GetCompanyBranchesAsync();
             return Ok(branches);
         }
+        
+        [HttpGet]
+        [Route("Get-Branches-Menu")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetBranchesMenu() {
+            var branches = await branchService.GetBranchesList();
+            return Ok(branches);
+        }
 
         [HttpPut]
         [Route("Update-Branch/{id}")]

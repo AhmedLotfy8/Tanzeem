@@ -41,6 +41,14 @@ namespace Tanzeem.Presentation.BusinessCore {
             return Ok(result);
         }
 
+        [HttpPut]
+        [Route("Switch-Branch")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SwitchBranch(int newBranchId) {
+            var token = await businessCoreService.SwitchBranchAsync(newBranchId);
+            return Ok(token);
+        }
+
         [HttpGet]
         [Route("Get-Profile")]
         [Authorize]
@@ -80,7 +88,6 @@ namespace Tanzeem.Presentation.BusinessCore {
             var result = await businessCoreService.TerminateEmployeeAsync(id);
             return Ok(result);
         }
-
 
 
     }

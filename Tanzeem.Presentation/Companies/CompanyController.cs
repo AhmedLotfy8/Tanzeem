@@ -16,28 +16,27 @@ namespace Tanzeem.Presentation.Companies {
         : ControllerBase {
 
         [HttpGet]
-        [Route("Get-Company/{id}")]
-        //[Authorize(Roles = "")]
-        // Hard coded? to be changed with token claims
-        public async Task<IActionResult> GetCurrentCompany(int id) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
-            var result = await companyService.GetCurrentCompanyAsync(id);
+        [Route("Get-Company")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetCurrentCompany() {
+            var result = await companyService.GetCompanyAsync();
             return Ok(result);
         }
 
         [HttpPut]
-        [Route("Update-Company/{id}")]
-        //[Authorize(Roles = "")]
-        public async Task<IActionResult> UpdateCompany(int id, CompanyDto companyDto) {
+        [Route("Update-Company")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateCompany(CompanyDto companyDto) {
 
-            var result = await companyService.UpdateCompanyAsync(id, companyDto);
+            var result = await companyService.UpdateCompanyAsync(companyDto);
             return Ok(result);
         }
 
         [HttpDelete]
-        [Route("Delete-Company/{id}")]
-        //[Authorize(Roles = "")]
-        public async Task<IActionResult> DeleteCompany(int id) {
-            var result = await companyService.DeleteCompanyAsync(id);
+        [Route("Delete-Company")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteCompany() {
+            var result = await companyService.DeleteCompanyAsync();
             return Ok(result);
         }
 

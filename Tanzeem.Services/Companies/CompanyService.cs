@@ -7,34 +7,73 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.Users;
+using Tanzeem.Domain.Exceptions;
 using Tanzeem.Services.Abstractions.Companies;
+using Tanzeem.Services.Abstractions.Current;
+using Tanzeem.Services.Current;
 using Tanzeem.Shared.Dtos.Companies;
 
 namespace Tanzeem.Services.Companies {
-    public class CompanyService(IUnitOfWork _unitOfWork) : ICompanyService {
+    public class CompanyService(IUnitOfWork _unitOfWork,
+        ICurrentService currentService) : ICompanyService {
 
-        public async Task<CompanyDto> GetCurrentCompanyAsync(int companyId) { // Assuming companyId will be obtained from ClaimBasedTenant in the future, for now it's passed as a parameter
+        public async Task<CompanyDto> GetCompanyAsync() {
+
+            var companyId = currentService.CompanyId
+                ?? throw new InvalidOperationException("Company context missing from token.");
 
             var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
 
             if (company is null)
-                throw new Exception("company not found Exception");
+                throw new BusinessRuleException("Company not found.");
 
-            #region Mapping
-            var result = new CompanyDto {
+            return new CompanyDto {
                 Name = company.Name,
                 Field = company.Field,
                 Email = company.Email,
                 Phone = company.Phone
             };
-            #endregion
+        }
 
-            return result;
+        public async Task<int> UpdateCompanyAsync(CompanyDto companyDto) {
+
+            var companyId = currentService.CompanyId
+                ?? throw new InvalidOperationException("Company context missing from token.");
+
+            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
+
+            if (company is null)
+                throw new BusinessRuleException("Company not found.");
+
+            company.Name = companyDto.Name;
+            company.Field = companyDto.Field;
+            company.Email = companyDto.Email;
+            company.Phone = companyDto.Phone;
+
+            await _unitOfWork.SaveChangesAsync();
+            return company.Id;
+        }
+
+        public async Task<bool> DeleteCompanyAsync() {
+
+            var companyId = currentService.CompanyId
+                ?? throw new InvalidOperationException("Company context missing from token.");
+
+            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
+
+            if (company is null)
+                throw new BusinessRuleException("Company not found.");
+
+            company.IsActive = false;
+            return await _unitOfWork.SaveChangesAsync() > 0;
         }
 
         public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto, int adminId) {
 
             var admin = await _unitOfWork.GetRepository<User>().GetAsync(u => u.Id == adminId);
+
+            if (admin is null)
+                throw new BusinessRuleException("Admin not found.");
 
             #region Mapping
             var company = new Company {
@@ -50,47 +89,11 @@ namespace Tanzeem.Services.Companies {
             #endregion
 
             await _unitOfWork.GetRepository<Company>().AddAsync(company);
-
             var count = await _unitOfWork.SaveChangesAsync();
 
             return company.Id;
         }
 
-        public async Task<int> UpdateCompanyAsync(int companyId, CompanyDto companyDto) { // Using companyId now, will use ClaimBasedTenant for implicied companyId in the future
-
-            var company = _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId).Result;
-
-            if (company is null) {
-                throw new Exception("Company not found");
-            }
-
-            #region Mapping
-            company.Name = companyDto.Name;
-            company.Field = companyDto.Field;
-            company.Email = companyDto.Email;
-            company.Phone = companyDto.Phone;
-            #endregion
-
-
-            await _unitOfWork.SaveChangesAsync();
-            return company.Id;
-
-        }
-
-        public async Task<bool> DeleteCompanyAsync(int companyId) {
-
-            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
-
-            if (company is null) {
-                throw new Exception("Company not found");
-            }
-
-            company.IsActive = false;
-            var result = await _unitOfWork.SaveChangesAsync();
-            
-            return result > 0;
-
-        }
 
 
     }

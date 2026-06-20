@@ -124,6 +124,7 @@ namespace Tanzeem.Services.BusinessCore {
                 .Select(u => MapToProfileDto(u))
                 .ToListAsync();
         }
+        
         public async Task<bool> TerminateEmployeeAsync(int employeeId) {
 
             var employee = await unitOfWork.GetRepository<User>()
@@ -161,17 +162,16 @@ namespace Tanzeem.Services.BusinessCore {
 
         private async Task SetPrimaryBranchAsync(int userId, int newBranchId) {
 
-            var userTask = unitOfWork.GetRepository<User>().GetAsync(u => u.Id == userId);
-            var branchTask = unitOfWork.GetRepository<Branch>().GetAsync(b => b.Id == newBranchId);
-            await Task.WhenAll(userTask, branchTask);
+            var user = await unitOfWork.GetRepository<User>().GetAsync(u => u.Id == userId);
+            var branch = await unitOfWork.GetRepository<Branch>().GetAsync(b => b.Id == newBranchId);
 
-            if (userTask.Result is null)
+            if (user is null)
                 throw new BusinessRuleException("User not found.");
 
-            if (branchTask.Result is null)
+            if (branch is null)
                 throw new BusinessRuleException("Branch not found.");
 
-            if (branchTask.Result.CompanyId != currentService.CompanyId)
+            if (branch.CompanyId != currentService.CompanyId)
                 throw new BusinessRuleException("Branch does not belong to your company.");
 
             var currentPrimaryRelation = await unitOfWork.GetRepository<BranchUserRelationship>()

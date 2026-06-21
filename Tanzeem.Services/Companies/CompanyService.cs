@@ -12,6 +12,7 @@ using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Current;
 using Tanzeem.Shared.Dtos.Companies;
+using Tanzeem.Shared.Dtos.Subscription;
 
 namespace Tanzeem.Services.Companies {
     public class CompanyService(IUnitOfWork _unitOfWork,
@@ -66,6 +67,25 @@ namespace Tanzeem.Services.Companies {
 
             company.IsActive = false;
             return await _unitOfWork.SaveChangesAsync() > 0;
+        }
+
+
+        public async Task<SubscriptionDto> GetSubscriptionAsync() {
+
+            var companyId = currentService.CompanyId
+                ?? throw new InvalidOperationException("Company context missing from token.");
+
+            var company = await _unitOfWork.GetRepository<Company>().GetByIdAsync(companyId);
+
+            if (company is null)
+                throw new BusinessRuleException("Company not found.");
+
+            return new SubscriptionDto {
+                Id = company.Subscription.Id,
+                Plan = company.Subscription.Plan.ToString(),
+                Status = company.Subscription.Status.ToString(),
+                CurrentPeriodEnd = company.Subscription.CurrentPeriodEnd,
+            };
         }
 
         public async Task<int> CreateNewCompanyAsync(CompanyDto companyDto, int adminId) {

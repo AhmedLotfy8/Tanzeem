@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
+using Tanzeem.Domain.Entities.Subscriptions;
 using Tanzeem.Domain.Entities.Suppliers;
 using Tanzeem.Domain.Entities.Users;
 
@@ -33,8 +34,9 @@ namespace Tanzeem.Domain.Entities.Companies {
         public ICollection<Product> Products  { get; set; } = new List<Product>();
         public ICollection<Category> Categories  { get; set; } = new List<Category>();
         public ICollection<User> Users { get; set; } = new List<User>();
-        
         public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
+        public Subscription? Subscription { get; set; }
+
 
     }
 }

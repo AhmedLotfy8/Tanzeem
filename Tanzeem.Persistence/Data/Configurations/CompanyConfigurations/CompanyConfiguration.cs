@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Companies;
+using Tanzeem.Domain.Entities.Subscriptions;
 
 namespace Tanzeem.Persistence.Data.Configurations.CompanyConfigurations {
     public class CompanyConfiguration : IEntityTypeConfiguration<Company> {
@@ -42,6 +43,11 @@ namespace Tanzeem.Persistence.Data.Configurations.CompanyConfigurations {
                 .WithOne(u => u.Company)
                 .HasForeignKey(u => u.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+
+            builder.HasOne(c => c.Subscription)
+                .WithOne(s => s.Company)
+                .HasForeignKey<Subscription>(s => s.CompanyId);
 
         }
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 using System.Collections.Generic;
@@ -11,21 +12,33 @@ namespace Tanzeem.Persistence.Data.Configurations.SubscriptionConfigurations {
     public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription> {
         public void Configure(EntityTypeBuilder<Subscription> builder) {
 
-            builder.Property(x => x.Plan);
+            builder.Property(s => s.StripeCustomerId)
+           .IsRequired()
+           .HasMaxLength(255);
+
+            builder.Property(s => s.StripeSubscriptionId)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            builder.Property(s => s.Plan)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            builder.Property(s => s.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            builder.HasIndex(s => s.CompanyId)
+                .IsUnique();
 
             builder.HasIndex(s => s.StripeSubscriptionId)
                 .IsUnique();
 
-            builder.Property(x => x.Status)
-                .HasMaxLength(32);
-
-            builder.Property(x => x.StartedAt);
-
-            builder.Property(x => x.ExpiresAt);
-
-            builder.HasOne(x => x.User)
-                .WithOne(x => x.Subscription)
-                .HasForeignKey<Subscription>(s => s.UserId)
+            builder.HasOne(s => s.Company)
+                .WithOne(c => c.Subscription)
+                .HasForeignKey<Subscription>(s => s.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -27,9 +27,6 @@ namespace Tanzeem.Persistence.Data.Configurations.UsersConfigurations {
             builder.Property(x => x.PasswordHash)
                 .HasMaxLength(512);
 
-            builder.HasIndex(u => u.StripeCustomerId)
-                .IsUnique();
-
             builder.HasOne(x => x.Company)
                 .WithMany(c => c.Users)
                 .HasForeignKey(x => x.CompanyId)
@@ -40,11 +37,6 @@ namespace Tanzeem.Persistence.Data.Configurations.UsersConfigurations {
                 .WithOne(x => x.User)
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.Subscription)
-                .WithOne(s => s.User)
-                .HasForeignKey<Subscription>(s => s.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
 
         }
     }

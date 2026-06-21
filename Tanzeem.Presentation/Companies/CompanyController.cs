@@ -23,6 +23,14 @@ namespace Tanzeem.Presentation.Companies {
             return Ok(result);
         }
 
+        [HttpGet]
+        [Route("Get-Subscription")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetSubscription() {
+            var subscriptionDto = await companyService.GetSubscriptionAsync();
+            return Ok(subscriptionDto);
+        }
+
         [HttpPut]
         [Route("Update-Company")]
         [Authorize(Roles = "Admin")]

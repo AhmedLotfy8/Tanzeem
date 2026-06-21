@@ -37,13 +37,11 @@ namespace Tanzeem.Domain.Entities.Users {
         #endregion
         public int? CompanyId { get; set; }
 
-        public string? StripeCustomerId { get; set; }
         #region Navigation
         #endregion
         public Company Company { get; set; } = default!;
         public ICollection<BranchUserRelationship> BURelations { get; set; } = default!;
-        public Subscription Subscription { get; set; } = default!;
-
+        
         public ICollection<AuditTrial> auditTrials { get; set; } = new List<AuditTrial>();
     }
 }

@@ -9,7 +9,7 @@ using Tanzeem.Domain.Entities.Products;
 
 namespace Tanzeem.Domain.Entities.Inventories {
     public class Inventory : IAuditable {
-    
+
         public int Id { get; set; }
 
         public int? Quantity { get; set; }
@@ -25,7 +25,7 @@ namespace Tanzeem.Domain.Entities.Inventories {
         #endregion
         public Product Product { get; set; } = default!;
         public Branch Branch { get; set; } = default!;
-
+        public ICollection<Batch> Batches { get; set; } = new List<Batch>;
 
     }
 }

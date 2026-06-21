@@ -24,8 +24,6 @@ namespace Tanzeem.Persistence.Data.Configurations.ProductConfigurations {
             builder.Property(x => x.SellingPrice)
                 .HasColumnType("decimal(18,2)");
 
-            builder.Property(x => x.ExpiryDate);
-
             builder.Property(x => x.Barcode)
                 .HasMaxLength(256);
             

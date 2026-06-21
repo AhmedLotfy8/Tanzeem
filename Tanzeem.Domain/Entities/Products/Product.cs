@@ -22,8 +22,6 @@ namespace Tanzeem.Domain.Entities.Products {
 
         public decimal SellingPrice { get; set; }
 
-        public DateTime ExpiryDate { get; set; }
-
         public string Barcode { get; set; }
 
         public string Description { get; set; }

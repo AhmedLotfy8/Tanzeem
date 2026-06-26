@@ -175,38 +175,49 @@ namespace Tanzeem.Services.DeliveryIssues
                 query = query.OrderByDescending(x => x.RecieveDate);
             }
 
-            var deliveryIssuesDtos = await query
-                        .Skip((page - 1) * pageSize)
-                        .Take(pageSize)
-                        .Select(d => new DeliveryIssueDto
-                        {
-                            Id = d.Id,
-                            StringId = d.DeliveryIssueNumber,
-                            ItemsAffected = d.ItemsAffected,
-                            Discrepancy = d.Discrepancy,
-                            Notes = d.Notes,
-                            OrderId = d.OrderId,
-                            RecievedDate = d.RecieveDate,
-                            SupplierName = d.SupplierName,
-                            SupplierId = d.SupplierId ?? 0,
-                            SupplierEmail = d.Supplier.Email ?? "",
-                            SupplierPhone = d.Supplier.PhoneNumberOne ?? "",
-                            Items = d.DeliveryIssueItem
-                .GroupBy(issue => issue.OrderItemId)
-                .Select(group => new DeliveryIssueItemDto
+            var deliveryIssues = await query
+                .Include(d => d.Supplier)
+                .Include(d => d.DeliveryIssueItem)
+                    .ThenInclude(issue => issue.OrderItem)
+                    .ThenInclude(orderItem => orderItem.Product)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var deliveryIssuesDtos = deliveryIssues
+                .Select(d => new DeliveryIssueDto
                 {
-                    ProductId = group.FirstOrDefault()!.OrderItem.ProductId,
-                    ProductName = group.FirstOrDefault()!.OrderItem.Product.Name ?? "Unknown",
-                    SKU = group.FirstOrDefault()!.OrderItem.Product.SKU ?? "N/A",
-                    OrderedQuantity = group.FirstOrDefault()!.OrderItem.Quantity,
-                    Issues = group.Select(issueDetails => new ItemIssuesDto
-                    {
-                        IssueType = issueDetails.IssueType,
-                        Quantity = issueDetails.Quantity
-                    }).ToList()
-                }).ToList()
-                        })
-        .ToListAsync();
+                    Id = d.Id,
+                    StringId = d.DeliveryIssueNumber,
+                    ItemsAffected = d.ItemsAffected,
+                    Discrepancy = d.Discrepancy,
+                    Notes = d.Notes,
+                    OrderId = d.OrderId,
+                    RecievedDate = d.RecieveDate,
+                    SupplierName = d.SupplierName,
+                    SupplierId = d.SupplierId ?? 0,
+                    SupplierEmail = d.Supplier?.Email ?? "",
+                    SupplierPhone = d.Supplier?.PhoneNumberOne ?? "",
+                    Items = d.DeliveryIssueItem
+                        .GroupBy(issue => issue.OrderItemId)
+                        .Select(group =>
+                        {
+                            var orderItem = group.FirstOrDefault()?.OrderItem;
+                            return new DeliveryIssueItemDto
+                            {
+                                ProductId = orderItem?.ProductId ?? 0,
+                                ProductName = orderItem?.Product?.Name ?? "Unknown",
+                                SKU = orderItem?.Product?.SKU ?? "N/A",
+                                OrderedQuantity = orderItem?.Quantity ?? 0,
+                                Issues = group.Select(issueDetails => new ItemIssuesDto
+                                {
+                                    IssueType = issueDetails.IssueType,
+                                    Quantity = issueDetails.Quantity
+                                }).ToList()
+                            };
+                        }).ToList()
+                })
+                .ToList();
 
 
             #region old code

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -6,6 +7,7 @@ using System.Net;
 using System.Net.Mail;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.AIDemand;
+using Tanzeem.Domain.Entities.AuditLogs;
 using Tanzeem.Domain.Entities.Branches;
 using Tanzeem.Domain.Entities.Companies;
 using Tanzeem.Domain.Entities.DeliveryIssues;
@@ -27,7 +29,9 @@ using Tanzeem.Shared.Dtos.Users;
 namespace Tanzeem.Services.Authentication {
     public class AuthService(IUnitOfWork unitOfWork,
         ICurrentService currentService,
-        IOptions<JwtOptions> options, IConfiguration configuration) : IAuthService {
+        IOptions<JwtOptions> options,
+        IConfiguration configuration,
+        IHttpContextAccessor httpContextAccessor) : IAuthService {
         
         private const int OTP_EXPIRY_MINUTES = 10;
         private const int MAX_FAILED_ATTEMPTS = 3;
@@ -77,7 +81,46 @@ namespace Tanzeem.Services.Authentication {
                 throw new BusinessRuleException("Email or password is incorrect!");
             }
 
-            var token = await AuthHelper.GenerateToken(user, options, unitOfWork);
+            var now = DateTime.UtcNow;
+            var userAgent = TrimToLength(GetUserAgent(), 512);
+            var ipAddress = TrimToLength(GetIpAddress(), 64);
+            var jwtOptions = options.Value;
+
+            var matchingSessions = await unitOfWork.GetRepository<UserSession>()
+                .GetAllAsIQueryable()
+                .Where(s =>
+                    s.UserId == user.Id &&
+                    s.RevokedAt == null &&
+                    s.ExpiresAt > now &&
+                    s.UserAgent == userAgent &&
+                    s.IpAddress == ipAddress)
+                .OrderByDescending(s => s.CreatedAt)
+                .ToListAsync();
+
+            var session = matchingSessions.FirstOrDefault();
+
+            if (session is null)
+            {
+                session = CreateSession(user, now, userAgent, ipAddress);
+                await unitOfWork.GetRepository<UserSession>().AddAsync(session);
+            }
+            else
+            {
+                session.SessionKey = Guid.NewGuid().ToString("N");
+                session.LastSeenAt = now;
+                session.ExpiresAt = now.AddDays(jwtOptions.DurationInDays);
+                unitOfWork.GetRepository<UserSession>().UpdateAsync(session);
+
+                foreach (var duplicateSession in matchingSessions.Skip(1))
+                {
+                    RevokeSession(duplicateSession, "Replaced by newer login");
+                    unitOfWork.GetRepository<UserSession>().UpdateAsync(duplicateSession);
+                }
+            }
+
+            await unitOfWork.SaveChangesAsync();
+
+            var token = await AuthHelper.GenerateToken(user, options, unitOfWork, session.SessionKey);
 
             return token;
         }
@@ -107,6 +150,71 @@ namespace Tanzeem.Services.Authentication {
             return true;
         }
 
+        public async Task<IReadOnlyList<UserSessionDto>> GetSessionsAsync()
+        {
+            var userId = currentService.UserId
+                ?? throw new UnauthorizedAccessException("User not authenticated.");
+            var currentSessionKey = currentService.SessionId;
+            var now = DateTime.UtcNow;
+
+            return await unitOfWork.GetRepository<UserSession>()
+                .GetAllAsIQueryable()
+                .Where(s => s.UserId == userId && s.RevokedAt == null && s.ExpiresAt > now)
+                .OrderByDescending(s => s.LastSeenAt)
+                .Select(s => new UserSessionDto
+                {
+                    Id = s.Id,
+                    DeviceName = s.DeviceName,
+                    IpAddress = s.IpAddress,
+                    UserAgent = s.UserAgent,
+                    CreatedAt = s.CreatedAt,
+                    LastSeenAt = s.LastSeenAt,
+                    ExpiresAt = s.ExpiresAt,
+                    RevokedAt = s.RevokedAt,
+                    IsCurrent = s.SessionKey == currentSessionKey,
+                    IsActive = s.RevokedAt == null && s.ExpiresAt > now
+                })
+                .ToListAsync();
+        }
+
+        public async Task<bool> RevokeSessionAsync(int sessionId)
+        {
+            var userId = currentService.UserId
+                ?? throw new UnauthorizedAccessException("User not authenticated.");
+
+            var session = await unitOfWork.GetRepository<UserSession>()
+                .GetAsync(s => s.Id == sessionId && s.UserId == userId);
+
+            if (session is null)
+                throw new BusinessRuleException("Session not found.");
+
+            RevokeSession(session, "Revoked by user");
+            unitOfWork.GetRepository<UserSession>().UpdateAsync(session);
+            await unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> RevokeCurrentSessionAsync()
+        {
+            var userId = currentService.UserId
+                ?? throw new UnauthorizedAccessException("User not authenticated.");
+            var sessionKey = currentService.SessionId
+                ?? throw new BusinessRuleException("Current token is not linked to a login session.");
+
+            var session = await unitOfWork.GetRepository<UserSession>()
+                .GetAsync(s => s.SessionKey == sessionKey && s.UserId == userId);
+
+            if (session is null)
+                throw new BusinessRuleException("Current session not found.");
+
+            RevokeSession(session, "Signed out");
+            unitOfWork.GetRepository<UserSession>().UpdateAsync(session);
+            await unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
         #region Forget Password - Step 1: Request Reset
 
         /// <summary>
@@ -127,6 +235,9 @@ namespace Tanzeem.Services.Authentication {
                 // Generate OTP (6 random digits)
                 var otp = AuthHelper.GenerateOtp();
 
+                // Send OTP before persisting it so a failed email does not leave a usable reset token behind.
+                await SendOtpEmailAsync(user.Email, user.Name, otp);
+
                 // Store OTP in database with expiry time
                 user.ResetToken = otp;
                 user.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(OTP_EXPIRY_MINUTES);
@@ -135,10 +246,11 @@ namespace Tanzeem.Services.Authentication {
                 unitOfWork.GetRepository<User>().UpdateAsync(user);
                 await unitOfWork.SaveChangesAsync();
 
-                // Send OTP via email
-                await SendOtpEmailAsync(user.Email, user.Name, otp);
-
                 return true;
+            }
+            catch (BusinessRuleException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -187,6 +299,10 @@ namespace Tanzeem.Services.Authentication {
 
                 // OTP is valid! User can proceed to Step 3
                 return true;
+            }
+            catch (BusinessRuleException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -251,6 +367,10 @@ namespace Tanzeem.Services.Authentication {
 
                 return true;
             }
+            catch (BusinessRuleException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new BusinessRuleException($"Failed to reset password: {ex.Message}");
@@ -269,15 +389,26 @@ namespace Tanzeem.Services.Authentication {
             try
             {
                 var smtpHost = configuration["SmtpSettings:Host"];
-                var smtpPort = int.Parse(configuration["SmtpSettings:Port"] ?? "587");
+                var smtpPortValue = configuration["SmtpSettings:Port"] ?? "587";
                 var smtpEmail = configuration["SmtpSettings:Email"];
                 var smtpPassword = configuration["SmtpSettings:Password"];
                 var displayName = configuration["SmtpSettings:DisplayName"];
+                var missingSettings = new List<string>();
 
-                if (smtpHost == null || smtpEmail == null || smtpPassword == null || displayName == null)
-                {
-                    throw new BusinessRuleException("no domain for this company");
+                if (string.IsNullOrWhiteSpace(smtpHost)) missingSettings.Add("SmtpSettings:Host");
+                if (string.IsNullOrWhiteSpace(smtpEmail)) missingSettings.Add("SmtpSettings:Email");
+                if (string.IsNullOrWhiteSpace(smtpPassword)) missingSettings.Add("SmtpSettings:Password");
+                if (string.IsNullOrWhiteSpace(displayName)) missingSettings.Add("SmtpSettings:DisplayName");
+
+                if (missingSettings.Count > 0) {
+                    throw new BusinessRuleException(
+                        $"Password reset email is not configured. Missing: {string.Join(", ", missingSettings)}.");
                 }
+
+                if (!int.TryParse(smtpPortValue, out var smtpPort)) {
+                    throw new BusinessRuleException("Password reset email is not configured. SmtpSettings:Port must be a number.");
+                }
+
                 using (var client = new SmtpClient(smtpHost, smtpPort))
                 {
                     // Enable SSL for secure connection
@@ -288,7 +419,7 @@ namespace Tanzeem.Services.Authentication {
 
                     var mailMessage = new MailMessage
                     {
-                        From = new MailAddress(smtpEmail, displayName),
+                        From = new MailAddress(smtpEmail!, displayName),
                         Subject = "🔐 Reset Your Password",
                         Body = AuthHelper.GenerateEmailBody(userName, otp),
                         IsBodyHtml = true  // HTML email
@@ -303,6 +434,10 @@ namespace Tanzeem.Services.Authentication {
             catch (SmtpException ex)
             {
                 throw new BusinessRuleException($"Failed to send email: {ex.Message}");
+            }
+            catch (BusinessRuleException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -331,42 +466,70 @@ namespace Tanzeem.Services.Authentication {
                     .Select(b => b.Id)
                     .ToListAsync();
 
+                var userIds = await unitOfWork.GetRepository<User>().GetAllAsIQueryable()
+                    .Where(u => u.CompanyId == CompanyId)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                var auditTrials = await unitOfWork.GetRepository<AuditTrial>().GetAllAsIQueryable()
+                    .IgnoreQueryFilters()
+                    .Where(a =>
+                        (a.BranchId.HasValue && branchIds.Contains(a.BranchId.Value)) ||
+                        (a.UserId.HasValue && userIds.Contains(a.UserId.Value)))
+                    .ToListAsync();
+
+                if (auditTrials.Any()) unitOfWork.GetRepository<AuditTrial>().DeleteRangeAsync(auditTrials);
+
                 if (branchIds.Any())
                 {
                     var issues = await unitOfWork.GetRepository<DeliveryIssue>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (issues.Any()) unitOfWork.GetRepository<DeliveryIssue>().DeleteRangeAsync(issues);
 
                     var transactions = await unitOfWork.GetRepository<Transaction>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (transactions.Any()) unitOfWork.GetRepository<Transaction>().DeleteRangeAsync(transactions);
 
                     var demandForecasts = await unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (demandForecasts.Any()) unitOfWork.GetRepository<DemandForecast>().DeleteRangeAsync(demandForecasts);
 
                     var inventories = await unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (inventories.Any()) unitOfWork.GetRepository<Inventory>().DeleteRangeAsync(inventories);
 
+                    var inventoryBatches = await unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
+                        .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+                    if (inventoryBatches.Any()) unitOfWork.GetRepository<InventoryBatch>().DeleteRangeAsync(inventoryBatches);
+
                     var notifications = await unitOfWork.GetRepository<Notification>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (notifications.Any()) unitOfWork.GetRepository<Notification>().DeleteRangeAsync(notifications);
 
                     var orders = await unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (orders.Any()) unitOfWork.GetRepository<Order>().DeleteRangeAsync(orders);
 
                     var alertConfigs = await unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (alertConfigs.Any()) unitOfWork.GetRepository<AlertConfigurations>().DeleteRangeAsync(alertConfigs);
 
                     var aiConfigs = await unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()
+                        .IgnoreQueryFilters()
                         .Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
                     if (aiConfigs.Any()) unitOfWork.GetRepository<AIConfigurations>().DeleteRangeAsync(aiConfigs);
                 }
 
                 var products = await unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
+                    .IgnoreQueryFilters()
                     .Where(x => x.CompanyId == CompanyId).ToListAsync();
                 if (products.Any()) unitOfWork.GetRepository<Product>().DeleteRangeAsync(products);
 
@@ -397,6 +560,88 @@ namespace Tanzeem.Services.Authentication {
             }
         }
         #endregion
+
+        private UserSession CreateSession(User user, DateTime now, string? userAgent, string? ipAddress)
+        {
+            var jwtOptions = options.Value;
+
+            return new UserSession
+            {
+                SessionKey = Guid.NewGuid().ToString("N"),
+                UserId = user.Id,
+                DeviceName = DetectDeviceName(userAgent),
+                UserAgent = userAgent,
+                IpAddress = ipAddress,
+                CreatedAt = now,
+                LastSeenAt = now,
+                ExpiresAt = now.AddDays(jwtOptions.DurationInDays)
+            };
+        }
+
+        private static void RevokeSession(UserSession session, string reason)
+        {
+            if (session.RevokedAt is not null)
+                return;
+
+            session.RevokedAt = DateTime.UtcNow;
+            session.RevokedReason = reason;
+        }
+
+        private string? GetUserAgent()
+        {
+            return httpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString();
+        }
+
+        private string? GetIpAddress()
+        {
+            var request = httpContextAccessor.HttpContext?.Request;
+            var forwardedFor = request?.Headers["X-Forwarded-For"].ToString();
+            if (!string.IsNullOrWhiteSpace(forwardedFor))
+                return forwardedFor.Split(',')[0].Trim();
+
+            var realIp = request?.Headers["X-Real-IP"].ToString();
+            if (!string.IsNullOrWhiteSpace(realIp))
+                return realIp.Trim();
+
+            return httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+        }
+
+        private static string DetectDeviceName(string? userAgent)
+        {
+            if (string.IsNullOrWhiteSpace(userAgent))
+                return "Unknown device";
+
+            var lower = userAgent.ToLowerInvariant();
+
+            var browser = lower switch
+            {
+                var value when value.Contains("edg/") => "Edge",
+                var value when value.Contains("chrome/") || value.Contains("crios/") => "Chrome",
+                var value when value.Contains("firefox/") || value.Contains("fxios/") => "Firefox",
+                var value when value.Contains("safari/") => "Safari",
+                _ => "Browser"
+            };
+
+            var platform = lower switch
+            {
+                var value when value.Contains("iphone") => "iPhone",
+                var value when value.Contains("ipad") => "iPad",
+                var value when value.Contains("android") => "Android",
+                var value when value.Contains("mac os") || value.Contains("macintosh") => "Mac",
+                var value when value.Contains("windows") => "Windows",
+                _ => "device"
+            };
+
+            return $"{browser} on {platform}";
+        }
+
+        private static string? TrimToLength(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return value.Length <= maxLength ? value : value[..maxLength];
+        }
     }
 
 }

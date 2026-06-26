@@ -18,6 +18,9 @@ namespace Tanzeem.Persistence.Data.Configurations.TransactionsConfigurations {
             builder.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
+            builder.Property(x => x.UnitCost)
+                .HasColumnType("decimal(18,2)");
+
             builder.Property(ti => ti.BatchNumber)
                 .HasMaxLength(100);
             

@@ -22,7 +22,7 @@ namespace Tanzeem.Domain.Entities.Products {
 
         public decimal SellingPrice { get; set; }
 
-        public DateTime ExpiryDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
 
         public string Barcode { get; set; }
 
@@ -44,6 +44,7 @@ namespace Tanzeem.Domain.Entities.Products {
         public Company Company { get; set; } = default!;
         public ICollection<TransactionItem> TransactionItems { get; set; } = new List<TransactionItem>();
         public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+        public ICollection<InventoryBatch> InventoryBatches { get; set; } = new List<InventoryBatch>();
         public Category Category { get; set; }
         public ICollection<DemandForecast> Forecasts { get; set; } = new List<DemandForecast>();
 

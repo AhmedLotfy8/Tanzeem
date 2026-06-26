@@ -54,7 +54,9 @@ namespace Tanzeem.Persistence.Data.DbContexts {
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionItem> TransactionItems { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
+        public DbSet<InventoryBatch> InventoryBatches { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<Order> Order { get; set; }
         public DbSet<OrderItem> OrderItem { get; set; }
         public DbSet<Notification> Notification { get; set; }
@@ -79,9 +81,18 @@ namespace Tanzeem.Persistence.Data.DbContexts {
                 Entity: IAuditable,
                 State: EntityState.Added or EntityState.Modified or EntityState.Deleted,
             }).ToList();
+
+            var deletedBranchIds = ChangeTracker.Entries<Branch>()
+                .Where(e => e.State == EntityState.Deleted)
+                .Select(e => e.Entity.Id)
+                .ToHashSet();
+
             foreach (var entry in entries)
             {
                 var audit = CreateAuditTrialFromEntry(entry, currentTime, userId,branchId);
+                if (audit.BranchId.HasValue && deletedBranchIds.Contains(audit.BranchId.Value))
+                    audit.BranchId = null;
+
                 auditEntries.Add((audit,entry));
             }
 
@@ -193,21 +204,26 @@ namespace Tanzeem.Persistence.Data.DbContexts {
             modelBuilder.Entity<Product>().HasQueryFilter(
                 p => p.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
-            //
-            //modelBuilder.Entity<TransactionItem>().HasQueryFilter(
-            //    ti => (ti.Transaction.BranchId == currentService.BranchId || currentService.BranchId == null)
-            //       && (ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            modelBuilder.Entity<TransactionItem>().HasQueryFilter(
+                ti => ti.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
-            //
-            //modelBuilder.Entity<OrderItem>().HasQueryFilter(
-            //    oi => (oi.Order.BranchId == currentService.BranchId || currentService.BranchId == null)
-            //       && (oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+            modelBuilder.Entity<OrderItem>().HasQueryFilter(
+                oi => oi.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+
+            modelBuilder.Entity<DeliveryIssueItem>().HasQueryFilter(
+                dii => dii.OrderItem.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
+
+            modelBuilder.Entity<DemandForecast>().HasQueryFilter(
+                df => df.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null);
 
             //modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.CompanyId == currentService.CompanyId);
 
             //
             // Branch children
             modelBuilder.Entity<Inventory>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
+            && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
+
+            modelBuilder.Entity<InventoryBatch>().HasQueryFilter(i => (i.BranchId == currentService.BranchId)
             && (i.Product.CompanyId == currentService.CompanyId || currentService.CompanyId == null));
 
             /*

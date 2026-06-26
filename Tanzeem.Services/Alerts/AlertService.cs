@@ -86,17 +86,32 @@ namespace Tanzeem.Services.Alerts
                 .Select(ti => ti.ProductId)
                 .Distinct();
 
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>()
+                .GetAllAsIQueryable()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var rawQuery = await _unitOfWork.GetRepository<Inventory>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.BranchId == branchId
-                           && inv.Quantity > 0
-                           && !recentlySoldIds.Contains(inv.ProductId))
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(inv => inv.inventory.BranchId == branchId
+                           && inv.batchQuantity > 0
+                           && !recentlySoldIds.Contains(inv.inventory.ProductId))
                 .Select(inv => new
                 {
-                    inv.ProductId,
-                    inv.Product.Name,
-                    inv.Product.SKU,
-                    LastSaleDate = inv.Product.TransactionItems
+                    inv.inventory.ProductId,
+                    inv.inventory.Product.Name,
+                    inv.inventory.Product.SKU,
+                    LastSaleDate = inv.inventory.Product.TransactionItems
                         .Where(ti => ti.Transaction.Type == TransactionType.Out && ti.Transaction.BranchId == branchId)
                         .Select(ti => (DateTime?)ti.Transaction.CreatedAt)
                         .Max() 
@@ -123,17 +138,32 @@ namespace Tanzeem.Services.Alerts
             //int branchId = 1;
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>()
+                .GetAllAsIQueryable()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
-                .Where(x => x.BranchId == branchId
-                && x.Quantity > 0
-                && x.Quantity <= x.Product.ReorderLevel)
-                .OrderBy(x => x.ProductId)
-                .Select(inventory => new AlertDto
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(x => x.inventory.BranchId == branchId
+                    && x.batchQuantity > 0
+                    && x.batchQuantity <= x.inventory.Product.ReorderLevel)
+                .OrderBy(x => x.inventory.ProductId)
+                .Select(x => new AlertDto
                 {
                     AlertTitle = "Low Stock Alert",
-                    AlertDescription = $"{inventory.Product.Name} stock is below minimum threshold",
-                    AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU}), Current Quantity: {inventory.Quantity}",
-                    ProductId = inventory.ProductId,
+                    AlertDescription = $"{x.inventory.Product.Name} stock is below minimum threshold",
+                    AlertSubTitle = $"{x.inventory.Product.Name}(SKU: {x.inventory.Product.SKU}), Current Quantity: {x.batchQuantity}",
+                    ProductId = x.inventory.ProductId,
                     Type = NotificationType.LowStockAlert,
                     Priority = AlertPriority.Warning.ToString(),
                 }).ToListAsync();
@@ -145,31 +175,34 @@ namespace Tanzeem.Services.Alerts
             //int companyId = 14;
             int companyId = _currentService.CompanyId ?? throw new UnauthorizedAccessException("No company id assigned"); 
 
-            var products = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
-                .Where(p => p.ExpiryDate <= DateTime.UtcNow.AddMonths(ExpiryFilterByMonths)
-                && p.CompanyId == companyId
-                && p.Inventories.Any(i => i.Quantity > 0))
-                .Select(p => new
+            var batches = await _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .Where(batch => batch.Quantity > 0
+                    && batch.ExpiryDate.HasValue
+                    && batch.ExpiryDate <= DateTime.UtcNow.AddMonths(ExpiryFilterByMonths)
+                    && batch.Product.CompanyId == companyId)
+                .Select(batch => new
                 {
-                    p.Id,
-                    p.Name,
-                    p.SKU,
-                    p.ExpiryDate
+                    ProductId = batch.Product.Id,
+                    batch.Product.Name,
+                    batch.Product.SKU,
+                    batch.BatchNumber,
+                    ExpiryDate = batch.ExpiryDate!.Value,
+                    batch.Quantity
                 })
                 .ToListAsync();
 
-            var alerts = products.Select(product =>
+            var alerts = batches.Select(batch =>
             {
-                bool isExpired = product.ExpiryDate <= DateTime.UtcNow;
+                bool isExpired = batch.ExpiryDate <= DateTime.UtcNow;
 
                 return new AlertDto
                 {
                     AlertTitle = isExpired ? "Expired Product" : "Expiry Warning",
                     AlertDescription = isExpired
-                        ? $"{product.Name} has already expired!"
-                        : $"{product.Name} will expire in {NotificationServiceHelper.GenerateSinceDate(product.ExpiryDate)}",
-                    AlertSubTitle = $"{product.Name} (SKU: {product.SKU})",
-                    ProductId = product.Id,
+                        ? $"{batch.Name} batch {batch.BatchNumber} has already expired!"
+                        : $"{batch.Name} batch {batch.BatchNumber} will expire in {NotificationServiceHelper.GenerateSinceDate(batch.ExpiryDate)}",
+                    AlertSubTitle = $"{batch.Name} (SKU: {batch.SKU}), Quantity: {batch.Quantity}",
+                    ProductId = batch.ProductId,
                     Type = NotificationType.ExpiryAlert,
                     Priority = isExpired ? nameof(AlertPriority.Critical) : nameof(AlertPriority.Warning),
                 };
@@ -182,16 +215,31 @@ namespace Tanzeem.Services.Alerts
         {
             //int branchId = 1;
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>()
+                .GetAllAsIQueryable()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var alerts = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
-                .Where(x => x.BranchId == branchId
-                && x.Quantity == 0)
-                .OrderBy(x => x.ProductId)
-                .Select(inventory => new AlertDto
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(x => x.inventory.BranchId == branchId
+                    && x.batchQuantity == 0)
+                .OrderBy(x => x.inventory.ProductId)
+                .Select(x => new AlertDto
                 {
                     AlertTitle = "Out Of Stock Alert",
-                    AlertDescription = $"{inventory.Product.Name} is completely out of stock",
-                    AlertSubTitle = $"{inventory.Product.Name}(SKU: {inventory.Product.SKU})",
-                    ProductId = inventory.ProductId,
+                    AlertDescription = $"{x.inventory.Product.Name} is completely out of stock",
+                    AlertSubTitle = $"{x.inventory.Product.Name}(SKU: {x.inventory.Product.SKU})",
+                    ProductId = x.inventory.ProductId,
                     Type = NotificationType.OutOfStock,
                     Priority = AlertPriority.Critical.ToString(),
                 }).ToListAsync();

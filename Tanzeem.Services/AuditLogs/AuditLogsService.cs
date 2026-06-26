@@ -28,7 +28,7 @@ namespace Tanzeem.Services.AuditLogs
             var query = unitOfWork.GetRepository<AuditTrial>().GetAllAsIQueryable().Include(x => x.User)
                 .Where(x => x.BranchId == BranchId).OrderByDescending(x => x.CreatedAt);
 
-            int count = query.Count();
+            int count = await query.CountAsync();
 
             var logs = query.Select(a => new AuditLogsDto
             {
@@ -44,7 +44,10 @@ namespace Tanzeem.Services.AuditLogs
                 
             });
 
-            var data = await logs.Skip((page - 1) * pageSize)
+            var data = await logs
+                .OrderByDescending(a => a.CreatedAt)
+                .ThenByDescending(a => a.Id)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize).ToListAsync();
 
             return new PaginationResponseDto<AuditLogsDto>
@@ -69,7 +72,7 @@ namespace Tanzeem.Services.AuditLogs
             var query = unitOfWork.GetRepository<AuditTrial>().GetAllAsIQueryable().Include(x => x.User)
                 .Where(x => x.UserId == userId).OrderByDescending(x => x.CreatedAt);
 
-            int count = query.Count();
+            int count = await query.CountAsync();
 
             var logs = query.Select(a => new AuditLogsDto
             {
@@ -85,7 +88,10 @@ namespace Tanzeem.Services.AuditLogs
 
             });
 
-            var data = await logs.Skip((page - 1) * pageSize)
+            var data = await logs
+                .OrderByDescending(a => a.CreatedAt)
+                .ThenByDescending(a => a.Id)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize).ToListAsync();
 
             return new PaginationResponseDto<AuditLogsDto>

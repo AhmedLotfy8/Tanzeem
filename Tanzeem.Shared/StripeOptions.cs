@@ -10,6 +10,7 @@ namespace Tanzeem.Shared {
         public string SecretKey { get; set; } = default!;
         public string PublishableKey { get; set; } = default!;
         public string WebhookSecret { get; set; } = default!;
+        public string DefaultPriceId { get; set; } = default!;
 
     }
 }

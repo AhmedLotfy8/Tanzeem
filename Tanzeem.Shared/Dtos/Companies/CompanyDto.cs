@@ -15,5 +15,9 @@ namespace Tanzeem.Shared.Dtos.Companies {
 
         public string Phone { get; set; }
 
+        public string? StripeCustomerId { get; set; }
+
+        public string? StripeSubscriptionId { get; set; }
+
     }
 }

@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +19,7 @@ using Tanzeem.Domain.Entities.Orders;
 using Tanzeem.Domain.Entities.Products;
 using Tanzeem.Domain.Entities.Settings;
 using Tanzeem.Domain.Entities.Transactions;
+using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Services.Abstractions.Notifications;
@@ -25,7 +29,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tanzeem.Services.Notifications
 {
-    public class NotificationService(IUnitOfWork _unitOfWork, ICurrentService _currentService) : INotificationService
+    public class NotificationService(IUnitOfWork _unitOfWork, ICurrentService _currentService, IConfiguration configuration) : INotificationService
     {
         //try query filters
         public async Task<PaginationResponseDto<NotificationDto>> GetAllNotifications(int page, int pageSize)
@@ -80,6 +84,16 @@ namespace Tanzeem.Services.Notifications
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
             
             List<Notification> notifications = new List<Notification>();
+            var productIds = lowStockItems.Select(item => item.ProductId).Distinct().ToList();
+            var branchBatchTotals = await _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .Where(batch => batch.BranchId == branchId && productIds.Contains(batch.ProductId))
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                })
+                .ToDictionaryAsync(x => x.ProductId, x => x.Quantity);
 
             foreach (var item in lowStockItems)
             {
@@ -88,7 +102,8 @@ namespace Tanzeem.Services.Notifications
                 if (inventory == null) {
                     throw new KeyNotFoundException($"No inventory found for product ID {item.ProductId}");
                 }
-                if (inventory.Quantity == 0)
+                var currentQuantity = branchBatchTotals.GetValueOrDefault(item.ProductId, 0);
+                if (currentQuantity == 0)
                 {
                     Notification notification = new Notification
                     {
@@ -109,7 +124,7 @@ namespace Tanzeem.Services.Notifications
                         IsRead = false,
                         CreatedAt = DateTime.UtcNow,
                         Type = NotificationType.LowStockAlert,
-                        Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {inventory.Quantity}",
+                        Message = $"Product: {inventory.Product.Name} has reached the reorder level. Current quantity: {currentQuantity}",
                         Title = "Low Stock Alert",
                         BranchId = branchId
                     };
@@ -125,6 +140,9 @@ namespace Tanzeem.Services.Notifications
                 {
                     throw new DbUpdateFailedException("Failed to save notifications to the database");
                 }
+
+                var alert = await GetAlertConfigurationAsync(branchId);
+                await SendAlertEmailsAsync(notifications, alert);
             }
             return notifications.Select(x => x.Id).ToList();
         }
@@ -147,9 +165,24 @@ namespace Tanzeem.Services.Notifications
                 .Distinct()
                 .ToListAsync();
 
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var inventories = await _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
-                .Where(inv => !recentlySoldIds.Contains(inv.ProductId) && inv.BranchId == branchId && inv.Quantity > 0)
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(inv => !recentlySoldIds.Contains(inv.inventory.ProductId) && inv.inventory.BranchId == branchId && inv.batchQuantity > 0)
                 .ToListAsync();
 
             if (inventories.Count() == 0)
@@ -173,6 +206,8 @@ namespace Tanzeem.Services.Notifications
             if (affected <= 0 && inventories.Any())
                 throw new DbUpdateFailedException("Failed to save the dead stock notification.");
 
+            await SendAlertEmailAsync(notification, deadAlert);
+
         }
 
         public async Task CreateExpiryNotification(int branchId)
@@ -185,13 +220,15 @@ namespace Tanzeem.Services.Notifications
                 return;
             }
 
-            var productsCount = await _unitOfWork.GetRepository<Product>().GetAllAsIQueryable()
-                .IgnoreQueryFilters() 
-                .Where(p =>  p.ExpiryDate <= DateTime.UtcNow.AddDays(expiryAlert.DaysBeforeExpiry)
-                 && p.Inventories.Any(inv => inv.BranchId == branchId && inv.Quantity > 0))
+            var expiringBatchesCount = await _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(batch => batch.BranchId == branchId
+                    && batch.Quantity > 0
+                    && batch.ExpiryDate.HasValue
+                    && batch.ExpiryDate <= DateTime.UtcNow.AddDays(expiryAlert.DaysBeforeExpiry))
                 .CountAsync();
 
-            if (productsCount == 0)
+            if (expiringBatchesCount == 0)
             {
                 return;
             }
@@ -201,7 +238,7 @@ namespace Tanzeem.Services.Notifications
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
                 Type = NotificationType.ExpiryAlert,
-                Message = $"There are {productsCount} products near expiry, Check them now.",
+                Message = $"There are {expiringBatchesCount} inventory batches near expiry, Check them now.",
                 BranchId = branchId,
                 Title = "Expiry Warning"
             };
@@ -210,6 +247,8 @@ namespace Tanzeem.Services.Notifications
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
                 throw new DbUpdateFailedException("Failed to save the near expiry notification.");
+
+            await SendAlertEmailAsync(notification, expiryAlert);
         }
 
         public async Task createLowStockNotificationWeekly(int branchId)
@@ -222,12 +261,27 @@ namespace Tanzeem.Services.Notifications
                 return;
             }
 
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
                 .Include(inv => inv.Product)
-                .Where(inv => inv.BranchId == branchId
-                && inv.Quantity > 0
-                && inv.Quantity < inv.Product.ReorderLevel)
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(inv => inv.inventory.BranchId == branchId
+                && inv.batchQuantity > 0
+                && inv.batchQuantity < inv.inventory.Product.ReorderLevel)
                 .Count();
 
             if (inventories ==0 )
@@ -248,6 +302,8 @@ namespace Tanzeem.Services.Notifications
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
                 throw new DbUpdateFailedException("Failed to save the low stock notification.");
+
+            await SendAlertEmailAsync(notification, Alert);
         }
         
         public async Task createOutOfStockNotificationWeekly(int branchId)
@@ -259,11 +315,26 @@ namespace Tanzeem.Services.Notifications
             {
                 return;
             }
+            var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(batch => batch.BranchId == branchId)
+                .GroupBy(batch => batch.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Quantity = g.Sum(batch => batch.Quantity)
+                });
+
             var inventories = _unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable()
                 .IgnoreQueryFilters()
                 .Include(inv => inv.Product)
-                .Where(inv => inv.BranchId == branchId
-                && inv.Quantity == 0)
+                .GroupJoin(
+                    branchBatchTotals,
+                    inventory => inventory.ProductId,
+                    batchTotal => batchTotal.ProductId,
+                    (inventory, batchTotals) => new { inventory, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+                .Where(inv => inv.inventory.BranchId == branchId
+                && inv.batchQuantity == 0)
                 .Count();
             
             if (inventories == 0)
@@ -283,6 +354,8 @@ namespace Tanzeem.Services.Notifications
             int affected = await _unitOfWork.SaveChangesAsync();
             if (affected <= 0)
                 throw new DbUpdateFailedException("Failed to save the out of stock notification.");
+
+            await SendAlertEmailAsync(notification, Alert);
         }
         
         public async Task CreateOrderDeliveredNotification(Order order)
@@ -318,6 +391,8 @@ namespace Tanzeem.Services.Notifications
             
             if (affected <= 0)
                 throw new DbUpdateFailedException("Failed to save the order delivered notification.");
+
+            await SendAlertEmailAsync(notification, Alert);
         }
 
         public async Task CreateNewOrderNotification(Order order)
@@ -344,6 +419,8 @@ namespace Tanzeem.Services.Notifications
 
             if (affected <= 0)
                 throw new DbUpdateFailedException("Failed to save the new order notification.");
+
+            await SendAlertEmailAsync(notification, Alert);
         }
         /// <summary>
         /// hangfire uses this method to check
@@ -406,6 +483,148 @@ namespace Tanzeem.Services.Notifications
                 }
                 await _unitOfWork.SaveChangesAsync();
             }
+        }
+
+        private async Task<AlertConfigurations?> GetAlertConfigurationAsync(int branchId)
+        {
+            return await _unitOfWork.GetRepository<AlertConfigurations>().GetAllAsIQueryable()
+                .FirstOrDefaultAsync(x => x.BranchId == branchId);
+        }
+
+        private async Task SendAlertEmailsAsync(IEnumerable<Notification> notifications, AlertConfigurations? alert)
+        {
+            foreach (var notification in notifications)
+            {
+                await SendAlertEmailAsync(notification, alert);
+            }
+        }
+
+        private async Task SendAlertEmailAsync(Notification notification, AlertConfigurations? alert)
+        {
+            if (!ShouldSendEmail(notification, alert))
+            {
+                return;
+            }
+
+            var smtpHost = configuration["SmtpSettings:Host"];
+            var smtpPortValue = configuration["SmtpSettings:Port"] ?? "587";
+            var smtpEmail = configuration["SmtpSettings:Email"];
+            var smtpPassword = configuration["SmtpSettings:Password"];
+            var displayName = configuration["SmtpSettings:DisplayName"] ?? "Tanzeem";
+
+            if (string.IsNullOrWhiteSpace(smtpHost)
+                || string.IsNullOrWhiteSpace(smtpEmail)
+                || string.IsNullOrWhiteSpace(smtpPassword)
+                || !int.TryParse(smtpPortValue, out var smtpPort))
+            {
+                return;
+            }
+
+            var recipients = await GetAlertEmailRecipientsAsync(notification.BranchId);
+            if (recipients.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                using var client = new SmtpClient(smtpHost, smtpPort)
+                {
+                    EnableSsl = true,
+                    Credentials = new NetworkCredential(smtpEmail, smtpPassword)
+                };
+
+                using var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(smtpEmail, displayName),
+                    Subject = $"Tanzeem alert: {notification.Title}",
+                    Body = BuildAlertEmailBody(notification),
+                    IsBodyHtml = true
+                };
+
+                foreach (var recipient in recipients)
+                {
+                    mailMessage.Bcc.Add(recipient);
+                }
+
+                await client.SendMailAsync(mailMessage);
+            }
+            catch
+            {
+                // Alert emails are a secondary channel; keep the inventory/order action successful.
+            }
+        }
+
+        private static bool ShouldSendEmail(Notification notification, AlertConfigurations? alert)
+        {
+            if (alert is null || !alert.IsActive_EmailNotifiation)
+            {
+                return false;
+            }
+
+            return notification.Type switch
+            {
+                NotificationType.LowStockAlert => alert.IsActive_LowAlert,
+                NotificationType.OutOfStock => alert.IsActive_OutAlert,
+                NotificationType.ExpiryAlert => alert.IsActive_ExpiryAlert,
+                NotificationType.DeadStockAlert => alert.IsActive_DeadAlert,
+                NotificationType.OrderUpdate => alert.IsActive_NewOrderAlert || alert.IsActive_OrderUpdateAlert,
+                _ => true
+            };
+        }
+
+        private async Task<IReadOnlyCollection<string>> GetAlertEmailRecipientsAsync(int branchId)
+        {
+            var recipients = await _unitOfWork.GetRepository<BranchUserRelationship>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(relation => relation.BranchId == branchId
+                    && relation.User.Status == UserStatus.Active
+                    && !string.IsNullOrWhiteSpace(relation.User.Email))
+                .Select(relation => relation.User.Email)
+                .Distinct()
+                .ToListAsync();
+
+            if (recipients.Count > 0)
+            {
+                return recipients;
+            }
+
+            var branchEmail = await _unitOfWork.GetRepository<Branch>().GetAllAsIQueryable()
+                .IgnoreQueryFilters()
+                .Where(branch => branch.Id == branchId && !string.IsNullOrWhiteSpace(branch.Email))
+                .Select(branch => branch.Email)
+                .FirstOrDefaultAsync();
+
+            return string.IsNullOrWhiteSpace(branchEmail)
+                ? Array.Empty<string>()
+                : new[] { branchEmail };
+        }
+
+        private static string BuildAlertEmailBody(Notification notification)
+        {
+            var title = WebUtility.HtmlEncode(notification.Title);
+            var message = WebUtility.HtmlEncode(notification.Message);
+            var createdAt = notification.CreatedAt.ToString("yyyy-MM-dd HH:mm 'UTC'");
+
+            return $"""
+                <!doctype html>
+                <html>
+                <body style="margin:0;background:#f6f8f7;font-family:Arial,Helvetica,sans-serif;color:#17211d;">
+                    <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
+                        <div style="background:#ffffff;border:1px solid #dfe9e4;border-radius:16px;overflow:hidden;">
+                            <div style="background:#0f8f5f;padding:24px 28px;color:#ffffff;">
+                                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Tanzeem alert</div>
+                                <h1 style="font-size:24px;line-height:1.25;margin:10px 0 0;">{title}</h1>
+                            </div>
+                            <div style="padding:28px;">
+                                <p style="font-size:17px;line-height:1.6;margin:0 0 18px;">{message}</p>
+                                <p style="font-size:13px;color:#68766f;margin:0;">Created {createdAt}</p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """;
         }
 
     }

@@ -16,6 +16,8 @@ namespace Tanzeem.Domain.Entities.Transactions {
 
         public decimal UnitPrice { get; set; }
 
+        public decimal UnitCost { get; set; }
+
         public string? BatchNumber { get; set; }
 
 

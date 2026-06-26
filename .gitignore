@@ -62,6 +62,13 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+Tanzeem.Web/appsettings.Development.local.json
+Tanzeem.Web/appsettings.Development.local.json.tmp
+.config/
+.vercel/
+.env
+.env.*
+!.env.example
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -198,6 +205,10 @@ PublishScripts/
 *.snupkg
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
+
+# Local development secrets
+**/appsettings.Development.json
+**/.local/
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed

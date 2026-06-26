@@ -1,10 +1,13 @@
 ﻿using Tanzeem.Domain.Contracts;
+using Tanzeem.Domain.Entities.Subscriptions;
+using Tanzeem.Domain.Enums;
 using Tanzeem.Services.Abstractions.Authentication;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.Companies;
 using Tanzeem.Services.Abstractions.Onboarding;
 using Tanzeem.Services.Abstractions.Settings;
 using Tanzeem.Shared.Dtos.Onboarding;
+using Tanzeem.Shared.Dtos.Users;
 
 namespace Tanzeem.Services.Onboarding {
     public class OnboardingService(IUnitOfWork unitOfWork,
@@ -37,6 +40,17 @@ namespace Tanzeem.Services.Onboarding {
                 var companyId = await companyService.CreateNewCompanyAsync(companyDto, adminId);
                 #endregion
 
+                if (!string.IsNullOrWhiteSpace(companyDto.StripeSubscriptionId)) {
+                    await unitOfWork.GetRepository<Subscription>().AddAsync(new Subscription {
+                        CompanyId = companyId,
+                        StripeSubscriptionId = companyDto.StripeSubscriptionId.Trim(),
+                        Plan = PlanStatus.Pro,
+                        Status = SubscriptionStatus.Active,
+                        StartedAt = DateTime.UtcNow,
+                        ExpiresAt = DateTime.UtcNow.AddYears(1)
+                    });
+                }
+
 
                 #region Create new branch
                 var branchDto = onboardingDto.BranchDto;
@@ -55,7 +69,13 @@ namespace Tanzeem.Services.Onboarding {
                 #endregion
 
                 await transaction.CommitAsync();
-                return await Task.FromResult($"Onboarding successful! Admin ID: {adminId}, Company ID: {companyId}, Branch ID: {branchId}");
+                var token = await authService.Login(new UserLoginDto
+                {
+                    Email = adminDto.Email,
+                    Password = adminDto.Password
+                });
+
+                return token ?? $"Onboarding successful! Admin ID: {adminId}, Company ID: {companyId}, Branch ID: {branchId}";
             }
 
 

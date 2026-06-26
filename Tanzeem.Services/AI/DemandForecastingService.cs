@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.AIDemand;
 using Tanzeem.Domain.Entities.Branches;
@@ -16,10 +16,9 @@ using Tanzeem.Services.Abstractions.AI;
 using Tanzeem.Services.Abstractions.Current;
 using Tanzeem.Shared.Dtos;
 using Tanzeem.Shared.Dtos.DemandForecast;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactory _httpClientFactory,
-    ICurrentService _currentService, IConfiguration _configuration) : IDemandForecastingService
+    ICurrentService _currentService, IConfiguration _configuration, ILogger<DemandForecastingService> _logger) : IDemandForecastingService
 {
     public async Task<PaginationResponseDto<AIDemandForecastResponseDto>> GetAllPredictionsAsync(int page, int pageSize)
     {
@@ -38,21 +37,25 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
 
         var totalCount = await predictions.CountAsync();
 
-        var mappedData = await predictions
-        .OrderByDescending(x => x.PredictedUnits)
-        .ThenBy(x => x.Id)
-        .Skip((page - 1) * pageSize)
-        .Take(pageSize)
-        .Select(p => new AIDemandForecastResponseDto
-        {
-        ProductId = p.ProductId,
-        ProductName = p.Product.Name,
-        SKU = p.Product.SKU,
-        DemandOccurs = p.DemandOccurs,
-        PredictedUnits = (int)p.PredictedUnits,
-        Segment = p.Segment,
-        Confidence = (double)p.Confidence,
-        }).ToListAsync();
+        var predictionRows = await predictions
+            .Include(x => x.Product)
+            .ToListAsync();
+
+        var mappedData = predictionRows
+            .OrderByDescending(x => x.PredictedUnits)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new AIDemandForecastResponseDto
+            {
+                ProductId = p.ProductId,
+                ProductName = p.Product.Name,
+                SKU = p.Product.SKU,
+                DemandOccurs = p.DemandOccurs,
+                PredictedUnits = (int)p.PredictedUnits,
+                Segment = p.Segment,
+                Confidence = (double)p.Confidence,
+            }).ToList();
 
         return new PaginationResponseDto<AIDemandForecastResponseDto>
         {
@@ -68,8 +71,13 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
         //int branchId = 1;
         int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
-        var topCategories = await _unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
+        var forecasts = await _unitOfWork.GetRepository<DemandForecast>().GetAllAsIQueryable()
             .Where(x => x.BranchId == branchId)
+            .Include(x => x.Product)
+            .ThenInclude(x => x.Category)
+            .ToListAsync();
+
+        var topCategories = forecasts
             .GroupBy(x => new { CategoryId = x.Product.CategoryId, CategoryName = x.Product.Category.Name })
             .Select(g => new TopCategoriesByForecastDto
             {
@@ -79,7 +87,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
             })
             .OrderByDescending(c => c.CategoryCount)
             .Take(10)
-            .ToListAsync();
+            .ToList();
 
         return topCategories;
     }
@@ -100,11 +108,22 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
         var averageConfidence = await demandItems.AverageAsync(f => (double?)f.Confidence) ?? 0;
         var confidencePercentage = Math.Round(averageConfidence * 100);
 
-        var itemsNeedRestock = await demandItems.Join(_unitOfWork.GetRepository<Inventory>().GetAllAsIQueryable(),
-          forecast => new { forecast.ProductId, forecast.BranchId },
-          inventory => new { inventory.ProductId, inventory.BranchId },
-          (forecast, inventory) => new { forecast, inventory })
-            .Where(x => x.inventory.Quantity <= x.forecast.PredictedUnits)
+        var branchBatchTotals = _unitOfWork.GetRepository<InventoryBatch>().GetAllAsIQueryable()
+            .Where(batch => batch.BranchId == branchId)
+            .GroupBy(batch => batch.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                Quantity = g.Sum(batch => batch.Quantity)
+            });
+
+        var itemsNeedRestock = await demandItems
+            .GroupJoin(
+                branchBatchTotals,
+                forecast => forecast.ProductId,
+                batchTotal => batchTotal.ProductId,
+                (forecast, batchTotals) => new { forecast, batchQuantity = batchTotals.Select(x => x.Quantity).FirstOrDefault() })
+            .Where(x => x.batchQuantity <= x.forecast.PredictedUnits)
             .CountAsync();
         return new DemandDashboardDto
         {
@@ -128,14 +147,15 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
         var settings = await _unitOfWork.GetRepository<AIConfigurations>().GetAllAsIQueryable()
         .ToDictionaryAsync(s => s.BranchId, s => s.DemandForecasting);
         
-        Console.WriteLine($"✅ Settings loaded: {settings.Count} entries");
-        
         var allBranchIds = await _unitOfWork.GetRepository<Branch>()
         .GetAllAsIQueryable()
         .Select(b => b.Id)
         .ToListAsync();
 
-        Console.WriteLine($"✅ Total branches: {allBranchIds.Count}");
+        _logger.LogInformation(
+            "Starting demand forecast refresh for {BranchCount} branches with {SettingsCount} AI settings.",
+            allBranchIds.Count,
+            settings.Count);
 
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30).Date;
         var todayDate = DateTime.UtcNow.Date;
@@ -182,10 +202,11 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
                 .Include(i => i.Product)
                 .Where(i => i.BranchId == branchId)
                 .ToListAsync();
+            var branchBatchTotals = await GetBranchBatchTotalsAsync(branchId);
 
             double overallStoreAvg = rawSales.Any() ? rawSales.Average(x => x.Quantity) : 0;
 
-            var requestBatch = BuildFlaskRequests(inventories, rawSales, ordersTodayByProduct, branchId, overallStoreAvg, thirtyDaysAgo);
+            var requestBatch = BuildFlaskRequests(inventories, rawSales, ordersTodayByProduct, branchId, overallStoreAvg, thirtyDaysAgo, branchBatchTotals);
 
             foreach (var requestItem in requestBatch)
             {
@@ -250,10 +271,11 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
             .Include(i => i.Product)
             .Where(i => i.BranchId == branchId)
             .ToListAsync();
+        var branchBatchTotals = await GetBranchBatchTotalsAsync(branchId);
 
         double overallStoreAvg = rawSales.Any() ? rawSales.Average(x => x.Quantity) : 0;
 
-        var requestBatch = BuildFlaskRequests(inventories, rawSales, ordersTodayByProduct, branchId, overallStoreAvg, thirtyDaysAgo);
+        var requestBatch = BuildFlaskRequests(inventories, rawSales, ordersTodayByProduct, branchId, overallStoreAvg, thirtyDaysAgo, branchBatchTotals);
 
         foreach (var requestItem in requestBatch)
         {
@@ -275,8 +297,10 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
         {
             string apiUrl = _configuration["AIModels:ForecastApiUrl"] ?? throw new InvalidOperationException("API URL is missing in appsettings.json!");
 
-            string requestJson = System.Text.Json.JsonSerializer.Serialize(requestItem, new JsonSerializerOptions { WriteIndented = true });
-            Console.WriteLine($"\n📤 DATA SENT TO PYTHON (Request):\n{requestJson}\n");
+            _logger.LogInformation(
+                "Requesting demand forecast for {BranchId}/{ProductId}.",
+                requestItem.BranchId,
+                requestItem.ProductId);
 
             var _httpClient = _httpClientFactory.CreateClient(nameof(DemandForecastingService));
             var response = await _httpClient.PostAsJsonAsync(apiUrl, requestItem);
@@ -284,7 +308,6 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
             if (response.IsSuccessStatusCode)
             {
                 string rawJson = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"🔍 RAW JSON FROM PYTHON: {rawJson}");
 
                 try
                 {
@@ -293,20 +316,25 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
                 }
                 catch (System.Text.Json.JsonException ex)
                 {
-                    Console.WriteLine($"🚨 EXACT JSON ERROR: {ex.Message}");
+                    _logger.LogWarning(ex, "Demand forecast API returned invalid JSON for {BranchId}/{ProductId}.", requestItem.BranchId, requestItem.ProductId);
                     return null;
                 }
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"🚨 API Error: {response.StatusCode} - {errorContent}");
+                _logger.LogWarning(
+                    "Demand forecast API failed for {BranchId}/{ProductId} with status {StatusCode}: {Error}",
+                    requestItem.BranchId,
+                    requestItem.ProductId,
+                    response.StatusCode,
+                    errorContent);
                 return null;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🚨 Exception calling AI API: {ex.Message}");
+            _logger.LogWarning(ex, "Demand forecast API call failed for {BranchId}/{ProductId}.", requestItem.BranchId, requestItem.ProductId);
             return null;
         }
     }
@@ -361,7 +389,20 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
         await _unitOfWork.SaveChangesAsync();
     }
 
-    private List<AIDemandForecastRequestDto> BuildFlaskRequests(List<Inventory> inventories, List<ProductSaleData> rawSales, Dictionary<int, int> ordersTodayByProduct, int branchId, double overallStoreAvg, DateTime thirtyDaysAgo)
+    private async Task<Dictionary<int, int>> GetBranchBatchTotalsAsync(int branchId)
+        => await _unitOfWork.GetRepository<InventoryBatch>()
+            .GetAllAsIQueryable()
+            .IgnoreQueryFilters()
+            .Where(batch => batch.BranchId == branchId)
+            .GroupBy(batch => batch.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                Quantity = g.Sum(batch => batch.Quantity)
+            })
+            .ToDictionaryAsync(x => x.ProductId, x => x.Quantity);
+
+    private List<AIDemandForecastRequestDto> BuildFlaskRequests(List<Inventory> inventories, List<ProductSaleData> rawSales, Dictionary<int, int> ordersTodayByProduct, int branchId, double overallStoreAvg, DateTime thirtyDaysAgo, Dictionary<int, int> branchBatchTotals)
     {
         var batch = new List<AIDemandForecastRequestDto>();
 
@@ -388,6 +429,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
             }
 
             var todayUnitsOrdered = ordersTodayByProduct.TryGetValue(inv.ProductId, out int quantity) ? quantity : 0;
+            var inventoryLevel = branchBatchTotals.GetValueOrDefault(inv.ProductId, 0);
 
             batch.Add(new AIDemandForecastRequestDto
             {
@@ -397,7 +439,7 @@ public class DemandForecastingService(IUnitOfWork _unitOfWork, IHttpClientFactor
                 Price = inv.Product.SellingPrice,
                 Discount = 0,
                 HolidayPromotion = isHoliday,
-                InventoryLevel = inv.Quantity ?? 0,
+                InventoryLevel = inventoryLevel,
                 UnitsOrdered = todayUnitsOrdered,
                 History = history,
                 ProductStats = new ProductStatsDto

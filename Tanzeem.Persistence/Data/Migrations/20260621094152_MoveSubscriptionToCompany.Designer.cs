@@ -12,8 +12,8 @@ using Tanzeem.Persistence.Data.DbContexts;
 namespace Tanzeem.Persistence.Data.Migrations
 {
     [DbContext(typeof(TanzeemDbContext))]
-    [Migration("20260621080814_SubscriptionUpdate")]
-    partial class SubscriptionUpdate
+    [Migration("20260621094152_MoveSubscriptionToCompany")]
+    partial class MoveSubscriptionToCompany
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -220,7 +220,15 @@ namespace Tanzeem.Persistence.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("StripeCustomerId")
+                        .IsUnique()
+                        .HasFilter("[StripeCustomerId] IS NOT NULL");
 
                     b.ToTable("Companies");
                 });
@@ -334,6 +342,46 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("Inventories");
+                });
+
+            modelBuilder.Entity("Tanzeem.Domain.Entities.Inventories.InventoryBatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CostPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("BranchId", "ProductId", "BatchNumber");
+
+                    b.ToTable("InventoryBatches");
                 });
 
             modelBuilder.Entity("Tanzeem.Domain.Entities.Notifications.Notification", b =>
@@ -644,28 +692,22 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CurrentPeriodEnd")
+                    b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Plan")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Plan")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("StripeCustomerId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                    b.Property<int>("Status")
+                        .HasMaxLength(32)
+                        .HasColumnType("int");
 
                     b.Property<string>("StripeSubscriptionId")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
@@ -830,6 +872,9 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
@@ -1022,6 +1067,25 @@ namespace Tanzeem.Persistence.Data.Migrations
 
                     b.HasOne("Tanzeem.Domain.Entities.Products.Product", "Product")
                         .WithMany("Inventories")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Tanzeem.Domain.Entities.Inventories.InventoryBatch", b =>
+                {
+                    b.HasOne("Tanzeem.Domain.Entities.Branches.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Tanzeem.Domain.Entities.Products.Product", "Product")
+                        .WithMany("InventoryBatches")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1263,6 +1327,8 @@ namespace Tanzeem.Persistence.Data.Migrations
                     b.Navigation("Forecasts");
 
                     b.Navigation("Inventories");
+
+                    b.Navigation("InventoryBatches");
 
                     b.Navigation("TransactionItems");
                 });

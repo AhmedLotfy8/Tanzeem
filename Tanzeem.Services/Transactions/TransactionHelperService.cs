@@ -29,6 +29,7 @@ namespace Tanzeem.Services.Transactions {
                 var term = searchQuery.Trim().ToLower();
                 query = query.Where(t =>
                     t.TransactionId.ToLower().Contains(term) ||
+                    (t.TransactionNumber != null && t.TransactionNumber.ToLower().Contains(term)) ||
                     (t.ReferenceNumber != null && t.ReferenceNumber.ToLower().Contains(term)) ||
                     (t.Notes != null && t.Notes.ToLower().Contains(term))
                 );
@@ -43,7 +44,11 @@ namespace Tanzeem.Services.Transactions {
                 .Include(t => t.TransactionItems)
                     .ThenInclude(ti => ti.Product)
                         .ThenInclude(p => p.Inventories)
+                .Include(t => t.TransactionItems)
+                    .ThenInclude(ti => ti.Product)
+                        .ThenInclude(p => p.InventoryBatches)
                 .Include(t => t.PreformedByUser)
+                .AsSplitQuery()
                 .ToListAsync();
         }
 

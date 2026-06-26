@@ -110,6 +110,8 @@ namespace Tanzeem.Services.Products
             }
 
             return await query
+                .OrderBy(c => c.Name)
+                .ThenBy(c => c.Id)
                 .Select(c => new CategoryDto
                 {
                     Id = c.Id,

@@ -13,9 +13,13 @@ namespace Tanzeem.Services.Products {
 
         public async Task<IEnumerable<Product>> GetAllProducts(int? sortId, int? filterId, string? searchQuery) {
 
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
+
             IQueryable<Product> query = _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
-                .Where(p => p.CompanyId == currentService.CompanyId);
+                .Where(p => p.CompanyId == currentService.CompanyId
+                    && p.Inventories.Any(i => i.BranchId == branchId));
 
             if (filterId.HasValue)
                 query = query.Where(p => p.CategoryId == filterId);
@@ -26,17 +30,19 @@ namespace Tanzeem.Services.Products {
                 query = query.Where(p =>
                     p.Name.ToLower().Contains(term) ||
                     p.SKU.ToLower().Contains(term) ||
-                    p.Barcode.ToLower().Contains(term)
+                    p.Barcode.ToLower().Contains(term) ||
+                    p.Inventories.Any(i => i.BranchId == branchId
+                        && i.ProductNumber != null
+                        && i.ProductNumber.ToLower().Contains(term))
                 );
             }
 
             query = sortId switch {
                 1 => query.OrderBy(p => p.Name),
                 2 => query.OrderBy(p => p.SellingPrice),
-                3 => query.OrderBy(p => p.Inventories
-                             .Where(i => i.BranchId == currentService.BranchId)
-                             .Select(i => i.Quantity)
-                             .FirstOrDefault()),
+                3 => query.OrderBy(p => p.InventoryBatches
+                             .Where(i => i.BranchId == branchId)
+                             .Sum(i => i.Quantity)),
                 null => query.OrderBy(p => p.Id),
                 _ => throw new ArgumentException($"Invalid sort option: {sortId}")
             };
@@ -44,6 +50,8 @@ namespace Tanzeem.Services.Products {
             return await query
                 .Include(p => p.Category)
                 .Include(p => p.Inventories)
+                .Include(p => p.InventoryBatches)
+                .AsSplitQuery()
                 .ToListAsync();
         }
 

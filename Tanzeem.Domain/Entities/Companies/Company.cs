@@ -27,6 +27,8 @@ namespace Tanzeem.Domain.Entities.Companies {
 
         public bool IsActive { get; set; }
 
+        public string? StripeCustomerId { get; set; }
+
 
         #region Navigation
         #endregion
@@ -34,9 +36,9 @@ namespace Tanzeem.Domain.Entities.Companies {
         public ICollection<Product> Products  { get; set; } = new List<Product>();
         public ICollection<Category> Categories  { get; set; } = new List<Category>();
         public ICollection<User> Users { get; set; } = new List<User>();
-        public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
         public Subscription? Subscription { get; set; }
-
+        
+        public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
 
     }
 }

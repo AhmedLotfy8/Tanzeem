@@ -1,7 +1,9 @@
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 using Tanzeem.Domain.Contracts;
 using Tanzeem.Domain.Entities.AIDemand;
@@ -14,6 +16,7 @@ using Tanzeem.Services.Abstractions.AI;
 using Tanzeem.Services.Abstractions.Alerts;
 using Tanzeem.Services.Abstractions.AuditLogs;
 using Tanzeem.Services.Abstractions.Authentication;
+using Tanzeem.Services.Abstractions.Billing;
 using Tanzeem.Services.Abstractions.Branches;
 using Tanzeem.Services.Abstractions.BusinessCore;
 using Tanzeem.Services.Abstractions.Companies;
@@ -30,6 +33,7 @@ using Tanzeem.Services.Abstractions.Transactions;
 using Tanzeem.Services.Alerts;
 using Tanzeem.Services.AuditLogs;
 using Tanzeem.Services.Authentication;
+using Tanzeem.Services.Billing;
 using Tanzeem.Services.Branches;
 using Tanzeem.Services.BusinessCore;
 using Tanzeem.Services.Companies;
@@ -49,6 +53,24 @@ namespace Tanzeem.Web {
     public class Program {
         public static void Main(string[] args) {
             var builder = WebApplication.CreateBuilder(args);
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Configuration.AddJsonFile("appsettings.Development.local.json", optional: true, reloadOnChange: true);
+                ApplyStripeEnvironmentAliases(builder.Configuration);
+            }
+
+            var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            var databaseProvider = builder.Configuration.GetValue<string>("Database:Provider") ?? "SqlServer";
+            var usesSqlite = databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase);
+
+            if (builder.Environment.IsDevelopment() &&
+                !builder.Configuration.GetValue("DatabaseSafety:AllowSharedDevelopmentDatabase", false) &&
+                IsSharedDevelopmentDatabase(defaultConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "Refusing to start in Development with a shared database connection. " +
+                    "Use an isolated local/test database, or set DatabaseSafety:AllowSharedDevelopmentDatabase=true only when intentional.");
+            }
 
             // Add services to the container.
 
@@ -65,6 +87,7 @@ namespace Tanzeem.Web {
             builder.Services.AddScoped<TransactionHelperService>();
             
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IBillingService, BillingService>();
             builder.Services.AddScoped<IBusinessCoreService, BusinessCoreService>();
             builder.Services.AddScoped<IOnboardingService, OnboardingService>();
             
@@ -102,17 +125,52 @@ namespace Tanzeem.Web {
                         ValidAudience = jwtOptions.Audience,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecurityKey))
                     };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var sessionKey = context.Principal?.FindFirst("SessionId")?.Value;
+                            var userIdValue = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                            if (string.IsNullOrWhiteSpace(sessionKey) ||
+                                !int.TryParse(userIdValue, out var userId))
+                            {
+                                context.Fail("Login session is missing.");
+                                return;
+                            }
+
+                            var dbContext = context.HttpContext.RequestServices.GetRequiredService<TanzeemDbContext>();
+                            var now = DateTime.UtcNow;
+                            var session = await dbContext.UserSessions
+                                .FirstOrDefaultAsync(s => s.SessionKey == sessionKey && s.UserId == userId);
+
+                            if (session is null || session.RevokedAt != null || session.ExpiresAt <= now)
+                            {
+                                context.Fail("Login session is no longer active.");
+                                return;
+                            }
+
+                            if (session.LastSeenAt <= now.AddMinutes(-5))
+                            {
+                                session.LastSeenAt = now;
+                                await dbContext.SaveChangesAsync();
+                            }
+                        }
+                    };
                 });
 
             #endregion
 
             #region Added Hangfire
-            builder.Services.AddHangfire(config => config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer() //when create job use simple service name not full name with version and Public Key Token
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+            var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true) && !usesSqlite;
+            if (hangfireEnabled) {
+                builder.Services.AddHangfire(config => config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer() //when create job use simple service name not full name with version and Public Key Token
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(defaultConnectionString));
 
-            builder.Services.AddHangfireServer();
+                builder.Services.AddHangfireServer();
+            }
             #endregion
 
             #region Add CORS
@@ -121,7 +179,21 @@ namespace Tanzeem.Web {
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("https://tanzeem.runasp.net/", "https://tanzeem-self.vercel.app/")
+                    policy.WithOrigins(
+                            "https://tanzeem.runasp.net",
+                            "https://tanzeem.runasp.net/",
+                            "https://tanzeem-self.vercel.app",
+                            "https://tanzeem-self.vercel.app/",
+                            "https://tanzeem-ims.vercel.app",
+                            "https://tanzeem-ims.vercel.app/",
+                            "http://localhost:5173",
+                            "https://localhost:5173",
+                            "http://localhost:5174",
+                            "https://localhost:5174",
+                            "http://127.0.0.1:5173",
+                            "https://127.0.0.1:5173",
+                            "http://127.0.0.1:5174",
+                            "https://127.0.0.1:5174")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
@@ -141,34 +213,51 @@ namespace Tanzeem.Web {
             #region DB Connection
 
             builder.Services.AddDbContext<TanzeemDbContext>(options => {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+                if (usesSqlite)
+                {
+                    options.UseSqlite(ResolveSqliteConnectionString(defaultConnectionString, builder.Environment.ContentRootPath));
+                }
+                else
+                {
+                    options.UseSqlServer(defaultConnectionString);
+                }
             });
 
             #endregion
 
             var app = builder.Build();
+
+            if (app.Environment.IsDevelopment() && usesSqlite)
+            {
+                using var scope = app.Services.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<TanzeemDbContext>();
+                dbContext.Database.EnsureCreated();
+            }
+
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             #region background services
-            using (var scope = app.Services.CreateScope())
-            {
-                var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            if (hangfireEnabled) {
+                using (var scope = app.Services.CreateScope())
+                {
+                    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+                    var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
 
-                recurringJobManager.AddOrUpdate(
-                    "check-inventory-weekly",
-                    () => notificationService.CreateNotification(),
-                    Cron.Weekly(DayOfWeek.Saturday, 1)
-                );
-                //recurringJobManager.AddOrUpdate<DemandForecastingService>(
-                //        "update-ai-demand-forecast-daily",
-                //service => service.UpdateAllForecastsAsync(),
-                //Cron.Daily(23, 0));
-                recurringJobManager.AddOrUpdate<IDemandForecastingService>(
-                    "update-ai-demand-forecast-dailyy",
-                    service => service.UpdateAllForecastsAsync(),
-                    Cron.Daily(23, 0));
-                //RecurringJob.RemoveIfExists("update-ai-demand-forecast-daily");
+                    recurringJobManager.AddOrUpdate(
+                        "check-inventory-weekly",
+                        () => notificationService.CreateNotification(),
+                        Cron.Weekly(DayOfWeek.Saturday, 1)
+                    );
+                    //recurringJobManager.AddOrUpdate<DemandForecastingService>(
+                    //        "update-ai-demand-forecast-daily",
+                    //service => service.UpdateAllForecastsAsync(),
+                    //Cron.Daily(23, 0));
+                    recurringJobManager.AddOrUpdate<IDemandForecastingService>(
+                        "update-ai-demand-forecast-dailyy",
+                        service => service.UpdateAllForecastsAsync(),
+                        Cron.Daily(23, 0));
+                    //RecurringJob.RemoveIfExists("update-ai-demand-forecast-daily");
+                }
             }
             #endregion
 
@@ -179,13 +268,18 @@ namespace Tanzeem.Web {
             app.UseSwagger();
             app.UseSwaggerUI(options => {
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "V1");
-                options.RoutePrefix = string.Empty;
+                options.RoutePrefix = "swagger";
             });
+            app.MapGet("/", () => Results.Redirect("/swagger"));
 
             #endregion
 
-            app.UseHangfireDashboard("/hangfire"); // move it after auth middlewares -- at production phase
-            app.UseHttpsRedirection();
+            if (hangfireEnabled) {
+                app.UseHangfireDashboard("/hangfire"); // move it after auth middlewares -- at production phase
+            }
+            if (!app.Environment.IsDevelopment()) {
+                app.UseHttpsRedirection();
+            }
 
             app.UseCors("AllowFrontend");
 
@@ -196,6 +290,49 @@ namespace Tanzeem.Web {
             app.MapControllers();
 
             app.Run();
+        }
+
+        private static bool IsSharedDevelopmentDatabase(string? connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+                return false;
+
+            return connectionString.Contains("databaseasp.net", StringComparison.OrdinalIgnoreCase)
+                || connectionString.Contains("db41970", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ResolveSqliteConnectionString(string? connectionString, string contentRootPath)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+                connectionString = "Data Source=.local/tanzeem-dev.db";
+
+            var builder = new SqliteConnectionStringBuilder(connectionString);
+            if (string.IsNullOrWhiteSpace(builder.DataSource))
+                builder.DataSource = ".local/tanzeem-dev.db";
+
+            if (!Path.IsPathRooted(builder.DataSource) && builder.DataSource != ":memory:")
+                builder.DataSource = Path.GetFullPath(Path.Combine(contentRootPath, builder.DataSource));
+
+            var directory = Path.GetDirectoryName(builder.DataSource);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            return builder.ConnectionString;
+        }
+
+        private static void ApplyStripeEnvironmentAliases(IConfiguration configuration)
+        {
+            SetIfPresent(configuration, "StripeOptions:SecretKey", "STRIPE_SECRET_KEY");
+            SetIfPresent(configuration, "StripeOptions:PublishableKey", "STRIPE_PUBLISHABLE_KEY");
+            SetIfPresent(configuration, "StripeOptions:WebhookSecret", "STRIPE_WEBHOOK_SECRET");
+            SetIfPresent(configuration, "StripeOptions:DefaultPriceId", "STRIPE_DEFAULT_PRICE_ID");
+        }
+
+        private static void SetIfPresent(IConfiguration configuration, string configurationKey, string environmentKey)
+        {
+            var value = Environment.GetEnvironmentVariable(environmentKey);
+            if (!string.IsNullOrWhiteSpace(value))
+                configuration[configurationKey] = value;
         }
     }
 }

@@ -13,6 +13,9 @@ namespace Tanzeem.Shared.Dtos.Orders
     public class OrderItemsConfirmDto
     {
         public int ProductId { get; set; }
+        public string? BatchNumber { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public decimal? CostPrice { get; set; }
         public string? Notes { get; set; }
         public IEnumerable<ConfirmItemIssuesDto> ItemsIssueDtos { get; set; } = new List<ConfirmItemIssuesDto>();
     }

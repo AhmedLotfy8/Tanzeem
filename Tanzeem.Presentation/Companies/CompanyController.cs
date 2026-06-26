@@ -24,11 +24,11 @@ namespace Tanzeem.Presentation.Companies {
         }
 
         [HttpGet]
-        [Route("Get-Subscription")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetSubscription() {
-            var subscriptionDto = await companyService.GetSubscriptionAsync();
-            return Ok(subscriptionDto);
+        [Route("Get-Current-Company")]
+        [Authorize(Roles = "Admin, Manager, Staff")]
+        public async Task<IActionResult> GetCurrentCompanyReadOnly() {
+            var result = await companyService.GetCompanyAsync();
+            return Ok(result);
         }
 
         [HttpPut]

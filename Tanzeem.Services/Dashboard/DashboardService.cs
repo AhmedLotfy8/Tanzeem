@@ -23,10 +23,13 @@ namespace Tanzeem.Services.Dashboard
             //int branchId = 1;
             int branchId = _currentService.BranchId ?? throw new UnauthorizedAccessException("No branch id assigned"); 
 
-            var totalValue = await _unitOfWork.GetRepository<Inventory>()
+            var batchValues = await _unitOfWork.GetRepository<InventoryBatch>()
                 .GetAllAsIQueryable()
-                .Where(inv => inv.Quantity > 0 && inv.BranchId == branchId) 
-                .SumAsync(inv => (inv.Quantity ?? 0) * inv.Product.CostPrice);
+                .Where(batch => batch.Quantity > 0 && batch.BranchId == branchId)
+                .Select(batch => new { batch.Quantity, batch.CostPrice })
+                .ToListAsync();
+
+            var totalValue = batchValues.Sum(batch => batch.Quantity * batch.CostPrice);
 
             return totalValue;
         }
@@ -57,26 +60,37 @@ namespace Tanzeem.Services.Dashboard
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
             var sixtyDaysAgo = DateTime.UtcNow.AddDays(-60);
 
-            var rawData = await _unitOfWork.GetRepository<TransactionItem>()
+            var transactionItems = await _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.BranchId == branchId
                           && ti.Transaction.Type == TransactionType.Out
                           && ti.Transaction.SourceReason == TransactionSource.Selling 
                           && ti.Transaction.CreatedAt >= sixtyDaysAgo)
-                .GroupBy(ti => new { ti.ProductId, ti.Product.Name })
+                .Select(ti => new
+                {
+                    ti.ProductId,
+                    ti.Product.Name,
+                    ti.Transaction.CreatedAt,
+                    ti.QuantityOfTransactedItem,
+                    ti.UnitPrice
+                })
+                .ToListAsync();
+
+            var rawData = transactionItems
+                .GroupBy(ti => new { ti.ProductId, ti.Name })
                 .Select(g => new
                 {
                     ItemName = g.Key.Name,
 
-                    CurrentUnits = g.Sum(ti => ti.Transaction.CreatedAt >= thirtyDaysAgo ? ti.QuantityOfTransactedItem : 0),
-                    CurrentRevenue = g.Sum(ti => ti.Transaction.CreatedAt >= thirtyDaysAgo ? ti.QuantityOfTransactedItem * ti.UnitPrice : 0),
+                    CurrentUnits = g.Sum(ti => ti.CreatedAt >= thirtyDaysAgo ? ti.QuantityOfTransactedItem : 0),
+                    CurrentRevenue = g.Sum(ti => ti.CreatedAt >= thirtyDaysAgo ? ti.QuantityOfTransactedItem * ti.UnitPrice : 0),
 
-                    PreviousUnits = g.Sum(ti => ti.Transaction.CreatedAt < thirtyDaysAgo ? ti.QuantityOfTransactedItem : 0)
+                    PreviousUnits = g.Sum(ti => ti.CreatedAt < thirtyDaysAgo ? ti.QuantityOfTransactedItem : 0)
                 })
                 .Where(x => x.CurrentUnits > 0) 
                 .OrderByDescending(x => x.CurrentUnits)
                 .Take(10)
-                .ToListAsync();
+                .ToList();
 
             
             var result = rawData.Select(x => new TopMovingItemsDto
@@ -185,28 +199,48 @@ namespace Tanzeem.Services.Dashboard
             var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var startDate12MonthsAgo = startOfCurrentMonth.AddMonths(-11);
 
-            var initialStockValue = await _unitOfWork.GetRepository<TransactionItem>()
+            var previousItems = await _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.BranchId == branchId && ti.Transaction.CreatedAt < startDate12MonthsAgo)
-                .SumAsync(ti =>
-                    ti.Transaction.Type == TransactionType.In
-                        ? ti.QuantityOfTransactedItem * ti.UnitPrice
-                        : -ti.QuantityOfTransactedItem * ti.Product.CostPrice);
+                .Select(ti => new
+                {
+                    ti.QuantityOfTransactedItem,
+                    ti.UnitPrice,
+                    ti.UnitCost,
+                    ti.Transaction.Type
+                })
+                .ToListAsync();
 
-            var monthlyNetChanges = await _unitOfWork.GetRepository<TransactionItem>()
+            var initialStockValue = previousItems.Sum(ti =>
+                    ti.Type == TransactionType.In
+                        ? ti.QuantityOfTransactedItem * ti.UnitPrice
+                        : -ti.QuantityOfTransactedItem * ti.UnitCost);
+
+            var currentItems = await _unitOfWork.GetRepository<TransactionItem>()
                 .GetAllAsIQueryable()
                 .Where(ti => ti.Transaction.BranchId == branchId && ti.Transaction.CreatedAt >= startDate12MonthsAgo)
-                .GroupBy(ti => new { ti.Transaction.CreatedAt.Year, ti.Transaction.CreatedAt.Month })
+                .Select(ti => new
+                {
+                    ti.QuantityOfTransactedItem,
+                    ti.UnitPrice,
+                    ti.UnitCost,
+                    ti.Transaction.Type,
+                    ti.Transaction.CreatedAt
+                })
+                .ToListAsync();
+
+            var monthlyNetChanges = currentItems
+                .GroupBy(ti => new { ti.CreatedAt.Year, ti.CreatedAt.Month })
                 .Select(g => new
                 {
                     g.Key.Year,
                     g.Key.Month,
                     NetChange = g.Sum(ti =>
-                        ti.Transaction.Type == TransactionType.In
+                        ti.Type == TransactionType.In
                             ? ti.QuantityOfTransactedItem * ti.UnitPrice
-                            : -ti.QuantityOfTransactedItem * ti.Product.CostPrice)
+                            : -ti.QuantityOfTransactedItem * ti.UnitCost)
                 })
-                .ToListAsync();
+                .ToList();
 
             var result = new List<StockValueDto>();
             var runningTotalValue = initialStockValue;

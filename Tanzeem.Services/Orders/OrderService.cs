@@ -55,7 +55,7 @@ namespace Tanzeem.Services.Orders
 
             #endregion 
             var supplier = await _unitOfWork.GetRepository<Supplier>().GetByIdAsync(orderDto.SupplierId);
-            if (supplier == null)
+            if (supplier == null || supplier.BranchId != branchId)
                 throw new KeyNotFoundException("This supplier id not found");
             
             var productIds = orderDto.Items.Select(i => i.ProductId).Distinct().ToList();
@@ -626,6 +626,7 @@ namespace Tanzeem.Services.Orders
             int orderId = confirmDto.OrderId;
             var order = await _unitOfWork.GetRepository<Order>().GetByIdAsQueryable(orderId)
                 .Include(o => o.Items)
+                    .ThenInclude(i => i.Product)
                 .FirstOrDefaultAsync();
 
 
@@ -687,6 +688,22 @@ namespace Tanzeem.Services.Orders
                             };
                             await _unitOfWork.GetRepository<Inventory>().AddAsync(newInventory);
                         }
+
+                        if (netQuantityToAdd > 0)
+                        {
+                            await _unitOfWork.GetRepository<InventoryBatch>().AddAsync(new InventoryBatch
+                            {
+                                ProductId = orderItem.ProductId,
+                                BranchId = branchId,
+                                Quantity = netQuantityToAdd,
+                                BatchNumber = string.IsNullOrWhiteSpace(itemsConfirm.BatchNumber)
+                                    ? $"{order.OrderNumber}-{orderItem.ProductId}"
+                                    : itemsConfirm.BatchNumber.Trim(),
+                                ExpiryDate = itemsConfirm.ExpiryDate ?? orderItem.Product?.ExpiryDate,
+                                CostPrice = itemsConfirm.CostPrice ?? orderItem.Price,
+                                ReceivedAt = order.RecievedDeliveryDate ?? DateTime.UtcNow
+                            });
+                        }
                     }
                 }
                 #endregion
@@ -720,9 +737,12 @@ namespace Tanzeem.Services.Orders
             var deliveredCount = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
                 .CountAsync(o => o.BranchId == branchId && o.Status == OrderStatus.Deliverd);
 
-            var totalRevenue = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
+            var deliveredTotals = await _unitOfWork.GetRepository<Order>().GetAllAsIQueryable()
                 .Where(o => o.BranchId == branchId && o.Status == OrderStatus.Deliverd)
-                .SumAsync(o => (decimal?)o.Total) ?? 0;
+                .Select(o => o.Total)
+                .ToListAsync();
+
+            var totalRevenue = deliveredTotals.Sum();
 
             var roundedRevenue = Math.Round(totalRevenue);
             

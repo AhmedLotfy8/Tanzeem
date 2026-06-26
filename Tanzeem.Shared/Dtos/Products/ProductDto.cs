@@ -9,6 +9,8 @@ namespace Tanzeem.Shared.Dtos.Products {
 
         public int Id { get; set; }
 
+        public string? ProductNumber { get; set; }
+
         public string Name { get; set; }
 
         public string SKU { get; set; }
@@ -19,11 +21,15 @@ namespace Tanzeem.Shared.Dtos.Products {
 
         public int? Stock { get; set; }
 
+        public string? BatchNumber { get; set; }
+
+        public IEnumerable<InventoryBatchDto> Batches { get; set; } = new List<InventoryBatchDto>();
+
         public decimal CostPrice { get; set; }
 
         public decimal SellingPrice { get; set; }
 
-        public DateTime ExpiryDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
 
         public string Barcode { get; set; }
 

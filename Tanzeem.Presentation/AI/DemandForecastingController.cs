@@ -33,5 +33,16 @@ namespace Tanzeem.Presentation.AI
             var result = await _demandForecastingService.GetCounts();
             return Ok(result);
         }
+
+        [HttpPost("Refresh_Current_Branch")]
+        public async Task<IActionResult> RefreshCurrentBranchForecast()
+        {
+            var branchClaim = User.FindFirst("BranchId")?.Value;
+            if (!int.TryParse(branchClaim, out var branchId) || branchId <= 0)
+                return Unauthorized("User is not assigned to any branch.");
+
+            await _demandForecastingService.UpdateForecastForBranchAsync(branchId);
+            return Ok(new { message = "Demand forecast refresh completed.", branchId });
+        }
     }
 }

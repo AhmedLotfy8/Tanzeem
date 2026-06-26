@@ -25,7 +25,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate _next, ILogger<Exceptio
         int statusCode = (int)HttpStatusCode.InternalServerError;
         string message = "Un-Expected Error occur, please try again later";
         string title = "Internal Server Error";
-        IEnumerable<string> validationErrors = null;
+        IEnumerable<string>? validationErrors = null;
 
         switch (exception)
         {

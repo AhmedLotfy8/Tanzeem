@@ -49,11 +49,27 @@ namespace Tanzeem.Presentation.BusinessCore {
             return Ok(token);
         }
 
+        [HttpPost]
+        [Route("Reconcile-Inventory")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ReconcileInventory() {
+            var result = await businessCoreService.ReconcileCurrentBranchInventoryAsync();
+            return Ok(result);
+        }
+
         [HttpGet]
         [Route("Get-Profile")]
         [Authorize]
         public async Task<IActionResult> GetProfile() {
             var profile = await businessCoreService.GetUserProfileAsync();
+            return Ok(profile);
+        }
+
+        [HttpPut]
+        [Route("Update-Profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile(UserProfileUpdateDto updateDto) {
+            var profile = await businessCoreService.UpdateUserProfileAsync(updateDto);
             return Ok(profile);
         }
 

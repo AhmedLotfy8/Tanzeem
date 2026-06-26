@@ -4,26 +4,25 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Tanzeem.Domain.Entities.Companies;
-using Tanzeem.Domain.Entities.Users;
 using Tanzeem.Domain.Enums;
 
 namespace Tanzeem.Domain.Entities.Subscriptions {
     public class Subscription {
-        
+    
         public int Id { get; set; }
 
-        public PlanType Plan { get; set; }
+        public string StripeSubscriptionId { get; set; } = default!;
 
-        public SubscriptionStatus Status { get; set; }
+        public PlanStatus Plan { get; set; }
 
-        public DateTime CurrentPeriodEnd { get; set; }     
+        public SubscriptionStatus Status { get; set; } // Active_Expired
 
+        public DateTime StartedAt { get; set; } = default!;
 
-        public string StripeCustomerId { get; set; }       
-        public string StripeSubscriptionId { get; set; }   
+        public DateTime ExpiresAt { get; set; } = default!;
+
         public int CompanyId { get; set; }
-        public Company Company { get; set; }
+        public Company Company { get; set; } = default!;
 
     }
-
 }

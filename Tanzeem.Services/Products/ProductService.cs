@@ -39,6 +39,7 @@ namespace Tanzeem.Services.Products {
             var product = await _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
                 .Include(p => p.Category)
+                .Include(p => p.InventoryBatches)
                 .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId);
 
             if (product is null)
@@ -55,18 +56,20 @@ namespace Tanzeem.Services.Products {
 
             return new ProductDto {
                 Id = product.Id,
+                ProductNumber = inventory.ProductNumber ?? BuildProductNumber(branchId, inventory.Id),
                 Name = product.Name,
                 SKU = product.SKU,
                 Category = product.Category?.Name ?? "-",
                 CategoryId = product.CategoryId,
-                Stock = inventory.Quantity ?? 0,
+                Stock = GetBranchBatchQuantity(product, branchId, inventory.Quantity ?? 0),
                 CostPrice = product.CostPrice,
                 SellingPrice = product.SellingPrice,
-                ExpiryDate = product.ExpiryDate,
+                ExpiryDate = GetNearestBranchExpiry(product, branchId) ?? product.ExpiryDate,
                 Barcode = product.Barcode,
                 Description = product.Description,
                 ReorderLevel = product.ReorderLevel,
                 Status = product.Status,
+                Batches = MapBranchBatches(product, branchId)
             };
         }
 
@@ -74,23 +77,30 @@ namespace Tanzeem.Services.Products {
 
             var products = await productHelperService.GetAllProducts(sortId, filterId, searchQuery);
 
-            return products.Select(product => new ProductDto {
-                Id = product.Id,
-                Name = product.Name,
-                SKU = product.SKU,
-                Category = product.Category?.Name ?? "Uncategorized",
-                CategoryId = product.CategoryId,
-                CostPrice = product.CostPrice,
-                SellingPrice = product.SellingPrice,
-                ExpiryDate = product.ExpiryDate,
-                Barcode = product.Barcode,
-                Description = product.Description,
-                ReorderLevel = product.ReorderLevel,
-                Status = product.Status,
-                Stock = product.Inventories
-                                      .Where(i => i.BranchId == currentService.BranchId)
-                                      .Select(i => i.Quantity)
-                                      .FirstOrDefault()
+            return products.Select(product => {
+                var inventory = product.Inventories
+                    .FirstOrDefault(i => i.BranchId == currentService.BranchId);
+
+                return new ProductDto {
+                    Id = product.Id,
+                    ProductNumber = inventory?.ProductNumber ?? (inventory is null ? null : BuildProductNumber(inventory.BranchId, inventory.Id)),
+                    Name = product.Name,
+                    SKU = product.SKU,
+                    Category = product.Category?.Name ?? "Uncategorized",
+                    CategoryId = product.CategoryId,
+                    CostPrice = product.CostPrice,
+                    SellingPrice = product.SellingPrice,
+                    ExpiryDate = GetNearestBranchExpiry(product, currentService.BranchId ?? 0) ?? product.ExpiryDate,
+                    Barcode = product.Barcode,
+                    Description = product.Description,
+                    ReorderLevel = product.ReorderLevel,
+                    Status = product.Status,
+                    Stock = GetBranchBatchQuantity(
+                        product,
+                        currentService.BranchId ?? 0,
+                        inventory?.Quantity ?? 0),
+                    Batches = MapBranchBatches(product, currentService.BranchId ?? 0)
+                };
             });
         }
 
@@ -99,28 +109,53 @@ namespace Tanzeem.Services.Products {
             var companyId = currentService.CompanyId
                 ?? throw new UnauthorizedAccessException("CompanyId not found");
 
-            return await _unitOfWork.GetRepository<Product>()
+            var branchId = currentService.BranchId
+                ?? throw new UnauthorizedAccessException("BranchId not found");
+
+            var products = await _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
-                .Where(p => p.CompanyId == companyId && (string.IsNullOrEmpty(searchQuery) ||
+                .Where(p => p.CompanyId == companyId
+                    && p.Inventories.Any(i => i.BranchId == branchId)
+                    && (string.IsNullOrEmpty(searchQuery) ||
                     p.Name.Contains(searchQuery) ||
                     p.SKU.Contains(searchQuery) ||
-                    p.Barcode.Contains(searchQuery)
+                    p.Barcode.Contains(searchQuery) ||
+                    p.Inventories.Any(i => i.BranchId == branchId
+                        && i.ProductNumber != null
+                        && i.ProductNumber.Contains(searchQuery))
                 ))
-                .Select(p => new ProductDropdownMenuDto {
+                .OrderBy(p => p.Name)
+                .ThenBy(p => p.Id)
+                .Select(p => new {
                     Id = p.Id,
+                    ProductNumber = p.Inventories
+                        .Where(i => i.BranchId == branchId)
+                        .Select(i => i.ProductNumber)
+                        .FirstOrDefault(),
+                    InventoryId = p.Inventories
+                        .Where(i => i.BranchId == branchId)
+                        .Select(i => i.Id)
+                        .FirstOrDefault(),
                     Name = p.Name,
                     SKU = p.SKU,
                     Barcode = p.Barcode,
-                    Stock = p.Inventories
-                              .Where(i => i.BranchId == currentService.BranchId)
-                              .Select(i => i.Quantity)
-                              .FirstOrDefault() ?? 0,
+                    Stock = p.InventoryBatches
+                              .Where(i => i.BranchId == branchId)
+                              .Sum(i => i.Quantity),
                     Price = p.SellingPrice
                 })
                 .Take(15)
                 .ToListAsync();
 
-
+            return products.Select(p => new ProductDropdownMenuDto {
+                Id = p.Id,
+                ProductNumber = p.ProductNumber ?? BuildProductNumber(branchId, p.InventoryId),
+                Name = p.Name,
+                SKU = p.SKU,
+                Barcode = p.Barcode,
+                Stock = p.Stock,
+                Price = p.Price
+            });
 
         }
 
@@ -151,7 +186,7 @@ namespace Tanzeem.Services.Products {
 
                 var tranac = await _unitOfWork.BeginTransactionAsync();
                 try {
-                    AddProductToBranch(branchId, existingProduct, productDto.Stock ?? 0);
+                    await AddProductToBranchAsync(branchId, existingProduct, productDto.Stock ?? 0, productDto);
                     await _unitOfWork.SaveChangesAsync();
                     await tranac.CommitAsync();
                     return existingProduct.Id;
@@ -177,6 +212,7 @@ namespace Tanzeem.Services.Products {
                     .Where(c => c.Name == productDto.Category && c.CompanyId == companyId)
                     .FirstOrDefaultAsync();
 
+                var existingCategoryId = category?.Id;
                 if (category is null) {
                     category = new Category { Name = productDto.Category , CompanyId = companyId};
                     await _unitOfWork.GetRepository<Category>().AddAsync(category);
@@ -185,18 +221,20 @@ namespace Tanzeem.Services.Products {
                 var product = new Product {
                     Name = productDto.Name,
                     SKU = productDto.SKU,
-                    Category = category,
                     CostPrice = productDto.CostPrice,
                     SellingPrice = productDto.SellingPrice,
-                    ExpiryDate = productDto.ExpiryDate,
                     Barcode = productDto.Barcode,
                     Description = productDto.Description,
                     ReorderLevel = productDto.ReorderLevel,
                     Status = productDto.Status,
                     CompanyId = companyId
                 };
+                if (existingCategoryId.HasValue)
+                    product.CategoryId = existingCategoryId.Value;
+                else
+                    product.Category = category;
 
-                AddProductToBranch(branchId, product, productDto.Stock ?? 0);
+                await AddProductToBranchAsync(branchId, product, productDto.Stock ?? 0, productDto);
                 await _unitOfWork.GetRepository<Product>().AddAsync(product);
                 await _unitOfWork.SaveChangesAsync();
                 await transc.CommitAsync();
@@ -212,12 +250,27 @@ namespace Tanzeem.Services.Products {
         
         }
     
-        private void AddProductToBranch(int branchId, Product product, int initialQuantity) {
+        private async Task AddProductToBranchAsync(int branchId, Product product, int initialQuantity, ProductDto productDto) {
             product.Inventories ??= new List<Inventory>();
             product.Inventories.Add(new Inventory {
+                ProductNumber = await GenerateProductNumberAsync(branchId),
                 Quantity = initialQuantity,
                 BranchId = branchId
             });
+
+            product.InventoryBatches ??= new List<InventoryBatch>();
+            if (initialQuantity > 0)
+            {
+                product.InventoryBatches.Add(new InventoryBatch
+                {
+                    Quantity = initialQuantity,
+                    BranchId = branchId,
+                    BatchNumber = BuildDefaultBatchNumber(productDto),
+                    ExpiryDate = productDto.ExpiryDate,
+                    CostPrice = productDto.CostPrice,
+                    ReceivedAt = DateTime.UtcNow
+                });
+            }
         }
     
         public async Task<int> UpdateProductAsync(int id, ProductDto productDto) {
@@ -233,6 +286,7 @@ namespace Tanzeem.Services.Products {
             var product = await _unitOfWork.GetRepository<Product>()
                 .GetAllAsIQueryable()
                 .Include(p => p.Category)
+                .Include(p => p.InventoryBatches)
                 .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId);
 
             if (product is null)
@@ -254,13 +308,13 @@ namespace Tanzeem.Services.Products {
             product.SKU = productDto.SKU;
             product.CostPrice = productDto.CostPrice;
             product.SellingPrice = productDto.SellingPrice;
-            product.ExpiryDate = productDto.ExpiryDate;
             product.Barcode = productDto.Barcode;
             product.ReorderLevel = productDto.ReorderLevel;
             product.Status = productDto.Status;
 
             // Inventory field
             inventory.Quantity = productDto.Stock;
+            SyncDefaultBranchBatch(product, branchId, productDto.Stock ?? 0, productDto);
 
             #endregion
 
@@ -318,10 +372,19 @@ namespace Tanzeem.Services.Products {
             var forecast = await _unitOfWork.GetRepository<DemandForecast>()
                 .GetAsync(d => d.ProductId == id && d.BranchId == branchId);
 
+            var batches = await _unitOfWork.GetRepository<InventoryBatch>()
+                .GetAllAsIQueryable()
+                .Where(b => b.ProductId == id && b.BranchId == branchId)
+                .ToListAsync();
+
 
             #endregion
 
             _unitOfWork.GetRepository<Inventory>().DeleteAsync(inventory);
+            if (batches.Any())
+            {
+                _unitOfWork.GetRepository<InventoryBatch>().DeleteRangeAsync(batches);
+            }
             if (forecast is not null)
             {
                 _unitOfWork.GetRepository<DemandForecast>().DeleteAsync(forecast);
@@ -330,6 +393,80 @@ namespace Tanzeem.Services.Products {
 
             var count = await _unitOfWork.SaveChangesAsync();
             return count > 0;
+        }
+
+        private static string BuildDefaultBatchNumber(ProductDto productDto)
+            => string.IsNullOrWhiteSpace(productDto.BatchNumber)
+                ? $"DEFAULT-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                : productDto.BatchNumber.Trim();
+
+        private static int GetBranchBatchQuantity(Product product, int branchId, int fallbackQuantity)
+        {
+            var branchBatches = product.InventoryBatches?
+                .Where(b => b.BranchId == branchId)
+                .ToList() ?? new List<InventoryBatch>();
+
+            return branchBatches.Any()
+                ? branchBatches.Sum(b => b.Quantity)
+                : fallbackQuantity;
+        }
+
+        private static DateTime? GetNearestBranchExpiry(Product product, int branchId)
+            => product.InventoryBatches?
+                .Where(b => b.BranchId == branchId && b.Quantity > 0 && b.ExpiryDate.HasValue)
+                .OrderBy(b => b.ExpiryDate)
+                .Select(b => b.ExpiryDate)
+                .FirstOrDefault();
+
+        private static IEnumerable<InventoryBatchDto> MapBranchBatches(Product product, int branchId)
+            => product.InventoryBatches?
+                .Where(b => b.BranchId == branchId)
+                .OrderBy(b => b.ExpiryDate ?? DateTime.MaxValue)
+                .ThenBy(b => b.ReceivedAt)
+                .Select(b => new InventoryBatchDto
+                {
+                    Id = b.Id,
+                    BatchNumber = b.BatchNumber,
+                    Quantity = b.Quantity,
+                    ExpiryDate = b.ExpiryDate,
+                    CostPrice = b.CostPrice,
+                    ReceivedAt = b.ReceivedAt
+                })
+                .ToList() ?? new List<InventoryBatchDto>();
+
+        private static void SyncDefaultBranchBatch(Product product, int branchId, int requestedQuantity, ProductDto productDto)
+        {
+            product.InventoryBatches ??= new List<InventoryBatch>();
+            var branchBatches = product.InventoryBatches.Where(b => b.BranchId == branchId).ToList();
+            var currentBatchQuantity = branchBatches.Sum(b => b.Quantity);
+            var delta = requestedQuantity - currentBatchQuantity;
+
+            if (!branchBatches.Any() && requestedQuantity > 0)
+            {
+                product.InventoryBatches.Add(new InventoryBatch
+                {
+                    ProductId = product.Id,
+                    BranchId = branchId,
+                    BatchNumber = BuildDefaultBatchNumber(productDto),
+                    Quantity = requestedQuantity,
+                    ExpiryDate = productDto.ExpiryDate,
+                    CostPrice = productDto.CostPrice,
+                    ReceivedAt = DateTime.UtcNow
+                });
+                return;
+            }
+
+            var targetBatch = branchBatches
+                .OrderByDescending(b => b.ReceivedAt)
+                .FirstOrDefault();
+
+            if (targetBatch is null) return;
+
+            targetBatch.Quantity = Math.Max(0, targetBatch.Quantity + delta);
+            if (!string.IsNullOrWhiteSpace(productDto.BatchNumber))
+                targetBatch.BatchNumber = productDto.BatchNumber.Trim();
+            targetBatch.ExpiryDate = productDto.ExpiryDate;
+            targetBatch.CostPrice = productDto.CostPrice;
         }
 
         public async Task<int> CsvUploadAsync(IFormFile file)
@@ -379,6 +516,8 @@ namespace Tanzeem.Services.Products {
 
             var productsToInsert = new List<Product>();
             var inventoriesToInsert = new List<Inventory>();
+            var inventoryBatchesToInsert = new List<InventoryBatch>();
+            var nextProductSequence = await GetNextProductSequenceAsync(branchId);
 
             while (csv.Read())
             {
@@ -389,7 +528,8 @@ namespace Tanzeem.Services.Products {
                 string barcode = csv.GetField<string>("barcode")?.Trim() ?? "N/A";
                 string costPriceStr = csv.GetField<string>("cost price") ?? "0";
                 string sellingPriceStr = csv.GetField<string>("selling price") ?? "0";
-                string expiryDateStr = csv.GetField<string>("expiry date") ?? "1999/01/01";
+                string expiryDateStr = csv.GetField<string>("batch expiry") ?? csv.GetField<string>("expiry date") ?? "";
+                string batchNumber = csv.GetField<string>("batch number")?.Trim() ?? "";
                 string description = csv.GetField<string>("description") ?? "N/A";
                 string reorderLevelStr = csv.GetField<string>("reorder Level") ?? "0";
                 string status = csv.GetField<string>("status") ?? "Active";
@@ -450,9 +590,16 @@ namespace Tanzeem.Services.Products {
                 if (!string.IsNullOrWhiteSpace(reorderLevelStr) && !int.TryParse(reorderLevelStr, out reorderLevel))
                     validationErrors.Add($"Row {rowIndex}: 'Reorder Level' ({reorderLevelStr}) must be a valid integer.");
 
-                DateTime expiryDate = DateTime.MinValue;
-                if (!string.IsNullOrWhiteSpace(expiryDateStr) && !DateTime.TryParse(expiryDateStr, out expiryDate))
-                    validationErrors.Add($"Row {rowIndex}: 'Expiry Date' ({expiryDateStr}) is not a valid date format.");
+                DateTime? batchExpiryDate = null;
+                if (!string.IsNullOrWhiteSpace(expiryDateStr))
+                {
+                    if (!DateTime.TryParse(expiryDateStr, out var parsedExpiryDate))
+                        validationErrors.Add($"Row {rowIndex}: 'Batch Expiry' ({expiryDateStr}) is not a valid date format.");
+                    else
+                    {
+                        batchExpiryDate = parsedExpiryDate;
+                    }
+                }
 
 
                 string categoryKey = categoryName.ToLower();
@@ -477,7 +624,6 @@ namespace Tanzeem.Services.Products {
                         Barcode = string.IsNullOrWhiteSpace(barcode) ? "N/A" : barcode,
                         CostPrice = costPrice,
                         SellingPrice = sellingPrice,
-                        ExpiryDate = expiryDate, 
                         Description = description,
                         ReorderLevel = reorderLevel,
                         Status = status,
@@ -491,9 +637,26 @@ namespace Tanzeem.Services.Products {
                     {
                         Product = product,
                         BranchId = branchId,
+                        ProductNumber = BuildProductNumber(branchId, nextProductSequence++),
                         Quantity = quantity 
                     };
                     inventoriesToInsert.Add(inventory);
+
+                    if (quantity > 0)
+                    {
+                        inventoryBatchesToInsert.Add(new InventoryBatch
+                        {
+                            Product = product,
+                            BranchId = branchId,
+                            BatchNumber = string.IsNullOrWhiteSpace(batchNumber)
+                                ? $"CSV-{sku}-{rowIndex}"
+                                : batchNumber,
+                            Quantity = quantity,
+                            ExpiryDate = batchExpiryDate,
+                            CostPrice = costPrice,
+                            ReceivedAt = DateTime.UtcNow
+                        });
+                    }
 
                 }
             }
@@ -504,15 +667,46 @@ namespace Tanzeem.Services.Products {
                 throw new ValidationException($"CSV Validation Failed: {detailedErrorMessage}");
             }
 
-            if (productsToInsert.Any() || inventoriesToInsert.Any())
+            if (productsToInsert.Any() || inventoriesToInsert.Any() || inventoryBatchesToInsert.Any())
             {
                 await _unitOfWork.GetRepository<Product>().AddRangeAsync(productsToInsert);
                 await _unitOfWork.GetRepository<Inventory>().AddRangeAsync(inventoriesToInsert);
+                await _unitOfWork.GetRepository<InventoryBatch>().AddRangeAsync(inventoryBatchesToInsert);
                 await _unitOfWork.SaveChangesAsync();
             }
 
             return productsToInsert.Count;
         }
+
+        private async Task<string> GenerateProductNumberAsync(int branchId)
+            => BuildProductNumber(branchId, await GetNextProductSequenceAsync(branchId));
+
+        private async Task<int> GetNextProductSequenceAsync(int branchId)
+        {
+            var prefix = BuildNumberPrefix(branchId, "PRD");
+            var productNumbers = await _unitOfWork.GetRepository<Inventory>()
+                .GetAllAsIQueryable()
+                .Where(i => i.BranchId == branchId && i.ProductNumber != null && i.ProductNumber.StartsWith(prefix))
+                .Select(i => i.ProductNumber!)
+                .ToListAsync();
+
+            return productNumbers
+                .Select(number => TryReadSequence(number, prefix))
+                .DefaultIfEmpty(0)
+                .Max() + 1;
+        }
+
+        private static string BuildProductNumber(int branchId, int sequence)
+            => $"{BuildNumberPrefix(branchId, "PRD")}{Math.Max(sequence, 1):D4}";
+
+        private static string BuildNumberPrefix(int branchId, string type)
+            => $"B{branchId:D3}-{type}-";
+
+        private static int TryReadSequence(string value, string prefix)
+            => value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(value[prefix.Length..], out var sequence)
+                    ? sequence
+                    : 0;
 
     }
 }
